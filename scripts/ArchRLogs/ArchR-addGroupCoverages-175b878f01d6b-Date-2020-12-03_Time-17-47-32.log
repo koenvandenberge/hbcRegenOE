@@ -1,0 +1,2113 @@
+
+           ___      .______        ______  __    __  .______      
+          /   \     |   _  \      /      ||  |  |  | |   _  \     
+         /  ^  \    |  |_)  |    |  ,----'|  |__|  | |  |_)  |    
+        /  /_\  \   |      /     |  |     |   __   | |      /     
+       /  _____  \  |  |\  \\___ |  `----.|  |  |  | |  |\  \\___.
+      /__/     \__\ | _| `._____| \______||__|  |__| | _| `._____|
+    
+Logging With ArchR!
+
+Start Time : 2020-12-03 17:47:32
+
+------- ArchR Info
+
+ArchRThreads = 1
+ArchRGenome = Mm10
+
+------- System Info
+
+Computer OS = unix
+Total Cores = 8
+
+------- Session Info
+
+R version 3.6.2 (2019-12-12)
+Platform: x86_64-apple-darwin15.6.0 (64-bit)
+Running under: macOS Mojave 10.14.5
+
+Matrix products: default
+BLAS:   /Library/Frameworks/R.framework/Versions/3.6/Resources/lib/libRblas.0.dylib
+LAPACK: /Library/Frameworks/R.framework/Versions/3.6/Resources/lib/libRlapack.dylib
+
+locale:
+[1] en_US.UTF-8/en_US.UTF-8/en_US.UTF-8/C/en_US.UTF-8/en_US.UTF-8
+
+attached base packages:
+[1] parallel  stats4    stats     graphics  grDevices utils     datasets 
+[8] methods   base     
+
+other attached packages:
+ [1] ggalluvial_0.12.0           ArchR_0.9.5                
+ [3] magrittr_1.5                rhdf5_2.30.1               
+ [5] data.table_1.12.8           patchwork_1.0.0            
+ [7] Seurat_3.1.5                Signac_0.2.5               
+ [9] harmony_1.0                 Rcpp_1.0.3                 
+[11] scater_1.14.6               uwot_0.1.5                 
+[13] scran_1.14.5                forcats_0.4.0              
+[15] stringr_1.4.0               dplyr_0.8.4                
+[17] purrr_0.3.3                 readr_1.3.1                
+[19] tidyr_1.0.2                 tibble_2.1.3               
+[21] tidyverse_1.3.0             irlba_2.3.3                
+[23] Matrix_1.2-18               gridExtra_2.3              
+[25] wesanderson_0.3.6           pheatmap_1.0.12            
+[27] ggplot2_3.3.2               RColorBrewer_1.1-2         
+[29] clusterExperiment_2.6.1     bigmemory_4.5.36           
+[31] rgl_0.100.30                cowplot_1.0.0              
+[33] SingleCellExperiment_1.8.0  SummarizedExperiment_1.16.1
+[35] DelayedArray_0.12.2         BiocParallel_1.20.1        
+[37] matrixStats_0.56.0          Biobase_2.46.0             
+[39] GenomicRanges_1.38.0        GenomeInfoDb_1.22.0        
+[41] IRanges_2.20.2              S4Vectors_0.24.3           
+[43] BiocGenerics_0.32.0         slingshot_1.5.2            
+[45] princurve_2.1.4            
+
+loaded via a namespace (and not attached):
+  [1] rtracklayer_1.46.0                 pkgmaker_0.31                     
+  [3] bit64_0.9-7                        knitr_1.28                        
+  [5] RCurl_1.98-1.1                     doParallel_1.0.15                 
+  [7] generics_0.0.2                     RSQLite_2.2.0                     
+  [9] RANN_2.6.1                         future_1.16.0                     
+ [11] ggfittext_0.9.0                    bit_1.1-15.2                      
+ [13] phylobase_0.8.6                    webshot_0.5.2                     
+ [15] xml2_1.3.2                         lubridate_1.7.4                   
+ [17] httpuv_1.5.2                       assertthat_0.2.1                  
+ [19] viridis_0.5.1                      xfun_0.12                         
+ [21] hms_0.5.3                          evaluate_0.14                     
+ [23] promises_1.1.0                     fansi_0.4.1                       
+ [25] progress_1.2.2                     caTools_1.18.0                    
+ [27] dbplyr_1.4.2                       readxl_1.3.1                      
+ [29] igraph_1.2.4.2                     DBI_1.1.0                         
+ [31] htmlwidgets_1.5.1                  ellipsis_0.3.0                    
+ [33] gggenes_0.4.0                      RSpectra_0.16-0                   
+ [35] crosstalk_1.0.0                    backports_1.1.5                   
+ [37] annotate_1.64.0                    gridBase_0.4-7                    
+ [39] locfdr_1.1-8                       RcppParallel_4.4.4                
+ [41] vctrs_0.2.2                        Cairo_1.5-10                      
+ [43] here_0.1                           ROCR_1.0-7                        
+ [45] withr_2.1.2                        BSgenome_1.54.0                   
+ [47] sctransform_0.2.1                  GenomicAlignments_1.22.1          
+ [49] prettyunits_1.1.1                  softImpute_1.4                    
+ [51] cluster_2.1.0                      ape_5.3                           
+ [53] lazyeval_0.2.2                     crayon_1.3.4                      
+ [55] genefilter_1.68.0                  labeling_0.3                      
+ [57] edgeR_3.28.0                       pkgconfig_2.0.3                   
+ [59] nlme_3.1-142                       vipor_0.4.5                       
+ [61] rlang_0.4.4.9000                   globals_0.12.5                    
+ [63] lifecycle_0.1.0                    miniUI_0.1.1.1                    
+ [65] registry_0.5-1                     bigmemory.sri_0.1.3               
+ [67] modelr_0.1.5                       rsvd_1.0.2                        
+ [69] cellranger_1.1.0                   rprojroot_1.3-2                   
+ [71] lmtest_0.9-37                      rngtools_1.5                      
+ [73] ggseqlogo_0.1                      Rhdf5lib_1.8.0                    
+ [75] zoo_1.8-7                          reprex_0.3.0                      
+ [77] beeswarm_0.2.3                     ggridges_0.5.2                    
+ [79] png_0.1-7                          viridisLite_0.3.0                 
+ [81] BSgenome.Mmusculus.UCSC.mm10_1.4.0 bitops_1.0-6                      
+ [83] rncl_0.8.3                         KernSmooth_2.23-16                
+ [85] Biostrings_2.54.0                  blob_1.2.1                        
+ [87] DelayedMatrixStats_1.8.0           manipulateWidget_0.10.0           
+ [89] zinbwave_1.11.6                    scales_1.1.0                      
+ [91] memoise_1.1.0                      plyr_1.8.5                        
+ [93] ica_1.0-2                          howmany_0.3-1                     
+ [95] gplots_3.0.1.2                     bibtex_0.4.2.2                    
+ [97] gdata_2.18.0                       zlibbioc_1.32.0                   
+ [99] compiler_3.6.2                     lsei_1.2-0                        
+[101] dqrng_0.2.1                        fitdistrplus_1.0-14               
+[103] Rsamtools_2.2.1                    cli_2.0.1                         
+[105] ade4_1.7-13                        XVector_0.26.0                    
+[107] listenv_0.8.0                      pbapply_1.4-2                     
+[109] MASS_7.3-51.4                      tidyselect_1.0.0                  
+[111] stringi_1.4.5                      yaml_2.2.1                        
+[113] BiocSingular_1.2.1                 locfit_1.5-9.1                    
+[115] ggrepel_0.8.1                      grid_3.6.2                        
+[117] tools_3.6.2                        future.apply_1.4.0                
+[119] rstudioapi_0.11                    uuid_0.1-2                        
+[121] foreach_1.4.7                      RNeXML_2.4.2                      
+[123] farver_2.0.3                       Rtsne_0.15                        
+[125] digest_0.6.23                      FNN_1.1.3                         
+[127] shiny_1.4.0                        broom_0.5.4                       
+[129] later_1.0.0                        RcppAnnoy_0.0.14                  
+[131] httr_1.4.1                         AnnotationDbi_1.48.0              
+[133] npsurv_0.4-0                       kernlab_0.9-29                    
+[135] colorspace_1.4-1                   rvest_0.3.5                       
+[137] XML_3.99-0.3                       fs_1.3.1                          
+[139] reticulate_1.14                    splines_3.6.2                     
+[141] statmod_1.4.33                     plotly_4.9.1                      
+[143] xtable_1.8-4                       jsonlite_1.6.1                    
+[145] R6_2.4.1                           pillar_1.4.3                      
+[147] htmltools_0.4.0                    mime_0.9                          
+[149] NMF_0.21.0                         glue_1.3.1                        
+[151] fastmap_1.0.1                      BiocNeighbors_1.4.1               
+[153] codetools_0.2-16                   tsne_0.1-3                        
+[155] lattice_0.20-38                    ggbeeswarm_0.6.0                  
+[157] leiden_0.3.4                       gtools_3.8.1                      
+[159] survival_3.1-8                     limma_3.42.1                      
+[161] rmarkdown_2.1                      munsell_0.5.0                     
+[163] GenomeInfoDbData_1.2.2             iterators_1.0.12                  
+[165] HDF5Array_1.14.1                   haven_2.2.0                       
+[167] reshape2_1.4.3                     gtable_0.3.0                      
+
+
+------- Log Info
+
+
+2020-12-03 17:47:32 : addGroupCoverages Input-Parameters, Class = list
+
+addGroupCoverages Input-Parameters$ArchRProj: length = 1
+class: ArchRProject 
+outputDirectory: /Users/koenvandenberge/Dropbox/research/brainStat/hbcRegenGithub/data/scATAC/archR_samples_pairwise_v2 
+samples(6): s1Inj s3Inj ... s2Inj s1UI
+sampleColData names(1): ArrowFiles
+cellColData names(22): Sample TSSEnrichment ... FRIP predAnn
+numberOfCells(1): 1
+medianTSS(1): 13.414
+medianFrags(1): 97573
+
+
+addGroupCoverages Input-Parameters$groupBy: length = 1
+[1] "predAnn"
+
+
+addGroupCoverages Input-Parameters$useLabels: length = 1
+[1] TRUE
+
+
+addGroupCoverages Input-Parameters$minCells: length = 1
+[1] 40
+
+
+addGroupCoverages Input-Parameters$maxCells: length = 1
+[1] 500
+
+
+addGroupCoverages Input-Parameters$maxFragments: length = 1
+[1] 2.5e+07
+
+
+addGroupCoverages Input-Parameters$minReplicates: length = 1
+[1] 2
+
+
+addGroupCoverages Input-Parameters$maxReplicates: length = 1
+[1] 6
+
+
+addGroupCoverages Input-Parameters$sampleRatio: length = 1
+[1] 0.8
+
+
+addGroupCoverages Input-Parameters$kmerLength: length = 1
+[1] 6
+
+
+addGroupCoverages Input-Parameters$threads: length = 1
+[1] 1
+
+
+addGroupCoverages Input-Parameters$returnGroups: length = 1
+[1] FALSE
+
+
+addGroupCoverages Input-Parameters$parallelParam: length = 0
+NULL
+
+
+addGroupCoverages Input-Parameters$force: length = 1
+[1] TRUE
+
+
+addGroupCoverages Input-Parameters$verbose: length = 1
+[1] FALSE
+
+
+addGroupCoverages Input-Parameters$logFile: length = 1
+[1] "ArchRLogs/ArchR-addGroupCoverages-175b878f01d6b-Date-2020-12-03_Time-17-47-32.log"
+
+
+
+2020-12-03 17:47:32 : 
+
+2020-12-03 17:47:32 : 
+
+2020-12-03 17:47:32 : 
+
+2020-12-03 17:47:32 : 
+
+2020-12-03 17:47:32 : 
+2020-12-03 17:47:33 : Batch Execution w/ safelapply!, 0.027 mins elapsed.
+2020-12-03 17:47:33 : Group C1_Inj._.s1Inj (1 of 20) : Creating Group Coverage File : C1_Inj._.s1Inj.insertions.coverage.h5, 0.029 mins elapsed.
+
+2020-12-03 17:47:33 : Group C1_Inj._.s1Inj (1 of 20) : cellGroupi, Class = character
+
+Group C1_Inj._.s1Inj (1 of 20) : cellGroupi: length = 500
+[1] "s1Inj#CACATGATCGAGCGCT-1" "s1Inj#ACTGCAACAATGCATC-1"
+[3] "s1Inj#ATCGAGTGTTAAGGGC-1" "s1Inj#AGCCGCACAACGTACT-1"
+[5] "s1Inj#TAGCCGGCATGTAGAA-1" "s1Inj#TCAAGACCATCACAGT-1"
+
+
+
+2020-12-03 17:47:33 : 
+
+2020-12-03 17:47:33 : 
+
+2020-12-03 17:47:33 : 
+
+2020-12-03 17:47:33 : 
+
+2020-12-03 17:47:33 : 
+
+2020-12-03 17:47:33 : 
+
+2020-12-03 17:47:33 : 
+2020-12-03 17:47:33 : Group C1_Inj._.s1Inj (1 of 20) : Processed Fragments Chr (1 of 21), 0.03 mins elapsed.
+2020-12-03 17:47:35 : Group C1_Inj._.s1Inj (1 of 20) : Processed Fragments Chr (2 of 21), 0.059 mins elapsed.
+2020-12-03 17:47:37 : Group C1_Inj._.s1Inj (1 of 20) : Processed Fragments Chr (3 of 21), 0.083 mins elapsed.
+2020-12-03 17:47:38 : Group C1_Inj._.s1Inj (1 of 20) : Processed Fragments Chr (4 of 21), 0.106 mins elapsed.
+2020-12-03 17:47:39 : Group C1_Inj._.s1Inj (1 of 20) : Processed Fragments Chr (5 of 21), 0.124 mins elapsed.
+2020-12-03 17:47:40 : Group C1_Inj._.s1Inj (1 of 20) : Processed Fragments Chr (6 of 21), 0.143 mins elapsed.
+2020-12-03 17:47:41 : Group C1_Inj._.s1Inj (1 of 20) : Processed Fragments Chr (7 of 21), 0.164 mins elapsed.
+2020-12-03 17:47:43 : Group C1_Inj._.s1Inj (1 of 20) : Processed Fragments Chr (8 of 21), 0.183 mins elapsed.
+2020-12-03 17:47:44 : Group C1_Inj._.s1Inj (1 of 20) : Processed Fragments Chr (9 of 21), 0.202 mins elapsed.
+2020-12-03 17:47:45 : Group C1_Inj._.s1Inj (1 of 20) : Processed Fragments Chr (10 of 21), 0.222 mins elapsed.
+2020-12-03 17:47:46 : Group C1_Inj._.s1Inj (1 of 20) : Processed Fragments Chr (11 of 21), 0.24 mins elapsed.
+2020-12-03 17:47:47 : Group C1_Inj._.s1Inj (1 of 20) : Processed Fragments Chr (12 of 21), 0.258 mins elapsed.
+2020-12-03 17:47:49 : Group C1_Inj._.s1Inj (1 of 20) : Processed Fragments Chr (13 of 21), 0.283 mins elapsed.
+2020-12-03 17:47:50 : Group C1_Inj._.s1Inj (1 of 20) : Processed Fragments Chr (14 of 21), 0.305 mins elapsed.
+2020-12-03 17:47:51 : Group C1_Inj._.s1Inj (1 of 20) : Processed Fragments Chr (15 of 21), 0.33 mins elapsed.
+2020-12-03 17:47:53 : Group C1_Inj._.s1Inj (1 of 20) : Processed Fragments Chr (16 of 21), 0.351 mins elapsed.
+2020-12-03 17:47:55 : Group C1_Inj._.s1Inj (1 of 20) : Processed Fragments Chr (17 of 21), 0.382 mins elapsed.
+2020-12-03 17:47:56 : Group C1_Inj._.s1Inj (1 of 20) : Processed Fragments Chr (18 of 21), 0.408 mins elapsed.
+2020-12-03 17:47:58 : Group C1_Inj._.s1Inj (1 of 20) : Processed Fragments Chr (19 of 21), 0.432 mins elapsed.
+2020-12-03 17:47:59 : Group C1_Inj._.s1Inj (1 of 20) : Processed Fragments Chr (20 of 21), 0.454 mins elapsed.
+2020-12-03 17:48:00 : Group C1_Inj._.s1Inj (1 of 20) : Processed Fragments Chr (21 of 21), 0.472 mins elapsed.
+2020-12-03 17:48:01 : Group C1_Inj._.s2Inj (2 of 20) : Creating Group Coverage File : C1_Inj._.s2Inj.insertions.coverage.h5, 0.488 mins elapsed.
+
+2020-12-03 17:48:01 : Group C1_Inj._.s2Inj (2 of 20) : cellGroupi, Class = character
+
+Group C1_Inj._.s2Inj (2 of 20) : cellGroupi: length = 263
+[1] "s2Inj#GGACACCTCCAGAATC-1" "s2Inj#TTACCGCAGATCCGAG-1"
+[3] "s2Inj#AGCCAGCCAAACCGAG-1" "s2Inj#ATTACTCGTCATAGAA-1"
+[5] "s2Inj#GGAACCCGTAACCCAT-1" "s2Inj#TGATTTCGTGTCTACA-1"
+
+
+
+2020-12-03 17:48:01 : 
+
+2020-12-03 17:48:01 : 
+
+2020-12-03 17:48:01 : 
+
+2020-12-03 17:48:01 : 
+
+2020-12-03 17:48:01 : 
+
+2020-12-03 17:48:01 : 
+
+2020-12-03 17:48:01 : 
+2020-12-03 17:48:01 : Group C1_Inj._.s2Inj (2 of 20) : Processed Fragments Chr (1 of 21), 0.488 mins elapsed.
+2020-12-03 17:48:02 : Group C1_Inj._.s2Inj (2 of 20) : Processed Fragments Chr (2 of 21), 0.514 mins elapsed.
+2020-12-03 17:48:04 : Group C1_Inj._.s2Inj (2 of 20) : Processed Fragments Chr (3 of 21), 0.534 mins elapsed.
+2020-12-03 17:48:05 : Group C1_Inj._.s2Inj (2 of 20) : Processed Fragments Chr (4 of 21), 0.555 mins elapsed.
+2020-12-03 17:48:06 : Group C1_Inj._.s2Inj (2 of 20) : Processed Fragments Chr (5 of 21), 0.574 mins elapsed.
+2020-12-03 17:48:07 : Group C1_Inj._.s2Inj (2 of 20) : Processed Fragments Chr (6 of 21), 0.594 mins elapsed.
+2020-12-03 17:48:08 : Group C1_Inj._.s2Inj (2 of 20) : Processed Fragments Chr (7 of 21), 0.612 mins elapsed.
+2020-12-03 17:48:09 : Group C1_Inj._.s2Inj (2 of 20) : Processed Fragments Chr (8 of 21), 0.631 mins elapsed.
+2020-12-03 17:48:11 : Group C1_Inj._.s2Inj (2 of 20) : Processed Fragments Chr (9 of 21), 0.649 mins elapsed.
+2020-12-03 17:48:12 : Group C1_Inj._.s2Inj (2 of 20) : Processed Fragments Chr (10 of 21), 0.668 mins elapsed.
+2020-12-03 17:48:13 : Group C1_Inj._.s2Inj (2 of 20) : Processed Fragments Chr (11 of 21), 0.688 mins elapsed.
+2020-12-03 17:48:14 : Group C1_Inj._.s2Inj (2 of 20) : Processed Fragments Chr (12 of 21), 0.711 mins elapsed.
+2020-12-03 17:48:16 : Group C1_Inj._.s2Inj (2 of 20) : Processed Fragments Chr (13 of 21), 0.736 mins elapsed.
+2020-12-03 17:48:17 : Group C1_Inj._.s2Inj (2 of 20) : Processed Fragments Chr (14 of 21), 0.756 mins elapsed.
+2020-12-03 17:48:18 : Group C1_Inj._.s2Inj (2 of 20) : Processed Fragments Chr (15 of 21), 0.78 mins elapsed.
+2020-12-03 17:48:20 : Group C1_Inj._.s2Inj (2 of 20) : Processed Fragments Chr (16 of 21), 0.801 mins elapsed.
+2020-12-03 17:48:21 : Group C1_Inj._.s2Inj (2 of 20) : Processed Fragments Chr (17 of 21), 0.822 mins elapsed.
+2020-12-03 17:48:22 : Group C1_Inj._.s2Inj (2 of 20) : Processed Fragments Chr (18 of 21), 0.845 mins elapsed.
+2020-12-03 17:48:23 : Group C1_Inj._.s2Inj (2 of 20) : Processed Fragments Chr (19 of 21), 0.865 mins elapsed.
+2020-12-03 17:48:25 : Group C1_Inj._.s2Inj (2 of 20) : Processed Fragments Chr (20 of 21), 0.885 mins elapsed.
+2020-12-03 17:48:26 : Group C1_Inj._.s2Inj (2 of 20) : Processed Fragments Chr (21 of 21), 0.903 mins elapsed.
+2020-12-03 17:48:27 : Group C1_Inj._.s3Inj (3 of 20) : Creating Group Coverage File : C1_Inj._.s3Inj.insertions.coverage.h5, 0.918 mins elapsed.
+
+2020-12-03 17:48:27 : Group C1_Inj._.s3Inj (3 of 20) : cellGroupi, Class = character
+
+Group C1_Inj._.s3Inj (3 of 20) : cellGroupi: length = 163
+[1] "s3Inj#CAGGATTCAGCAATGG-1" "s3Inj#CCGAAGCCACAGCCAC-1"
+[3] "s3Inj#TACCTCGCACATCATG-1" "s3Inj#ACATGGTCACTGATTG-1"
+[5] "s3Inj#TGCCTCAAGAAGCCGT-1" "s3Inj#CCCACATCAGGCTACC-1"
+
+
+
+2020-12-03 17:48:27 : 
+
+2020-12-03 17:48:27 : 
+
+2020-12-03 17:48:27 : 
+
+2020-12-03 17:48:27 : 
+
+2020-12-03 17:48:27 : 
+
+2020-12-03 17:48:27 : 
+
+2020-12-03 17:48:27 : 
+2020-12-03 17:48:27 : Group C1_Inj._.s3Inj (3 of 20) : Processed Fragments Chr (1 of 21), 0.918 mins elapsed.
+2020-12-03 17:48:28 : Group C1_Inj._.s3Inj (3 of 20) : Processed Fragments Chr (2 of 21), 0.94 mins elapsed.
+2020-12-03 17:48:29 : Group C1_Inj._.s3Inj (3 of 20) : Processed Fragments Chr (3 of 21), 0.961 mins elapsed.
+2020-12-03 17:48:31 : Group C1_Inj._.s3Inj (3 of 20) : Processed Fragments Chr (4 of 21), 0.982 mins elapsed.
+2020-12-03 17:48:32 : Group C1_Inj._.s3Inj (3 of 20) : Processed Fragments Chr (5 of 21), 1 mins elapsed.
+2020-12-03 17:48:33 : Group C1_Inj._.s3Inj (3 of 20) : Processed Fragments Chr (6 of 21), 1.017 mins elapsed.
+2020-12-03 17:48:34 : Group C1_Inj._.s3Inj (3 of 20) : Processed Fragments Chr (7 of 21), 1.034 mins elapsed.
+2020-12-03 17:48:35 : Group C1_Inj._.s3Inj (3 of 20) : Processed Fragments Chr (8 of 21), 1.052 mins elapsed.
+2020-12-03 17:48:36 : Group C1_Inj._.s3Inj (3 of 20) : Processed Fragments Chr (9 of 21), 1.071 mins elapsed.
+2020-12-03 17:48:37 : Group C1_Inj._.s3Inj (3 of 20) : Processed Fragments Chr (10 of 21), 1.089 mins elapsed.
+2020-12-03 17:48:38 : Group C1_Inj._.s3Inj (3 of 20) : Processed Fragments Chr (11 of 21), 1.107 mins elapsed.
+2020-12-03 17:48:39 : Group C1_Inj._.s3Inj (3 of 20) : Processed Fragments Chr (12 of 21), 1.131 mins elapsed.
+2020-12-03 17:48:41 : Group C1_Inj._.s3Inj (3 of 20) : Processed Fragments Chr (13 of 21), 1.154 mins elapsed.
+2020-12-03 17:48:42 : Group C1_Inj._.s3Inj (3 of 20) : Processed Fragments Chr (14 of 21), 1.174 mins elapsed.
+2020-12-03 17:48:43 : Group C1_Inj._.s3Inj (3 of 20) : Processed Fragments Chr (15 of 21), 1.195 mins elapsed.
+2020-12-03 17:48:44 : Group C1_Inj._.s3Inj (3 of 20) : Processed Fragments Chr (16 of 21), 1.214 mins elapsed.
+2020-12-03 17:48:46 : Group C1_Inj._.s3Inj (3 of 20) : Processed Fragments Chr (17 of 21), 1.234 mins elapsed.
+2020-12-03 17:48:47 : Group C1_Inj._.s3Inj (3 of 20) : Processed Fragments Chr (18 of 21), 1.253 mins elapsed.
+2020-12-03 17:48:48 : Group C1_Inj._.s3Inj (3 of 20) : Processed Fragments Chr (19 of 21), 1.271 mins elapsed.
+2020-12-03 17:48:49 : Group C1_Inj._.s3Inj (3 of 20) : Processed Fragments Chr (20 of 21), 1.291 mins elapsed.
+2020-12-03 17:48:50 : Group C1_Inj._.s3Inj (3 of 20) : Processed Fragments Chr (21 of 21), 1.306 mins elapsed.
+2020-12-03 17:48:51 : Group C1_Inj._.Other (4 of 20) : Creating Group Coverage File : C1_Inj._.Other.insertions.coverage.h5, 1.32 mins elapsed.
+
+2020-12-03 17:48:51 : Group C1_Inj._.Other (4 of 20) : cellGroupi, Class = character
+
+Group C1_Inj._.Other (4 of 20) : cellGroupi: length = 54
+                    s1UI1                     s1UI2                     s1UI3 
+"s1UI#GCTGTTCGTCCTATTT-1" "s1UI#TTACCGCAGATCCGAG-1" "s1UI#CAAGAAATCGAACACT-1" 
+                    s1UI4                     s1UI5                     s1UI6 
+"s1UI#CTTGAAGTCACTGATG-1" "s1UI#AAGGAGCCATGCACTA-1" "s1UI#GGAACCCGTAACCCAT-1" 
+
+
+
+2020-12-03 17:48:51 : 
+
+2020-12-03 17:48:51 : 
+
+2020-12-03 17:48:51 : 
+
+2020-12-03 17:48:51 : 
+
+2020-12-03 17:48:51 : 
+
+2020-12-03 17:48:51 : 
+
+2020-12-03 17:48:51 : 
+2020-12-03 17:48:51 : Group C1_Inj._.Other (4 of 20) : Processed Fragments Chr (1 of 21), 1.32 mins elapsed.
+2020-12-03 17:48:52 : Group C1_Inj._.Other (4 of 20) : Processed Fragments Chr (2 of 21), 1.345 mins elapsed.
+2020-12-03 17:48:54 : Group C1_Inj._.Other (4 of 20) : Processed Fragments Chr (3 of 21), 1.371 mins elapsed.
+2020-12-03 17:48:55 : Group C1_Inj._.Other (4 of 20) : Processed Fragments Chr (4 of 21), 1.39 mins elapsed.
+2020-12-03 17:48:56 : Group C1_Inj._.Other (4 of 20) : Processed Fragments Chr (5 of 21), 1.411 mins elapsed.
+2020-12-03 17:48:57 : Group C1_Inj._.Other (4 of 20) : Processed Fragments Chr (6 of 21), 1.432 mins elapsed.
+2020-12-03 17:48:59 : Group C1_Inj._.Other (4 of 20) : Processed Fragments Chr (7 of 21), 1.45 mins elapsed.
+2020-12-03 17:49:00 : Group C1_Inj._.Other (4 of 20) : Processed Fragments Chr (8 of 21), 1.468 mins elapsed.
+2020-12-03 17:49:01 : Group C1_Inj._.Other (4 of 20) : Processed Fragments Chr (9 of 21), 1.487 mins elapsed.
+2020-12-03 17:49:02 : Group C1_Inj._.Other (4 of 20) : Processed Fragments Chr (10 of 21), 1.504 mins elapsed.
+2020-12-03 17:49:03 : Group C1_Inj._.Other (4 of 20) : Processed Fragments Chr (11 of 21), 1.521 mins elapsed.
+2020-12-03 17:49:04 : Group C1_Inj._.Other (4 of 20) : Processed Fragments Chr (12 of 21), 1.54 mins elapsed.
+2020-12-03 17:49:05 : Group C1_Inj._.Other (4 of 20) : Processed Fragments Chr (13 of 21), 1.561 mins elapsed.
+2020-12-03 17:49:06 : Group C1_Inj._.Other (4 of 20) : Processed Fragments Chr (14 of 21), 1.58 mins elapsed.
+2020-12-03 17:49:08 : Group C1_Inj._.Other (4 of 20) : Processed Fragments Chr (15 of 21), 1.6 mins elapsed.
+2020-12-03 17:49:09 : Group C1_Inj._.Other (4 of 20) : Processed Fragments Chr (16 of 21), 1.62 mins elapsed.
+2020-12-03 17:49:10 : Group C1_Inj._.Other (4 of 20) : Processed Fragments Chr (17 of 21), 1.64 mins elapsed.
+2020-12-03 17:49:11 : Group C1_Inj._.Other (4 of 20) : Processed Fragments Chr (18 of 21), 1.659 mins elapsed.
+2020-12-03 17:49:12 : Group C1_Inj._.Other (4 of 20) : Processed Fragments Chr (19 of 21), 1.678 mins elapsed.
+2020-12-03 17:49:13 : Group C1_Inj._.Other (4 of 20) : Processed Fragments Chr (20 of 21), 1.697 mins elapsed.
+2020-12-03 17:49:15 : Group C1_Inj._.Other (4 of 20) : Processed Fragments Chr (21 of 21), 1.717 mins elapsed.
+2020-12-03 17:49:16 : Group C2_Hybrid._.s1Inj (5 of 20) : Creating Group Coverage File : C2_Hybrid._.s1Inj.insertions.coverage.h5, 1.733 mins elapsed.
+
+2020-12-03 17:49:16 : Group C2_Hybrid._.s1Inj (5 of 20) : cellGroupi, Class = character
+
+Group C2_Hybrid._.s1Inj (5 of 20) : cellGroupi: length = 269
+[1] "s1Inj#GAGATTCCAAGGTCGA-1" "s1Inj#GTCGTAATCCGGAAAG-1"
+[3] "s1Inj#GTGTCCTCACCTATTT-1" "s1Inj#ACCATCCTCGGAAAGC-1"
+[5] "s1Inj#TACTCGCAGTGTCGGA-1" "s1Inj#GGCATTAAGAGGCAGG-1"
+
+
+
+2020-12-03 17:49:16 : 
+
+2020-12-03 17:49:16 : 
+
+2020-12-03 17:49:16 : 
+
+2020-12-03 17:49:16 : 
+
+2020-12-03 17:49:16 : 
+
+2020-12-03 17:49:16 : 
+
+2020-12-03 17:49:16 : 
+2020-12-03 17:49:16 : Group C2_Hybrid._.s1Inj (5 of 20) : Processed Fragments Chr (1 of 21), 1.733 mins elapsed.
+2020-12-03 17:49:17 : Group C2_Hybrid._.s1Inj (5 of 20) : Processed Fragments Chr (2 of 21), 1.754 mins elapsed.
+2020-12-03 17:49:18 : Group C2_Hybrid._.s1Inj (5 of 20) : Processed Fragments Chr (3 of 21), 1.772 mins elapsed.
+2020-12-03 17:49:19 : Group C2_Hybrid._.s1Inj (5 of 20) : Processed Fragments Chr (4 of 21), 1.792 mins elapsed.
+2020-12-03 17:49:20 : Group C2_Hybrid._.s1Inj (5 of 20) : Processed Fragments Chr (5 of 21), 1.811 mins elapsed.
+2020-12-03 17:49:21 : Group C2_Hybrid._.s1Inj (5 of 20) : Processed Fragments Chr (6 of 21), 1.829 mins elapsed.
+2020-12-03 17:49:22 : Group C2_Hybrid._.s1Inj (5 of 20) : Processed Fragments Chr (7 of 21), 1.847 mins elapsed.
+2020-12-03 17:49:23 : Group C2_Hybrid._.s1Inj (5 of 20) : Processed Fragments Chr (8 of 21), 1.865 mins elapsed.
+2020-12-03 17:49:24 : Group C2_Hybrid._.s1Inj (5 of 20) : Processed Fragments Chr (9 of 21), 1.882 mins elapsed.
+2020-12-03 17:49:26 : Group C2_Hybrid._.s1Inj (5 of 20) : Processed Fragments Chr (10 of 21), 1.9 mins elapsed.
+2020-12-03 17:49:27 : Group C2_Hybrid._.s1Inj (5 of 20) : Processed Fragments Chr (11 of 21), 1.916 mins elapsed.
+2020-12-03 17:49:28 : Group C2_Hybrid._.s1Inj (5 of 20) : Processed Fragments Chr (12 of 21), 1.933 mins elapsed.
+2020-12-03 17:49:29 : Group C2_Hybrid._.s1Inj (5 of 20) : Processed Fragments Chr (13 of 21), 1.952 mins elapsed.
+2020-12-03 17:49:30 : Group C2_Hybrid._.s1Inj (5 of 20) : Processed Fragments Chr (14 of 21), 1.97 mins elapsed.
+2020-12-03 17:49:31 : Group C2_Hybrid._.s1Inj (5 of 20) : Processed Fragments Chr (15 of 21), 1.99 mins elapsed.
+2020-12-03 17:49:32 : Group C2_Hybrid._.s1Inj (5 of 20) : Processed Fragments Chr (16 of 21), 2.008 mins elapsed.
+2020-12-03 17:49:33 : Group C2_Hybrid._.s1Inj (5 of 20) : Processed Fragments Chr (17 of 21), 2.025 mins elapsed.
+2020-12-03 17:49:34 : Group C2_Hybrid._.s1Inj (5 of 20) : Processed Fragments Chr (18 of 21), 2.044 mins elapsed.
+2020-12-03 17:49:35 : Group C2_Hybrid._.s1Inj (5 of 20) : Processed Fragments Chr (19 of 21), 2.062 mins elapsed.
+2020-12-03 17:49:36 : Group C2_Hybrid._.s1Inj (5 of 20) : Processed Fragments Chr (20 of 21), 2.08 mins elapsed.
+2020-12-03 17:49:37 : Group C2_Hybrid._.s1Inj (5 of 20) : Processed Fragments Chr (21 of 21), 2.096 mins elapsed.
+2020-12-03 17:49:38 : Group C2_Hybrid._.s3Inj (6 of 20) : Creating Group Coverage File : C2_Hybrid._.s3Inj.insertions.coverage.h5, 2.111 mins elapsed.
+
+2020-12-03 17:49:38 : Group C2_Hybrid._.s3Inj (6 of 20) : cellGroupi, Class = character
+
+Group C2_Hybrid._.s3Inj (6 of 20) : cellGroupi: length = 252
+[1] "s3Inj#CTCACCATCCATTGAG-1" "s3Inj#GTCACCTAGGATGTAT-1"
+[3] "s3Inj#GAAGTGGCAGATACAA-1" "s3Inj#GTCACTCAGCTACGTT-1"
+[5] "s3Inj#GCACGGTGTGCAAGCA-1" "s3Inj#CACTAAGTCTCTTCCT-1"
+
+
+
+2020-12-03 17:49:38 : 
+
+2020-12-03 17:49:38 : 
+
+2020-12-03 17:49:38 : 
+
+2020-12-03 17:49:38 : 
+
+2020-12-03 17:49:38 : 
+
+2020-12-03 17:49:38 : 
+
+2020-12-03 17:49:38 : 
+2020-12-03 17:49:38 : Group C2_Hybrid._.s3Inj (6 of 20) : Processed Fragments Chr (1 of 21), 2.111 mins elapsed.
+2020-12-03 17:49:40 : Group C2_Hybrid._.s3Inj (6 of 20) : Processed Fragments Chr (2 of 21), 2.134 mins elapsed.
+2020-12-03 17:49:41 : Group C2_Hybrid._.s3Inj (6 of 20) : Processed Fragments Chr (3 of 21), 2.153 mins elapsed.
+2020-12-03 17:49:42 : Group C2_Hybrid._.s3Inj (6 of 20) : Processed Fragments Chr (4 of 21), 2.172 mins elapsed.
+2020-12-03 17:49:43 : Group C2_Hybrid._.s3Inj (6 of 20) : Processed Fragments Chr (5 of 21), 2.189 mins elapsed.
+2020-12-03 17:49:44 : Group C2_Hybrid._.s3Inj (6 of 20) : Processed Fragments Chr (6 of 21), 2.206 mins elapsed.
+2020-12-03 17:49:45 : Group C2_Hybrid._.s3Inj (6 of 20) : Processed Fragments Chr (7 of 21), 2.224 mins elapsed.
+2020-12-03 17:49:46 : Group C2_Hybrid._.s3Inj (6 of 20) : Processed Fragments Chr (8 of 21), 2.241 mins elapsed.
+2020-12-03 17:49:47 : Group C2_Hybrid._.s3Inj (6 of 20) : Processed Fragments Chr (9 of 21), 2.258 mins elapsed.
+2020-12-03 17:49:48 : Group C2_Hybrid._.s3Inj (6 of 20) : Processed Fragments Chr (10 of 21), 2.275 mins elapsed.
+2020-12-03 17:49:49 : Group C2_Hybrid._.s3Inj (6 of 20) : Processed Fragments Chr (11 of 21), 2.292 mins elapsed.
+2020-12-03 17:49:50 : Group C2_Hybrid._.s3Inj (6 of 20) : Processed Fragments Chr (12 of 21), 2.308 mins elapsed.
+2020-12-03 17:49:51 : Group C2_Hybrid._.s3Inj (6 of 20) : Processed Fragments Chr (13 of 21), 2.328 mins elapsed.
+2020-12-03 17:49:52 : Group C2_Hybrid._.s3Inj (6 of 20) : Processed Fragments Chr (14 of 21), 2.346 mins elapsed.
+2020-12-03 17:49:54 : Group C2_Hybrid._.s3Inj (6 of 20) : Processed Fragments Chr (15 of 21), 2.366 mins elapsed.
+2020-12-03 17:49:55 : Group C2_Hybrid._.s3Inj (6 of 20) : Processed Fragments Chr (16 of 21), 2.384 mins elapsed.
+2020-12-03 17:49:56 : Group C2_Hybrid._.s3Inj (6 of 20) : Processed Fragments Chr (17 of 21), 2.403 mins elapsed.
+2020-12-03 17:49:57 : Group C2_Hybrid._.s3Inj (6 of 20) : Processed Fragments Chr (18 of 21), 2.423 mins elapsed.
+2020-12-03 17:49:59 : Group C2_Hybrid._.s3Inj (6 of 20) : Processed Fragments Chr (19 of 21), 2.452 mins elapsed.
+2020-12-03 17:50:00 : Group C2_Hybrid._.s3Inj (6 of 20) : Processed Fragments Chr (20 of 21), 2.478 mins elapsed.
+2020-12-03 17:50:01 : Group C2_Hybrid._.s3Inj (6 of 20) : Processed Fragments Chr (21 of 21), 2.497 mins elapsed.
+2020-12-03 17:50:02 : Group C2_Hybrid._.s2UI (7 of 20) : Creating Group Coverage File : C2_Hybrid._.s2UI.insertions.coverage.h5, 2.511 mins elapsed.
+
+2020-12-03 17:50:02 : Group C2_Hybrid._.s2UI (7 of 20) : cellGroupi, Class = character
+
+Group C2_Hybrid._.s2UI (7 of 20) : cellGroupi: length = 140
+[1] "s2UI#AAACTCGGTGCGTAGA-1" "s2UI#TGATGCACAGCACATT-1"
+[3] "s2UI#TAGCATGGTTAGGCTT-1" "s2UI#CCAATGAGTACGTAAA-1"
+[5] "s2UI#TACATTCGTATTTGCG-1" "s2UI#TTAGGTGAGTCATACC-1"
+
+
+
+2020-12-03 17:50:02 : 
+
+2020-12-03 17:50:02 : 
+
+2020-12-03 17:50:02 : 
+
+2020-12-03 17:50:02 : 
+
+2020-12-03 17:50:02 : 
+
+2020-12-03 17:50:02 : 
+
+2020-12-03 17:50:02 : 
+2020-12-03 17:50:02 : Group C2_Hybrid._.s2UI (7 of 20) : Processed Fragments Chr (1 of 21), 2.512 mins elapsed.
+2020-12-03 17:50:03 : Group C2_Hybrid._.s2UI (7 of 20) : Processed Fragments Chr (2 of 21), 2.531 mins elapsed.
+2020-12-03 17:50:04 : Group C2_Hybrid._.s2UI (7 of 20) : Processed Fragments Chr (3 of 21), 2.548 mins elapsed.
+2020-12-03 17:50:06 : Group C2_Hybrid._.s2UI (7 of 20) : Processed Fragments Chr (4 of 21), 2.57 mins elapsed.
+2020-12-03 17:50:07 : Group C2_Hybrid._.s2UI (7 of 20) : Processed Fragments Chr (5 of 21), 2.586 mins elapsed.
+2020-12-03 17:50:08 : Group C2_Hybrid._.s2UI (7 of 20) : Processed Fragments Chr (6 of 21), 2.604 mins elapsed.
+2020-12-03 17:50:09 : Group C2_Hybrid._.s2UI (7 of 20) : Processed Fragments Chr (7 of 21), 2.619 mins elapsed.
+2020-12-03 17:50:10 : Group C2_Hybrid._.s2UI (7 of 20) : Processed Fragments Chr (8 of 21), 2.635 mins elapsed.
+2020-12-03 17:50:11 : Group C2_Hybrid._.s2UI (7 of 20) : Processed Fragments Chr (9 of 21), 2.652 mins elapsed.
+2020-12-03 17:50:12 : Group C2_Hybrid._.s2UI (7 of 20) : Processed Fragments Chr (10 of 21), 2.671 mins elapsed.
+2020-12-03 17:50:13 : Group C2_Hybrid._.s2UI (7 of 20) : Processed Fragments Chr (11 of 21), 2.692 mins elapsed.
+2020-12-03 17:50:14 : Group C2_Hybrid._.s2UI (7 of 20) : Processed Fragments Chr (12 of 21), 2.709 mins elapsed.
+2020-12-03 17:50:15 : Group C2_Hybrid._.s2UI (7 of 20) : Processed Fragments Chr (13 of 21), 2.73 mins elapsed.
+2020-12-03 17:50:16 : Group C2_Hybrid._.s2UI (7 of 20) : Processed Fragments Chr (14 of 21), 2.746 mins elapsed.
+2020-12-03 17:50:17 : Group C2_Hybrid._.s2UI (7 of 20) : Processed Fragments Chr (15 of 21), 2.763 mins elapsed.
+2020-12-03 17:50:18 : Group C2_Hybrid._.s2UI (7 of 20) : Processed Fragments Chr (16 of 21), 2.78 mins elapsed.
+2020-12-03 17:50:19 : Group C2_Hybrid._.s2UI (7 of 20) : Processed Fragments Chr (17 of 21), 2.796 mins elapsed.
+2020-12-03 17:50:20 : Group C2_Hybrid._.s2UI (7 of 20) : Processed Fragments Chr (18 of 21), 2.813 mins elapsed.
+2020-12-03 17:50:21 : Group C2_Hybrid._.s2UI (7 of 20) : Processed Fragments Chr (19 of 21), 2.831 mins elapsed.
+2020-12-03 17:50:22 : Group C2_Hybrid._.s2UI (7 of 20) : Processed Fragments Chr (20 of 21), 2.847 mins elapsed.
+2020-12-03 17:50:23 : Group C2_Hybrid._.s2UI (7 of 20) : Processed Fragments Chr (21 of 21), 2.861 mins elapsed.
+2020-12-03 17:50:24 : Group C2_Hybrid._.s3UI (8 of 20) : Creating Group Coverage File : C2_Hybrid._.s3UI.insertions.coverage.h5, 2.875 mins elapsed.
+
+2020-12-03 17:50:24 : Group C2_Hybrid._.s3UI (8 of 20) : cellGroupi, Class = character
+
+Group C2_Hybrid._.s3UI (8 of 20) : cellGroupi: length = 113
+[1] "s3UI#GATCGTATCAGGGTTT-1" "s3UI#GATTAGCCAGTCAGCC-1"
+[3] "s3UI#AACAGTCGTGGACGAT-1" "s3UI#TACTCGCCACCACAGC-1"
+[5] "s3UI#CCCTGATTCCTAGAGT-1" "s3UI#AACTTGGAGGGAAATG-1"
+
+
+
+2020-12-03 17:50:24 : 
+
+2020-12-03 17:50:24 : 
+
+2020-12-03 17:50:24 : 
+
+2020-12-03 17:50:24 : 
+
+2020-12-03 17:50:24 : 
+
+2020-12-03 17:50:24 : 
+
+2020-12-03 17:50:24 : 
+2020-12-03 17:50:24 : Group C2_Hybrid._.s3UI (8 of 20) : Processed Fragments Chr (1 of 21), 2.876 mins elapsed.
+2020-12-03 17:50:25 : Group C2_Hybrid._.s3UI (8 of 20) : Processed Fragments Chr (2 of 21), 2.895 mins elapsed.
+2020-12-03 17:50:26 : Group C2_Hybrid._.s3UI (8 of 20) : Processed Fragments Chr (3 of 21), 2.914 mins elapsed.
+2020-12-03 17:50:28 : Group C2_Hybrid._.s3UI (8 of 20) : Processed Fragments Chr (4 of 21), 2.936 mins elapsed.
+2020-12-03 17:50:29 : Group C2_Hybrid._.s3UI (8 of 20) : Processed Fragments Chr (5 of 21), 2.957 mins elapsed.
+2020-12-03 17:50:30 : Group C2_Hybrid._.s3UI (8 of 20) : Processed Fragments Chr (6 of 21), 2.974 mins elapsed.
+2020-12-03 17:50:31 : Group C2_Hybrid._.s3UI (8 of 20) : Processed Fragments Chr (7 of 21), 2.989 mins elapsed.
+2020-12-03 17:50:32 : Group C2_Hybrid._.s3UI (8 of 20) : Processed Fragments Chr (8 of 21), 3.006 mins elapsed.
+2020-12-03 17:50:33 : Group C2_Hybrid._.s3UI (8 of 20) : Processed Fragments Chr (9 of 21), 3.022 mins elapsed.
+2020-12-03 17:50:34 : Group C2_Hybrid._.s3UI (8 of 20) : Processed Fragments Chr (10 of 21), 3.038 mins elapsed.
+2020-12-03 17:50:35 : Group C2_Hybrid._.s3UI (8 of 20) : Processed Fragments Chr (11 of 21), 3.053 mins elapsed.
+2020-12-03 17:50:36 : Group C2_Hybrid._.s3UI (8 of 20) : Processed Fragments Chr (12 of 21), 3.069 mins elapsed.
+2020-12-03 17:50:37 : Group C2_Hybrid._.s3UI (8 of 20) : Processed Fragments Chr (13 of 21), 3.085 mins elapsed.
+2020-12-03 17:50:38 : Group C2_Hybrid._.s3UI (8 of 20) : Processed Fragments Chr (14 of 21), 3.103 mins elapsed.
+2020-12-03 17:50:39 : Group C2_Hybrid._.s3UI (8 of 20) : Processed Fragments Chr (15 of 21), 3.121 mins elapsed.
+2020-12-03 17:50:40 : Group C2_Hybrid._.s3UI (8 of 20) : Processed Fragments Chr (16 of 21), 3.14 mins elapsed.
+2020-12-03 17:50:41 : Group C2_Hybrid._.s3UI (8 of 20) : Processed Fragments Chr (17 of 21), 3.158 mins elapsed.
+2020-12-03 17:50:42 : Group C2_Hybrid._.s3UI (8 of 20) : Processed Fragments Chr (18 of 21), 3.175 mins elapsed.
+2020-12-03 17:50:43 : Group C2_Hybrid._.s3UI (8 of 20) : Processed Fragments Chr (19 of 21), 3.191 mins elapsed.
+2020-12-03 17:50:44 : Group C2_Hybrid._.s3UI (8 of 20) : Processed Fragments Chr (20 of 21), 3.214 mins elapsed.
+2020-12-03 17:50:45 : Group C2_Hybrid._.s3UI (8 of 20) : Processed Fragments Chr (21 of 21), 3.23 mins elapsed.
+2020-12-03 17:50:46 : Group C2_Hybrid._.s2Inj (9 of 20) : Creating Group Coverage File : C2_Hybrid._.s2Inj.insertions.coverage.h5, 3.248 mins elapsed.
+
+2020-12-03 17:50:46 : Group C2_Hybrid._.s2Inj (9 of 20) : cellGroupi, Class = character
+
+Group C2_Hybrid._.s2Inj (9 of 20) : cellGroupi: length = 83
+[1] "s2Inj#AATACGCTCCATAGGT-1" "s2Inj#CCTGCTACATACTGCA-1"
+[3] "s2Inj#TCTCAGCTCGATAGGG-1" "s2Inj#TGCATGATCTTGTGCC-1"
+[5] "s2Inj#GCCTACTTCTACTTTG-1" "s2Inj#CCCTAGTAGTCAACTC-1"
+
+
+
+2020-12-03 17:50:46 : 
+
+2020-12-03 17:50:46 : 
+
+2020-12-03 17:50:46 : 
+
+2020-12-03 17:50:46 : 
+
+2020-12-03 17:50:46 : 
+
+2020-12-03 17:50:46 : 
+
+2020-12-03 17:50:46 : 
+2020-12-03 17:50:46 : Group C2_Hybrid._.s2Inj (9 of 20) : Processed Fragments Chr (1 of 21), 3.249 mins elapsed.
+2020-12-03 17:50:48 : Group C2_Hybrid._.s2Inj (9 of 20) : Processed Fragments Chr (2 of 21), 3.27 mins elapsed.
+2020-12-03 17:50:49 : Group C2_Hybrid._.s2Inj (9 of 20) : Processed Fragments Chr (3 of 21), 3.29 mins elapsed.
+2020-12-03 17:50:50 : Group C2_Hybrid._.s2Inj (9 of 20) : Processed Fragments Chr (4 of 21), 3.306 mins elapsed.
+2020-12-03 17:50:51 : Group C2_Hybrid._.s2Inj (9 of 20) : Processed Fragments Chr (5 of 21), 3.321 mins elapsed.
+2020-12-03 17:50:52 : Group C2_Hybrid._.s2Inj (9 of 20) : Processed Fragments Chr (6 of 21), 3.337 mins elapsed.
+2020-12-03 17:50:53 : Group C2_Hybrid._.s2Inj (9 of 20) : Processed Fragments Chr (7 of 21), 3.352 mins elapsed.
+2020-12-03 17:50:54 : Group C2_Hybrid._.s2Inj (9 of 20) : Processed Fragments Chr (8 of 21), 3.367 mins elapsed.
+2020-12-03 17:50:55 : Group C2_Hybrid._.s2Inj (9 of 20) : Processed Fragments Chr (9 of 21), 3.383 mins elapsed.
+2020-12-03 17:50:56 : Group C2_Hybrid._.s2Inj (9 of 20) : Processed Fragments Chr (10 of 21), 3.404 mins elapsed.
+2020-12-03 17:50:57 : Group C2_Hybrid._.s2Inj (9 of 20) : Processed Fragments Chr (11 of 21), 3.424 mins elapsed.
+2020-12-03 17:50:58 : Group C2_Hybrid._.s2Inj (9 of 20) : Processed Fragments Chr (12 of 21), 3.44 mins elapsed.
+2020-12-03 17:50:59 : Group C2_Hybrid._.s2Inj (9 of 20) : Processed Fragments Chr (13 of 21), 3.458 mins elapsed.
+2020-12-03 17:51:00 : Group C2_Hybrid._.s2Inj (9 of 20) : Processed Fragments Chr (14 of 21), 3.474 mins elapsed.
+2020-12-03 17:51:01 : Group C2_Hybrid._.s2Inj (9 of 20) : Processed Fragments Chr (15 of 21), 3.492 mins elapsed.
+2020-12-03 17:51:02 : Group C2_Hybrid._.s2Inj (9 of 20) : Processed Fragments Chr (16 of 21), 3.511 mins elapsed.
+2020-12-03 17:51:03 : Group C2_Hybrid._.s2Inj (9 of 20) : Processed Fragments Chr (17 of 21), 3.527 mins elapsed.
+2020-12-03 17:51:04 : Group C2_Hybrid._.s2Inj (9 of 20) : Processed Fragments Chr (18 of 21), 3.543 mins elapsed.
+2020-12-03 17:51:05 : Group C2_Hybrid._.s2Inj (9 of 20) : Processed Fragments Chr (19 of 21), 3.558 mins elapsed.
+2020-12-03 17:51:06 : Group C2_Hybrid._.s2Inj (9 of 20) : Processed Fragments Chr (20 of 21), 3.574 mins elapsed.
+2020-12-03 17:51:07 : Group C2_Hybrid._.s2Inj (9 of 20) : Processed Fragments Chr (21 of 21), 3.588 mins elapsed.
+2020-12-03 17:51:08 : Group C2_Hybrid._.s1UI (10 of 20) : Creating Group Coverage File : C2_Hybrid._.s1UI.insertions.coverage.h5, 3.603 mins elapsed.
+
+2020-12-03 17:51:08 : Group C2_Hybrid._.s1UI (10 of 20) : cellGroupi, Class = character
+
+Group C2_Hybrid._.s1UI (10 of 20) : cellGroupi: length = 76
+[1] "s1UI#GCCTAGGTCCATCATT-1" "s1UI#GCCCGAAGTCACAGGA-1"
+[3] "s1UI#GCAACCGTCCGATGCG-1" "s1UI#ATCCAGAGTTCTTAGG-1"
+[5] "s1UI#GGTGAAGTCGCTGATA-1" "s1UI#GAACGTTTCTATCCTA-1"
+
+
+
+2020-12-03 17:51:08 : 
+
+2020-12-03 17:51:08 : 
+
+2020-12-03 17:51:08 : 
+
+2020-12-03 17:51:08 : 
+
+2020-12-03 17:51:08 : 
+
+2020-12-03 17:51:08 : 
+
+2020-12-03 17:51:08 : 
+2020-12-03 17:51:08 : Group C2_Hybrid._.s1UI (10 of 20) : Processed Fragments Chr (1 of 21), 3.603 mins elapsed.
+2020-12-03 17:51:09 : Group C2_Hybrid._.s1UI (10 of 20) : Processed Fragments Chr (2 of 21), 3.62 mins elapsed.
+2020-12-03 17:51:10 : Group C2_Hybrid._.s1UI (10 of 20) : Processed Fragments Chr (3 of 21), 3.639 mins elapsed.
+2020-12-03 17:51:11 : Group C2_Hybrid._.s1UI (10 of 20) : Processed Fragments Chr (4 of 21), 3.656 mins elapsed.
+2020-12-03 17:51:12 : Group C2_Hybrid._.s1UI (10 of 20) : Processed Fragments Chr (5 of 21), 3.671 mins elapsed.
+2020-12-03 17:51:13 : Group C2_Hybrid._.s1UI (10 of 20) : Processed Fragments Chr (6 of 21), 3.686 mins elapsed.
+2020-12-03 17:51:14 : Group C2_Hybrid._.s1UI (10 of 20) : Processed Fragments Chr (7 of 21), 3.704 mins elapsed.
+2020-12-03 17:51:15 : Group C2_Hybrid._.s1UI (10 of 20) : Processed Fragments Chr (8 of 21), 3.719 mins elapsed.
+2020-12-03 17:51:16 : Group C2_Hybrid._.s1UI (10 of 20) : Processed Fragments Chr (9 of 21), 3.735 mins elapsed.
+2020-12-03 17:51:17 : Group C2_Hybrid._.s1UI (10 of 20) : Processed Fragments Chr (10 of 21), 3.752 mins elapsed.
+2020-12-03 17:51:18 : Group C2_Hybrid._.s1UI (10 of 20) : Processed Fragments Chr (11 of 21), 3.767 mins elapsed.
+2020-12-03 17:51:19 : Group C2_Hybrid._.s1UI (10 of 20) : Processed Fragments Chr (12 of 21), 3.782 mins elapsed.
+2020-12-03 17:51:19 : Group C2_Hybrid._.s1UI (10 of 20) : Processed Fragments Chr (13 of 21), 3.798 mins elapsed.
+2020-12-03 17:51:20 : Group C2_Hybrid._.s1UI (10 of 20) : Processed Fragments Chr (14 of 21), 3.813 mins elapsed.
+2020-12-03 17:51:21 : Group C2_Hybrid._.s1UI (10 of 20) : Processed Fragments Chr (15 of 21), 3.828 mins elapsed.
+2020-12-03 17:51:22 : Group C2_Hybrid._.s1UI (10 of 20) : Processed Fragments Chr (16 of 21), 3.844 mins elapsed.
+2020-12-03 17:51:23 : Group C2_Hybrid._.s1UI (10 of 20) : Processed Fragments Chr (17 of 21), 3.859 mins elapsed.
+2020-12-03 17:51:24 : Group C2_Hybrid._.s1UI (10 of 20) : Processed Fragments Chr (18 of 21), 3.874 mins elapsed.
+2020-12-03 17:51:25 : Group C2_Hybrid._.s1UI (10 of 20) : Processed Fragments Chr (19 of 21), 3.889 mins elapsed.
+2020-12-03 17:51:26 : Group C2_Hybrid._.s1UI (10 of 20) : Processed Fragments Chr (20 of 21), 3.905 mins elapsed.
+2020-12-03 17:51:27 : Group C2_Hybrid._.s1UI (10 of 20) : Processed Fragments Chr (21 of 21), 3.919 mins elapsed.
+2020-12-03 17:51:28 : Group hybrid1._.s3UI (11 of 20) : Creating Group Coverage File : hybrid1._.s3UI.insertions.coverage.h5, 3.935 mins elapsed.
+
+2020-12-03 17:51:28 : Group hybrid1._.s3UI (11 of 20) : cellGroupi, Class = character
+
+Group hybrid1._.s3UI (11 of 20) : cellGroupi: length = 94
+[1] "s3UI#GGAGTAGCACATCATG-1" "s3UI#GAACCGCCATAGCAGG-1"
+[3] "s3UI#TACTCGCCACGGCCAT-1" "s3UI#TAGACTGGTTGTGACT-1"
+[5] "s3UI#GCCAGACGTAGTTTGC-1" "s3UI#GCCCAGATCAACTTGG-1"
+
+
+
+2020-12-03 17:51:28 : 
+
+2020-12-03 17:51:28 : 
+
+2020-12-03 17:51:28 : 
+
+2020-12-03 17:51:28 : 
+
+2020-12-03 17:51:28 : 
+
+2020-12-03 17:51:28 : 
+
+2020-12-03 17:51:28 : 
+2020-12-03 17:51:28 : Group hybrid1._.s3UI (11 of 20) : Processed Fragments Chr (1 of 21), 3.936 mins elapsed.
+2020-12-03 17:51:29 : Group hybrid1._.s3UI (11 of 20) : Processed Fragments Chr (2 of 21), 3.954 mins elapsed.
+2020-12-03 17:51:30 : Group hybrid1._.s3UI (11 of 20) : Processed Fragments Chr (3 of 21), 3.971 mins elapsed.
+2020-12-03 17:51:31 : Group hybrid1._.s3UI (11 of 20) : Processed Fragments Chr (4 of 21), 3.989 mins elapsed.
+2020-12-03 17:51:32 : Group hybrid1._.s3UI (11 of 20) : Processed Fragments Chr (5 of 21), 4.005 mins elapsed.
+2020-12-03 17:51:33 : Group hybrid1._.s3UI (11 of 20) : Processed Fragments Chr (6 of 21), 4.023 mins elapsed.
+2020-12-03 17:51:34 : Group hybrid1._.s3UI (11 of 20) : Processed Fragments Chr (7 of 21), 4.039 mins elapsed.
+2020-12-03 17:51:35 : Group hybrid1._.s3UI (11 of 20) : Processed Fragments Chr (8 of 21), 4.056 mins elapsed.
+2020-12-03 17:51:36 : Group hybrid1._.s3UI (11 of 20) : Processed Fragments Chr (9 of 21), 4.073 mins elapsed.
+2020-12-03 17:51:37 : Group hybrid1._.s3UI (11 of 20) : Processed Fragments Chr (10 of 21), 4.091 mins elapsed.
+2020-12-03 17:51:38 : Group hybrid1._.s3UI (11 of 20) : Processed Fragments Chr (11 of 21), 4.109 mins elapsed.
+2020-12-03 17:51:39 : Group hybrid1._.s3UI (11 of 20) : Processed Fragments Chr (12 of 21), 4.127 mins elapsed.
+2020-12-03 17:51:40 : Group hybrid1._.s3UI (11 of 20) : Processed Fragments Chr (13 of 21), 4.146 mins elapsed.
+2020-12-03 17:51:41 : Group hybrid1._.s3UI (11 of 20) : Processed Fragments Chr (14 of 21), 4.164 mins elapsed.
+2020-12-03 17:51:42 : Group hybrid1._.s3UI (11 of 20) : Processed Fragments Chr (15 of 21), 4.181 mins elapsed.
+2020-12-03 17:51:44 : Group hybrid1._.s3UI (11 of 20) : Processed Fragments Chr (16 of 21), 4.202 mins elapsed.
+2020-12-03 17:51:45 : Group hybrid1._.s3UI (11 of 20) : Processed Fragments Chr (17 of 21), 4.219 mins elapsed.
+2020-12-03 17:51:46 : Group hybrid1._.s3UI (11 of 20) : Processed Fragments Chr (18 of 21), 4.236 mins elapsed.
+2020-12-03 17:51:47 : Group hybrid1._.s3UI (11 of 20) : Processed Fragments Chr (19 of 21), 4.253 mins elapsed.
+2020-12-03 17:51:48 : Group hybrid1._.s3UI (11 of 20) : Processed Fragments Chr (20 of 21), 4.269 mins elapsed.
+2020-12-03 17:51:49 : Group hybrid1._.s3UI (11 of 20) : Processed Fragments Chr (21 of 21), 4.284 mins elapsed.
+2020-12-03 17:51:49 : Group hybrid1._.s3Inj (12 of 20) : Creating Group Coverage File : hybrid1._.s3Inj.insertions.coverage.h5, 4.297 mins elapsed.
+
+2020-12-03 17:51:49 : Group hybrid1._.s3Inj (12 of 20) : cellGroupi, Class = character
+
+Group hybrid1._.s3Inj (12 of 20) : cellGroupi: length = 57
+[1] "s3Inj#CCAATGAAGATGGCAC-1" "s3Inj#TGACTCCTCAATCGTG-1"
+[3] "s3Inj#GTCACTCTCGTGCTGG-1" "s3Inj#TGATGCAAGTCTAGAA-1"
+[5] "s3Inj#TTACTCACAGTGCGAA-1" "s3Inj#AGCCGCATCCAACCTC-1"
+
+
+
+2020-12-03 17:51:49 : 
+
+2020-12-03 17:51:49 : 
+
+2020-12-03 17:51:49 : 
+
+2020-12-03 17:51:49 : 
+
+2020-12-03 17:51:49 : 
+
+2020-12-03 17:51:49 : 
+
+2020-12-03 17:51:49 : 
+2020-12-03 17:51:49 : Group hybrid1._.s3Inj (12 of 20) : Processed Fragments Chr (1 of 21), 4.298 mins elapsed.
+2020-12-03 17:51:50 : Group hybrid1._.s3Inj (12 of 20) : Processed Fragments Chr (2 of 21), 4.315 mins elapsed.
+2020-12-03 17:51:51 : Group hybrid1._.s3Inj (12 of 20) : Processed Fragments Chr (3 of 21), 4.33 mins elapsed.
+2020-12-03 17:51:52 : Group hybrid1._.s3Inj (12 of 20) : Processed Fragments Chr (4 of 21), 4.347 mins elapsed.
+2020-12-03 17:51:53 : Group hybrid1._.s3Inj (12 of 20) : Processed Fragments Chr (5 of 21), 4.364 mins elapsed.
+2020-12-03 17:51:54 : Group hybrid1._.s3Inj (12 of 20) : Processed Fragments Chr (6 of 21), 4.379 mins elapsed.
+2020-12-03 17:51:55 : Group hybrid1._.s3Inj (12 of 20) : Processed Fragments Chr (7 of 21), 4.394 mins elapsed.
+2020-12-03 17:51:56 : Group hybrid1._.s3Inj (12 of 20) : Processed Fragments Chr (8 of 21), 4.411 mins elapsed.
+2020-12-03 17:51:57 : Group hybrid1._.s3Inj (12 of 20) : Processed Fragments Chr (9 of 21), 4.428 mins elapsed.
+2020-12-03 17:51:58 : Group hybrid1._.s3Inj (12 of 20) : Processed Fragments Chr (10 of 21), 4.445 mins elapsed.
+2020-12-03 17:51:59 : Group hybrid1._.s3Inj (12 of 20) : Processed Fragments Chr (11 of 21), 4.465 mins elapsed.
+2020-12-03 17:52:01 : Group hybrid1._.s3Inj (12 of 20) : Processed Fragments Chr (12 of 21), 4.496 mins elapsed.
+2020-12-03 17:52:02 : Group hybrid1._.s3Inj (12 of 20) : Processed Fragments Chr (13 of 21), 4.514 mins elapsed.
+2020-12-03 17:52:03 : Group hybrid1._.s3Inj (12 of 20) : Processed Fragments Chr (14 of 21), 4.532 mins elapsed.
+2020-12-03 17:52:04 : Group hybrid1._.s3Inj (12 of 20) : Processed Fragments Chr (15 of 21), 4.549 mins elapsed.
+2020-12-03 17:52:05 : Group hybrid1._.s3Inj (12 of 20) : Processed Fragments Chr (16 of 21), 4.564 mins elapsed.
+2020-12-03 17:52:06 : Group hybrid1._.s3Inj (12 of 20) : Processed Fragments Chr (17 of 21), 4.58 mins elapsed.
+2020-12-03 17:52:07 : Group hybrid1._.s3Inj (12 of 20) : Processed Fragments Chr (18 of 21), 4.596 mins elapsed.
+2020-12-03 17:52:08 : Group hybrid1._.s3Inj (12 of 20) : Processed Fragments Chr (19 of 21), 4.613 mins elapsed.
+2020-12-03 17:52:09 : Group hybrid1._.s3Inj (12 of 20) : Processed Fragments Chr (20 of 21), 4.629 mins elapsed.
+2020-12-03 17:52:10 : Group hybrid1._.s3Inj (12 of 20) : Processed Fragments Chr (21 of 21), 4.644 mins elapsed.
+2020-12-03 17:52:11 : Group hybrid1._.Other (13 of 20) : Creating Group Coverage File : hybrid1._.Other.insertions.coverage.h5, 4.659 mins elapsed.
+
+2020-12-03 17:52:11 : Group hybrid1._.Other (13 of 20) : cellGroupi, Class = character
+
+Group hybrid1._.Other (13 of 20) : cellGroupi: length = 46
+                    s1Inj1                     s1Inj2 
+"s1Inj#CATTGGATCTGGCACG-1" "s1Inj#TACAGCACAGTAAGAT-1" 
+                    s1Inj3                     s1Inj4 
+"s1Inj#CGCAATAAGACCGCAA-1" "s1Inj#TGCTATTAGTATGGGC-1" 
+                    s1Inj5                     s1Inj6 
+"s1Inj#GTGGATTGTGCACCCA-1" "s1Inj#CGAGTTAAGGATGCCA-1" 
+
+
+
+2020-12-03 17:52:11 : 
+
+2020-12-03 17:52:11 : 
+
+2020-12-03 17:52:11 : 
+
+2020-12-03 17:52:11 : 
+
+2020-12-03 17:52:11 : 
+
+2020-12-03 17:52:11 : 
+
+2020-12-03 17:52:11 : 
+2020-12-03 17:52:11 : Group hybrid1._.Other (13 of 20) : Processed Fragments Chr (1 of 21), 4.659 mins elapsed.
+2020-12-03 17:52:12 : Group hybrid1._.Other (13 of 20) : Processed Fragments Chr (2 of 21), 4.681 mins elapsed.
+2020-12-03 17:52:14 : Group hybrid1._.Other (13 of 20) : Processed Fragments Chr (3 of 21), 4.701 mins elapsed.
+2020-12-03 17:52:15 : Group hybrid1._.Other (13 of 20) : Processed Fragments Chr (4 of 21), 4.72 mins elapsed.
+2020-12-03 17:52:16 : Group hybrid1._.Other (13 of 20) : Processed Fragments Chr (5 of 21), 4.738 mins elapsed.
+2020-12-03 17:52:17 : Group hybrid1._.Other (13 of 20) : Processed Fragments Chr (6 of 21), 4.758 mins elapsed.
+2020-12-03 17:52:18 : Group hybrid1._.Other (13 of 20) : Processed Fragments Chr (7 of 21), 4.777 mins elapsed.
+2020-12-03 17:52:19 : Group hybrid1._.Other (13 of 20) : Processed Fragments Chr (8 of 21), 4.795 mins elapsed.
+2020-12-03 17:52:20 : Group hybrid1._.Other (13 of 20) : Processed Fragments Chr (9 of 21), 4.814 mins elapsed.
+2020-12-03 17:52:22 : Group hybrid1._.Other (13 of 20) : Processed Fragments Chr (10 of 21), 4.835 mins elapsed.
+2020-12-03 17:52:23 : Group hybrid1._.Other (13 of 20) : Processed Fragments Chr (11 of 21), 4.856 mins elapsed.
+2020-12-03 17:52:24 : Group hybrid1._.Other (13 of 20) : Processed Fragments Chr (12 of 21), 4.875 mins elapsed.
+2020-12-03 17:52:25 : Group hybrid1._.Other (13 of 20) : Processed Fragments Chr (13 of 21), 4.894 mins elapsed.
+2020-12-03 17:52:26 : Group hybrid1._.Other (13 of 20) : Processed Fragments Chr (14 of 21), 4.914 mins elapsed.
+2020-12-03 17:52:28 : Group hybrid1._.Other (13 of 20) : Processed Fragments Chr (15 of 21), 4.934 mins elapsed.
+2020-12-03 17:52:29 : Group hybrid1._.Other (13 of 20) : Processed Fragments Chr (16 of 21), 4.954 mins elapsed.
+2020-12-03 17:52:30 : Group hybrid1._.Other (13 of 20) : Processed Fragments Chr (17 of 21), 4.973 mins elapsed.
+2020-12-03 17:52:31 : Group hybrid1._.Other (13 of 20) : Processed Fragments Chr (18 of 21), 4.994 mins elapsed.
+2020-12-03 17:52:32 : Group hybrid1._.Other (13 of 20) : Processed Fragments Chr (19 of 21), 5.014 mins elapsed.
+2020-12-03 17:52:34 : Group hybrid1._.Other (13 of 20) : Processed Fragments Chr (20 of 21), 5.033 mins elapsed.
+2020-12-03 17:52:35 : Group hybrid1._.Other (13 of 20) : Processed Fragments Chr (21 of 21), 5.05 mins elapsed.
+2020-12-03 17:52:36 : Group hybrid2._.s3UI (14 of 20) : Creating Group Coverage File : hybrid2._.s3UI.insertions.coverage.h5, 5.068 mins elapsed.
+
+2020-12-03 17:52:36 : Group hybrid2._.s3UI (14 of 20) : cellGroupi, Class = character
+
+Group hybrid2._.s3UI (14 of 20) : cellGroupi: length = 170
+[1] "s3UI#GCTGAGCAGGGTTCTT-1" "s3UI#CCCTAACCAACGTCGC-1"
+[3] "s3UI#CAGCTAAAGCCATCAT-1" "s3UI#TATCGAGTCTCTATTG-1"
+[5] "s3UI#GTCACAAGTGTACGCC-1" "s3UI#GCCAGCACACGTGAAG-1"
+
+
+
+2020-12-03 17:52:36 : 
+
+2020-12-03 17:52:36 : 
+
+2020-12-03 17:52:36 : 
+
+2020-12-03 17:52:36 : 
+
+2020-12-03 17:52:36 : 
+
+2020-12-03 17:52:36 : 
+
+2020-12-03 17:52:36 : 
+2020-12-03 17:52:36 : Group hybrid2._.s3UI (14 of 20) : Processed Fragments Chr (1 of 21), 5.068 mins elapsed.
+2020-12-03 17:52:37 : Group hybrid2._.s3UI (14 of 20) : Processed Fragments Chr (2 of 21), 5.088 mins elapsed.
+2020-12-03 17:52:38 : Group hybrid2._.s3UI (14 of 20) : Processed Fragments Chr (3 of 21), 5.108 mins elapsed.
+2020-12-03 17:52:39 : Group hybrid2._.s3UI (14 of 20) : Processed Fragments Chr (4 of 21), 5.13 mins elapsed.
+2020-12-03 17:52:40 : Group hybrid2._.s3UI (14 of 20) : Processed Fragments Chr (5 of 21), 5.148 mins elapsed.
+2020-12-03 17:52:42 : Group hybrid2._.s3UI (14 of 20) : Processed Fragments Chr (6 of 21), 5.166 mins elapsed.
+2020-12-03 17:52:43 : Group hybrid2._.s3UI (14 of 20) : Processed Fragments Chr (7 of 21), 5.182 mins elapsed.
+2020-12-03 17:52:44 : Group hybrid2._.s3UI (14 of 20) : Processed Fragments Chr (8 of 21), 5.203 mins elapsed.
+2020-12-03 17:52:45 : Group hybrid2._.s3UI (14 of 20) : Processed Fragments Chr (9 of 21), 5.222 mins elapsed.
+2020-12-03 17:52:46 : Group hybrid2._.s3UI (14 of 20) : Processed Fragments Chr (10 of 21), 5.242 mins elapsed.
+2020-12-03 17:52:47 : Group hybrid2._.s3UI (14 of 20) : Processed Fragments Chr (11 of 21), 5.26 mins elapsed.
+2020-12-03 17:52:48 : Group hybrid2._.s3UI (14 of 20) : Processed Fragments Chr (12 of 21), 5.277 mins elapsed.
+2020-12-03 17:52:50 : Group hybrid2._.s3UI (14 of 20) : Processed Fragments Chr (13 of 21), 5.299 mins elapsed.
+2020-12-03 17:52:51 : Group hybrid2._.s3UI (14 of 20) : Processed Fragments Chr (14 of 21), 5.32 mins elapsed.
+2020-12-03 17:52:52 : Group hybrid2._.s3UI (14 of 20) : Processed Fragments Chr (15 of 21), 5.343 mins elapsed.
+2020-12-03 17:52:53 : Group hybrid2._.s3UI (14 of 20) : Processed Fragments Chr (16 of 21), 5.362 mins elapsed.
+2020-12-03 17:52:54 : Group hybrid2._.s3UI (14 of 20) : Processed Fragments Chr (17 of 21), 5.38 mins elapsed.
+2020-12-03 17:52:56 : Group hybrid2._.s3UI (14 of 20) : Processed Fragments Chr (18 of 21), 5.399 mins elapsed.
+2020-12-03 17:52:57 : Group hybrid2._.s3UI (14 of 20) : Processed Fragments Chr (19 of 21), 5.418 mins elapsed.
+2020-12-03 17:52:58 : Group hybrid2._.s3UI (14 of 20) : Processed Fragments Chr (20 of 21), 5.436 mins elapsed.
+2020-12-03 17:52:59 : Group hybrid2._.s3UI (14 of 20) : Processed Fragments Chr (21 of 21), 5.451 mins elapsed.
+2020-12-03 17:53:00 : Group hybrid2._.1 (15 of 20) : Creating Group Coverage File : hybrid2._.1.insertions.coverage.h5, 5.466 mins elapsed.
+
+2020-12-03 17:53:00 : Group hybrid2._.1 (15 of 20) : cellGroupi, Class = character
+
+Group hybrid2._.1 (15 of 20) : cellGroupi: length = 53
+[1] "s3Inj#GATCATGCAGGCAAGT-1" "s2Inj#CAGCTGGGTTTCCACC-1"
+[3] "s3Inj#GCACGCATCGGATAGG-1" "s3Inj#TTAGCGACATAGCAGG-1"
+[5] "s3Inj#TTGGTCCAGCGCACAA-1" "s1Inj#GCTTTCGAGGAAACTT-1"
+
+
+
+2020-12-03 17:53:00 : 
+
+2020-12-03 17:53:00 : 
+
+2020-12-03 17:53:00 : 
+
+2020-12-03 17:53:00 : 
+
+2020-12-03 17:53:00 : 
+
+2020-12-03 17:53:00 : 
+
+2020-12-03 17:53:00 : 
+2020-12-03 17:53:00 : Group hybrid2._.1 (15 of 20) : Processed Fragments Chr (1 of 21), 5.467 mins elapsed.
+2020-12-03 17:53:01 : Group hybrid2._.1 (15 of 20) : Processed Fragments Chr (2 of 21), 5.488 mins elapsed.
+2020-12-03 17:53:02 : Group hybrid2._.1 (15 of 20) : Processed Fragments Chr (3 of 21), 5.51 mins elapsed.
+2020-12-03 17:53:03 : Group hybrid2._.1 (15 of 20) : Processed Fragments Chr (4 of 21), 5.531 mins elapsed.
+2020-12-03 17:53:05 : Group hybrid2._.1 (15 of 20) : Processed Fragments Chr (5 of 21), 5.55 mins elapsed.
+2020-12-03 17:53:06 : Group hybrid2._.1 (15 of 20) : Processed Fragments Chr (6 of 21), 5.571 mins elapsed.
+2020-12-03 17:53:07 : Group hybrid2._.1 (15 of 20) : Processed Fragments Chr (7 of 21), 5.59 mins elapsed.
+2020-12-03 17:53:08 : Group hybrid2._.1 (15 of 20) : Processed Fragments Chr (8 of 21), 5.611 mins elapsed.
+2020-12-03 17:53:09 : Group hybrid2._.1 (15 of 20) : Processed Fragments Chr (9 of 21), 5.632 mins elapsed.
+2020-12-03 17:53:11 : Group hybrid2._.1 (15 of 20) : Processed Fragments Chr (10 of 21), 5.651 mins elapsed.
+2020-12-03 17:53:12 : Group hybrid2._.1 (15 of 20) : Processed Fragments Chr (11 of 21), 5.67 mins elapsed.
+2020-12-03 17:53:13 : Group hybrid2._.1 (15 of 20) : Processed Fragments Chr (12 of 21), 5.689 mins elapsed.
+2020-12-03 17:53:14 : Group hybrid2._.1 (15 of 20) : Processed Fragments Chr (13 of 21), 5.709 mins elapsed.
+2020-12-03 17:53:15 : Group hybrid2._.1 (15 of 20) : Processed Fragments Chr (14 of 21), 5.729 mins elapsed.
+2020-12-03 17:53:17 : Group hybrid2._.1 (15 of 20) : Processed Fragments Chr (15 of 21), 5.75 mins elapsed.
+2020-12-03 17:53:18 : Group hybrid2._.1 (15 of 20) : Processed Fragments Chr (16 of 21), 5.769 mins elapsed.
+2020-12-03 17:53:19 : Group hybrid2._.1 (15 of 20) : Processed Fragments Chr (17 of 21), 5.789 mins elapsed.
+2020-12-03 17:53:20 : Group hybrid2._.1 (15 of 20) : Processed Fragments Chr (18 of 21), 5.808 mins elapsed.
+2020-12-03 17:53:21 : Group hybrid2._.1 (15 of 20) : Processed Fragments Chr (19 of 21), 5.827 mins elapsed.
+2020-12-03 17:53:22 : Group hybrid2._.1 (15 of 20) : Processed Fragments Chr (20 of 21), 5.846 mins elapsed.
+2020-12-03 17:53:23 : Group hybrid2._.1 (15 of 20) : Processed Fragments Chr (21 of 21), 5.864 mins elapsed.
+2020-12-03 17:53:25 : Group resting._.s2UI (16 of 20) : Creating Group Coverage File : resting._.s2UI.insertions.coverage.h5, 5.882 mins elapsed.
+
+2020-12-03 17:53:25 : Group resting._.s2UI (16 of 20) : cellGroupi, Class = character
+
+Group resting._.s2UI (16 of 20) : cellGroupi: length = 500
+[1] "s2UI#TGCTCGTAGTGATCTC-1" "s2UI#TGCTATTTCGCGTGAC-1"
+[3] "s2UI#TACTAGGCAGTCAGAG-1" "s2UI#AGTGTACGTTTAGGAA-1"
+[5] "s2UI#CTTGTCGCATCCCAAA-1" "s2UI#ACAAGCTTCTTCTCTC-1"
+
+
+
+2020-12-03 17:53:25 : 
+
+2020-12-03 17:53:25 : 
+
+2020-12-03 17:53:25 : 
+
+2020-12-03 17:53:25 : 
+
+2020-12-03 17:53:25 : 
+
+2020-12-03 17:53:25 : 
+
+2020-12-03 17:53:25 : 
+2020-12-03 17:53:25 : Group resting._.s2UI (16 of 20) : Processed Fragments Chr (1 of 21), 5.883 mins elapsed.
+2020-12-03 17:53:26 : Group resting._.s2UI (16 of 20) : Processed Fragments Chr (2 of 21), 5.904 mins elapsed.
+2020-12-03 17:53:27 : Group resting._.s2UI (16 of 20) : Processed Fragments Chr (3 of 21), 5.924 mins elapsed.
+2020-12-03 17:53:28 : Group resting._.s2UI (16 of 20) : Processed Fragments Chr (4 of 21), 5.944 mins elapsed.
+2020-12-03 17:53:29 : Group resting._.s2UI (16 of 20) : Processed Fragments Chr (5 of 21), 5.962 mins elapsed.
+2020-12-03 17:53:30 : Group resting._.s2UI (16 of 20) : Processed Fragments Chr (6 of 21), 5.981 mins elapsed.
+2020-12-03 17:53:31 : Group resting._.s2UI (16 of 20) : Processed Fragments Chr (7 of 21), 5.999 mins elapsed.
+2020-12-03 17:53:33 : Group resting._.s2UI (16 of 20) : Processed Fragments Chr (8 of 21), 6.018 mins elapsed.
+2020-12-03 17:53:34 : Group resting._.s2UI (16 of 20) : Processed Fragments Chr (9 of 21), 6.035 mins elapsed.
+2020-12-03 17:53:35 : Group resting._.s2UI (16 of 20) : Processed Fragments Chr (10 of 21), 6.054 mins elapsed.
+2020-12-03 17:53:36 : Group resting._.s2UI (16 of 20) : Processed Fragments Chr (11 of 21), 6.071 mins elapsed.
+2020-12-03 17:53:37 : Group resting._.s2UI (16 of 20) : Processed Fragments Chr (12 of 21), 6.087 mins elapsed.
+2020-12-03 17:53:38 : Group resting._.s2UI (16 of 20) : Processed Fragments Chr (13 of 21), 6.108 mins elapsed.
+2020-12-03 17:53:39 : Group resting._.s2UI (16 of 20) : Processed Fragments Chr (14 of 21), 6.127 mins elapsed.
+2020-12-03 17:53:40 : Group resting._.s2UI (16 of 20) : Processed Fragments Chr (15 of 21), 6.147 mins elapsed.
+2020-12-03 17:53:42 : Group resting._.s2UI (16 of 20) : Processed Fragments Chr (16 of 21), 6.167 mins elapsed.
+2020-12-03 17:53:43 : Group resting._.s2UI (16 of 20) : Processed Fragments Chr (17 of 21), 6.185 mins elapsed.
+2020-12-03 17:53:44 : Group resting._.s2UI (16 of 20) : Processed Fragments Chr (18 of 21), 6.206 mins elapsed.
+2020-12-03 17:53:45 : Group resting._.s2UI (16 of 20) : Processed Fragments Chr (19 of 21), 6.225 mins elapsed.
+2020-12-03 17:53:46 : Group resting._.s2UI (16 of 20) : Processed Fragments Chr (20 of 21), 6.243 mins elapsed.
+2020-12-03 17:53:47 : Group resting._.s2UI (16 of 20) : Processed Fragments Chr (21 of 21), 6.259 mins elapsed.
+2020-12-03 17:53:48 : Group resting._.s1UI (17 of 20) : Creating Group Coverage File : resting._.s1UI.insertions.coverage.h5, 6.274 mins elapsed.
+
+2020-12-03 17:53:48 : Group resting._.s1UI (17 of 20) : cellGroupi, Class = character
+
+Group resting._.s1UI (17 of 20) : cellGroupi: length = 355
+[1] "s1UI#TGGCAATTCTAGCTGA-1" "s1UI#TTACGTTGTATCTCAG-1"
+[3] "s1UI#GACCCAGAGTGTGTAA-1" "s1UI#TCGGGACGTGAATGTA-1"
+[5] "s1UI#ACATGCAGTCCGCTTT-1" "s1UI#CTCCCAATCATTCATC-1"
+
+
+
+2020-12-03 17:53:48 : 
+
+2020-12-03 17:53:48 : 
+
+2020-12-03 17:53:48 : 
+
+2020-12-03 17:53:48 : 
+
+2020-12-03 17:53:48 : 
+
+2020-12-03 17:53:48 : 
+
+2020-12-03 17:53:48 : 
+2020-12-03 17:53:48 : Group resting._.s1UI (17 of 20) : Processed Fragments Chr (1 of 21), 6.274 mins elapsed.
+2020-12-03 17:53:49 : Group resting._.s1UI (17 of 20) : Processed Fragments Chr (2 of 21), 6.293 mins elapsed.
+2020-12-03 17:53:50 : Group resting._.s1UI (17 of 20) : Processed Fragments Chr (3 of 21), 6.31 mins elapsed.
+2020-12-03 17:53:51 : Group resting._.s1UI (17 of 20) : Processed Fragments Chr (4 of 21), 6.329 mins elapsed.
+2020-12-03 17:53:52 : Group resting._.s1UI (17 of 20) : Processed Fragments Chr (5 of 21), 6.345 mins elapsed.
+2020-12-03 17:53:53 : Group resting._.s1UI (17 of 20) : Processed Fragments Chr (6 of 21), 6.361 mins elapsed.
+2020-12-03 17:53:54 : Group resting._.s1UI (17 of 20) : Processed Fragments Chr (7 of 21), 6.377 mins elapsed.
+2020-12-03 17:53:55 : Group resting._.s1UI (17 of 20) : Processed Fragments Chr (8 of 21), 6.394 mins elapsed.
+2020-12-03 17:53:56 : Group resting._.s1UI (17 of 20) : Processed Fragments Chr (9 of 21), 6.41 mins elapsed.
+2020-12-03 17:53:57 : Group resting._.s1UI (17 of 20) : Processed Fragments Chr (10 of 21), 6.427 mins elapsed.
+2020-12-03 17:53:58 : Group resting._.s1UI (17 of 20) : Processed Fragments Chr (11 of 21), 6.443 mins elapsed.
+2020-12-03 17:53:59 : Group resting._.s1UI (17 of 20) : Processed Fragments Chr (12 of 21), 6.459 mins elapsed.
+2020-12-03 17:54:00 : Group resting._.s1UI (17 of 20) : Processed Fragments Chr (13 of 21), 6.477 mins elapsed.
+2020-12-03 17:54:01 : Group resting._.s1UI (17 of 20) : Processed Fragments Chr (14 of 21), 6.495 mins elapsed.
+2020-12-03 17:54:02 : Group resting._.s1UI (17 of 20) : Processed Fragments Chr (15 of 21), 6.513 mins elapsed.
+2020-12-03 17:54:03 : Group resting._.s1UI (17 of 20) : Processed Fragments Chr (16 of 21), 6.531 mins elapsed.
+2020-12-03 17:54:04 : Group resting._.s1UI (17 of 20) : Processed Fragments Chr (17 of 21), 6.549 mins elapsed.
+2020-12-03 17:54:06 : Group resting._.s1UI (17 of 20) : Processed Fragments Chr (18 of 21), 6.568 mins elapsed.
+2020-12-03 17:54:07 : Group resting._.s1UI (17 of 20) : Processed Fragments Chr (19 of 21), 6.585 mins elapsed.
+2020-12-03 17:54:08 : Group resting._.s1UI (17 of 20) : Processed Fragments Chr (20 of 21), 6.602 mins elapsed.
+2020-12-03 17:54:09 : Group resting._.s1UI (17 of 20) : Processed Fragments Chr (21 of 21), 6.617 mins elapsed.
+2020-12-03 17:54:09 : Group resting._.s3UI (18 of 20) : Creating Group Coverage File : resting._.s3UI.insertions.coverage.h5, 6.631 mins elapsed.
+
+2020-12-03 17:54:09 : Group resting._.s3UI (18 of 20) : cellGroupi, Class = character
+
+Group resting._.s3UI (18 of 20) : cellGroupi: length = 178
+[1] "s3UI#AAACTCGCATCCTGGG-1" "s3UI#GTGGATTTCCATTGAG-1"
+[3] "s3UI#CACATGATCTATCTTG-1" "s3UI#TGAGTCAGTACGGTTT-1"
+[5] "s3UI#ACCTGCTCATCCCGGA-1" "s3UI#AGTGTACGTCATTGGT-1"
+
+
+
+2020-12-03 17:54:09 : 
+
+2020-12-03 17:54:09 : 
+
+2020-12-03 17:54:09 : 
+
+2020-12-03 17:54:09 : 
+
+2020-12-03 17:54:09 : 
+
+2020-12-03 17:54:09 : 
+
+2020-12-03 17:54:09 : 
+2020-12-03 17:54:09 : Group resting._.s3UI (18 of 20) : Processed Fragments Chr (1 of 21), 6.632 mins elapsed.
+2020-12-03 17:54:10 : Group resting._.s3UI (18 of 20) : Processed Fragments Chr (2 of 21), 6.648 mins elapsed.
+2020-12-03 17:54:11 : Group resting._.s3UI (18 of 20) : Processed Fragments Chr (3 of 21), 6.664 mins elapsed.
+2020-12-03 17:54:12 : Group resting._.s3UI (18 of 20) : Processed Fragments Chr (4 of 21), 6.68 mins elapsed.
+2020-12-03 17:54:13 : Group resting._.s3UI (18 of 20) : Processed Fragments Chr (5 of 21), 6.695 mins elapsed.
+2020-12-03 17:54:14 : Group resting._.s3UI (18 of 20) : Processed Fragments Chr (6 of 21), 6.711 mins elapsed.
+2020-12-03 17:54:15 : Group resting._.s3UI (18 of 20) : Processed Fragments Chr (7 of 21), 6.726 mins elapsed.
+2020-12-03 17:54:16 : Group resting._.s3UI (18 of 20) : Processed Fragments Chr (8 of 21), 6.742 mins elapsed.
+2020-12-03 17:54:17 : Group resting._.s3UI (18 of 20) : Processed Fragments Chr (9 of 21), 6.757 mins elapsed.
+2020-12-03 17:54:18 : Group resting._.s3UI (18 of 20) : Processed Fragments Chr (10 of 21), 6.773 mins elapsed.
+2020-12-03 17:54:19 : Group resting._.s3UI (18 of 20) : Processed Fragments Chr (11 of 21), 6.787 mins elapsed.
+2020-12-03 17:54:20 : Group resting._.s3UI (18 of 20) : Processed Fragments Chr (12 of 21), 6.802 mins elapsed.
+2020-12-03 17:54:21 : Group resting._.s3UI (18 of 20) : Processed Fragments Chr (13 of 21), 6.819 mins elapsed.
+2020-12-03 17:54:22 : Group resting._.s3UI (18 of 20) : Processed Fragments Chr (14 of 21), 6.835 mins elapsed.
+2020-12-03 17:54:23 : Group resting._.s3UI (18 of 20) : Processed Fragments Chr (15 of 21), 6.851 mins elapsed.
+2020-12-03 17:54:24 : Group resting._.s3UI (18 of 20) : Processed Fragments Chr (16 of 21), 6.868 mins elapsed.
+2020-12-03 17:54:25 : Group resting._.s3UI (18 of 20) : Processed Fragments Chr (17 of 21), 6.884 mins elapsed.
+2020-12-03 17:54:26 : Group resting._.s3UI (18 of 20) : Processed Fragments Chr (18 of 21), 6.9 mins elapsed.
+2020-12-03 17:54:27 : Group resting._.s3UI (18 of 20) : Processed Fragments Chr (19 of 21), 6.917 mins elapsed.
+2020-12-03 17:54:28 : Group resting._.s3UI (18 of 20) : Processed Fragments Chr (20 of 21), 6.932 mins elapsed.
+2020-12-03 17:54:28 : Group resting._.s3UI (18 of 20) : Processed Fragments Chr (21 of 21), 6.947 mins elapsed.
+2020-12-03 17:54:29 : Group resting._.s3Inj (19 of 20) : Creating Group Coverage File : resting._.s3Inj.insertions.coverage.h5, 6.96 mins elapsed.
+
+2020-12-03 17:54:29 : Group resting._.s3Inj (19 of 20) : cellGroupi, Class = character
+
+Group resting._.s3Inj (19 of 20) : cellGroupi: length = 54
+[1] "s3Inj#GCGGGTTGTAGCGTTT-1" "s3Inj#ACCCAAACATGTATCG-1"
+[3] "s3Inj#TTTACGTGTAACCATC-1" "s3Inj#ATTACCTTCCAGTTAG-1"
+[5] "s3Inj#TAGCACAGTTCTGAGT-1" "s3Inj#AGTGCGCGTAAGTCTC-1"
+
+
+
+2020-12-03 17:54:29 : 
+
+2020-12-03 17:54:29 : 
+
+2020-12-03 17:54:29 : 
+
+2020-12-03 17:54:29 : 
+
+2020-12-03 17:54:29 : 
+
+2020-12-03 17:54:29 : 
+
+2020-12-03 17:54:29 : 
+2020-12-03 17:54:29 : Group resting._.s3Inj (19 of 20) : Processed Fragments Chr (1 of 21), 6.961 mins elapsed.
+2020-12-03 17:54:30 : Group resting._.s3Inj (19 of 20) : Processed Fragments Chr (2 of 21), 6.975 mins elapsed.
+2020-12-03 17:54:31 : Group resting._.s3Inj (19 of 20) : Processed Fragments Chr (3 of 21), 6.99 mins elapsed.
+2020-12-03 17:54:32 : Group resting._.s3Inj (19 of 20) : Processed Fragments Chr (4 of 21), 7.004 mins elapsed.
+2020-12-03 17:54:33 : Group resting._.s3Inj (19 of 20) : Processed Fragments Chr (5 of 21), 7.018 mins elapsed.
+2020-12-03 17:54:34 : Group resting._.s3Inj (19 of 20) : Processed Fragments Chr (6 of 21), 7.033 mins elapsed.
+2020-12-03 17:54:34 : Group resting._.s3Inj (19 of 20) : Processed Fragments Chr (7 of 21), 7.048 mins elapsed.
+2020-12-03 17:54:35 : Group resting._.s3Inj (19 of 20) : Processed Fragments Chr (8 of 21), 7.062 mins elapsed.
+2020-12-03 17:54:36 : Group resting._.s3Inj (19 of 20) : Processed Fragments Chr (9 of 21), 7.076 mins elapsed.
+2020-12-03 17:54:37 : Group resting._.s3Inj (19 of 20) : Processed Fragments Chr (10 of 21), 7.09 mins elapsed.
+2020-12-03 17:54:38 : Group resting._.s3Inj (19 of 20) : Processed Fragments Chr (11 of 21), 7.104 mins elapsed.
+2020-12-03 17:54:39 : Group resting._.s3Inj (19 of 20) : Processed Fragments Chr (12 of 21), 7.119 mins elapsed.
+2020-12-03 17:54:40 : Group resting._.s3Inj (19 of 20) : Processed Fragments Chr (13 of 21), 7.133 mins elapsed.
+2020-12-03 17:54:40 : Group resting._.s3Inj (19 of 20) : Processed Fragments Chr (14 of 21), 7.148 mins elapsed.
+2020-12-03 17:54:41 : Group resting._.s3Inj (19 of 20) : Processed Fragments Chr (15 of 21), 7.163 mins elapsed.
+2020-12-03 17:54:42 : Group resting._.s3Inj (19 of 20) : Processed Fragments Chr (16 of 21), 7.177 mins elapsed.
+2020-12-03 17:54:43 : Group resting._.s3Inj (19 of 20) : Processed Fragments Chr (17 of 21), 7.191 mins elapsed.
+2020-12-03 17:54:44 : Group resting._.s3Inj (19 of 20) : Processed Fragments Chr (18 of 21), 7.206 mins elapsed.
+2020-12-03 17:54:45 : Group resting._.s3Inj (19 of 20) : Processed Fragments Chr (19 of 21), 7.221 mins elapsed.
+2020-12-03 17:54:46 : Group resting._.s3Inj (19 of 20) : Processed Fragments Chr (20 of 21), 7.236 mins elapsed.
+2020-12-03 17:54:47 : Group resting._.s3Inj (19 of 20) : Processed Fragments Chr (21 of 21), 7.25 mins elapsed.
+2020-12-03 17:54:47 : Group resting._.Other (20 of 20) : Creating Group Coverage File : resting._.Other.insertions.coverage.h5, 7.264 mins elapsed.
+
+2020-12-03 17:54:47 : Group resting._.Other (20 of 20) : cellGroupi, Class = character
+
+Group resting._.Other (20 of 20) : cellGroupi: length = 51
+                    s1Inj1                     s1Inj2 
+"s1Inj#ATGTACGTCCGAGAGA-1" "s1Inj#GCCCGAATCGATGTAC-1" 
+                    s1Inj3                     s1Inj4 
+"s1Inj#TTGCTATGTCTAAAGA-1" "s1Inj#TTGCCCAAGTACCCAT-1" 
+                    s1Inj5                     s1Inj6 
+"s1Inj#TGGGTGCCAGTAACCT-1" "s1Inj#AAACTCGAGGAGTAGA-1" 
+
+
+
+2020-12-03 17:54:47 : 
+
+2020-12-03 17:54:47 : 
+
+2020-12-03 17:54:47 : 
+
+2020-12-03 17:54:47 : 
+
+2020-12-03 17:54:47 : 
+
+2020-12-03 17:54:47 : 
+
+2020-12-03 17:54:47 : 
+2020-12-03 17:54:47 : Group resting._.Other (20 of 20) : Processed Fragments Chr (1 of 21), 7.264 mins elapsed.
+2020-12-03 17:54:48 : Group resting._.Other (20 of 20) : Processed Fragments Chr (2 of 21), 7.28 mins elapsed.
+2020-12-03 17:54:49 : Group resting._.Other (20 of 20) : Processed Fragments Chr (3 of 21), 7.295 mins elapsed.
+2020-12-03 17:54:50 : Group resting._.Other (20 of 20) : Processed Fragments Chr (4 of 21), 7.311 mins elapsed.
+2020-12-03 17:54:51 : Group resting._.Other (20 of 20) : Processed Fragments Chr (5 of 21), 7.326 mins elapsed.
+2020-12-03 17:54:52 : Group resting._.Other (20 of 20) : Processed Fragments Chr (6 of 21), 7.342 mins elapsed.
+2020-12-03 17:54:53 : Group resting._.Other (20 of 20) : Processed Fragments Chr (7 of 21), 7.357 mins elapsed.
+2020-12-03 17:54:54 : Group resting._.Other (20 of 20) : Processed Fragments Chr (8 of 21), 7.373 mins elapsed.
+2020-12-03 17:54:55 : Group resting._.Other (20 of 20) : Processed Fragments Chr (9 of 21), 7.388 mins elapsed.
+2020-12-03 17:54:56 : Group resting._.Other (20 of 20) : Processed Fragments Chr (10 of 21), 7.403 mins elapsed.
+2020-12-03 17:54:57 : Group resting._.Other (20 of 20) : Processed Fragments Chr (11 of 21), 7.418 mins elapsed.
+2020-12-03 17:54:58 : Group resting._.Other (20 of 20) : Processed Fragments Chr (12 of 21), 7.433 mins elapsed.
+2020-12-03 17:54:59 : Group resting._.Other (20 of 20) : Processed Fragments Chr (13 of 21), 7.449 mins elapsed.
+2020-12-03 17:54:59 : Group resting._.Other (20 of 20) : Processed Fragments Chr (14 of 21), 7.465 mins elapsed.
+2020-12-03 17:55:00 : Group resting._.Other (20 of 20) : Processed Fragments Chr (15 of 21), 7.481 mins elapsed.
+2020-12-03 17:55:01 : Group resting._.Other (20 of 20) : Processed Fragments Chr (16 of 21), 7.497 mins elapsed.
+2020-12-03 17:55:02 : Group resting._.Other (20 of 20) : Processed Fragments Chr (17 of 21), 7.513 mins elapsed.
+2020-12-03 17:55:03 : Group resting._.Other (20 of 20) : Processed Fragments Chr (18 of 21), 7.529 mins elapsed.
+2020-12-03 17:55:04 : Group resting._.Other (20 of 20) : Processed Fragments Chr (19 of 21), 7.544 mins elapsed.
+2020-12-03 17:55:05 : Group resting._.Other (20 of 20) : Processed Fragments Chr (20 of 21), 7.56 mins elapsed.
+2020-12-03 17:55:06 : Group resting._.Other (20 of 20) : Processed Fragments Chr (21 of 21), 7.575 mins elapsed.
+
+2020-12-03 17:55:07 : kmerBias-Parameters, Class = list
+
+kmerBias-Parameters$: length = 1
+                       
+1 function (name)      
+2 .Internal(args(name))
+
+
+kmerBias-Parameters$genome: length = 1
+[1] "BSgenome.Mmusculus.UCSC.mm10"
+
+
+kmerBias-Parameters$kmerLength: length = 1
+[1] 6
+
+
+kmerBias-Parameters$threads: length = 1
+[1] 1
+
+
+kmerBias-Parameters$verbose: length = 1
+[1] FALSE
+
+
+kmerBias-Parameters$tstart: length = 0
+NULL
+
+
+kmerBias-Parameters$logFile: length = 1
+[1] "ArchRLogs/ArchR-addGroupCoverages-175b878f01d6b-Date-2020-12-03_Time-17-47-32.log"
+
+
+
+2020-12-03 17:55:07 : 
+
+2020-12-03 17:55:09 : 
+
+2020-12-03 17:55:11 : 
+
+2020-12-03 17:55:12 : 
+
+2020-12-03 17:55:13 : 
+
+2020-12-03 17:55:14 : 
+
+2020-12-03 17:55:15 : 
+
+2020-12-03 17:55:16 : 
+
+2020-12-03 17:55:17 : 
+
+2020-12-03 17:55:18 : 
+
+2020-12-03 17:55:19 : 
+
+2020-12-03 17:55:20 : 
+
+2020-12-03 17:55:21 : 
+
+2020-12-03 17:55:22 : 
+
+2020-12-03 17:55:23 : 
+
+2020-12-03 17:55:24 : 
+
+2020-12-03 17:55:25 : 
+
+2020-12-03 17:55:26 : 
+
+2020-12-03 17:55:27 : 
+
+2020-12-03 17:55:28 : 
+
+2020-12-03 17:55:29 : 
+
+2020-12-03 17:55:30 : 
+
+2020-12-03 17:55:31 : 
+
+2020-12-03 17:55:32 : 
+
+2020-12-03 17:55:34 : 
+
+2020-12-03 17:55:35 : 
+
+2020-12-03 17:55:35 : 
+
+2020-12-03 17:55:37 : 
+
+2020-12-03 17:55:38 : 
+
+2020-12-03 17:55:39 : 
+
+2020-12-03 17:55:39 : 
+
+2020-12-03 17:55:40 : 
+
+2020-12-03 17:55:41 : 
+
+2020-12-03 17:55:42 : 
+
+2020-12-03 17:55:43 : 
+
+2020-12-03 17:55:44 : 
+
+2020-12-03 17:55:45 : 
+
+2020-12-03 17:55:46 : 
+
+2020-12-03 17:55:47 : 
+
+2020-12-03 17:55:48 : 
+
+2020-12-03 17:55:49 : 
+
+2020-12-03 17:55:50 : 
+
+2020-12-03 17:55:51 : 
+
+2020-12-03 17:55:52 : 
+
+2020-12-03 17:55:53 : 
+
+2020-12-03 17:55:55 : 
+
+2020-12-03 17:55:56 : 
+
+2020-12-03 17:55:57 : 
+
+2020-12-03 17:55:58 : 
+
+2020-12-03 17:55:59 : 
+
+2020-12-03 17:56:00 : 
+
+2020-12-03 17:56:00 : 
+
+2020-12-03 17:56:01 : 
+
+2020-12-03 17:56:02 : 
+
+2020-12-03 17:56:03 : 
+
+2020-12-03 17:56:04 : 
+
+2020-12-03 17:56:05 : 
+
+2020-12-03 17:56:06 : 
+
+2020-12-03 17:56:07 : 
+
+2020-12-03 17:56:08 : 
+
+2020-12-03 17:56:10 : 
+
+2020-12-03 17:56:10 : 
+
+2020-12-03 17:56:11 : 
+
+2020-12-03 17:56:12 : 
+
+2020-12-03 17:56:13 : 
+
+2020-12-03 17:56:15 : 
+
+2020-12-03 17:56:16 : 
+
+2020-12-03 17:56:17 : 
+
+2020-12-03 17:56:17 : 
+
+2020-12-03 17:56:18 : 
+
+2020-12-03 17:56:19 : 
+
+2020-12-03 17:56:20 : 
+
+2020-12-03 17:56:21 : 
+
+2020-12-03 17:56:22 : 
+
+2020-12-03 17:56:23 : 
+
+2020-12-03 17:56:24 : 
+
+2020-12-03 17:56:25 : 
+
+2020-12-03 17:56:25 : 
+
+2020-12-03 17:56:26 : 
+
+2020-12-03 17:56:27 : 
+
+2020-12-03 17:56:28 : 
+
+2020-12-03 17:56:29 : 
+
+2020-12-03 17:56:30 : 
+
+2020-12-03 17:56:31 : 
+
+2020-12-03 17:56:32 : 
+
+2020-12-03 17:56:33 : 
+
+2020-12-03 17:56:34 : 
+
+2020-12-03 17:56:35 : 
+
+2020-12-03 17:56:36 : 
+
+2020-12-03 17:56:37 : 
+
+2020-12-03 17:56:38 : 
+
+2020-12-03 17:56:39 : 
+
+2020-12-03 17:56:40 : 
+
+2020-12-03 17:56:41 : 
+
+2020-12-03 17:56:42 : 
+
+2020-12-03 17:56:42 : 
+
+2020-12-03 17:56:43 : 
+
+2020-12-03 17:56:44 : 
+
+2020-12-03 17:56:45 : 
+
+2020-12-03 17:56:46 : 
+
+2020-12-03 17:56:47 : 
+
+2020-12-03 17:56:48 : 
+
+2020-12-03 17:56:49 : 
+
+2020-12-03 17:56:50 : 
+
+2020-12-03 17:56:51 : 
+
+2020-12-03 17:56:51 : 
+
+2020-12-03 17:56:53 : 
+
+2020-12-03 17:56:54 : 
+
+2020-12-03 17:56:55 : 
+
+2020-12-03 17:56:56 : 
+
+2020-12-03 17:56:57 : 
+
+2020-12-03 17:56:58 : 
+
+2020-12-03 17:56:59 : 
+
+2020-12-03 17:56:59 : 
+
+2020-12-03 17:57:00 : 
+
+2020-12-03 17:57:01 : 
+
+2020-12-03 17:57:02 : 
+
+2020-12-03 17:57:03 : 
+
+2020-12-03 17:57:04 : 
+
+2020-12-03 17:57:05 : 
+
+2020-12-03 17:57:06 : 
+
+2020-12-03 17:57:06 : 
+
+2020-12-03 17:57:07 : 
+
+2020-12-03 17:57:08 : 
+
+2020-12-03 17:57:09 : 
+
+2020-12-03 17:57:10 : 
+
+2020-12-03 17:57:11 : 
+
+2020-12-03 17:57:12 : 
+
+2020-12-03 17:57:13 : 
+
+2020-12-03 17:57:14 : 
+
+2020-12-03 17:57:15 : 
+
+2020-12-03 17:57:16 : 
+
+2020-12-03 17:57:17 : 
+
+2020-12-03 17:57:18 : 
+
+2020-12-03 17:57:19 : 
+
+2020-12-03 17:57:20 : 
+
+2020-12-03 17:57:21 : 
+
+2020-12-03 17:57:21 : 
+
+2020-12-03 17:57:22 : 
+
+2020-12-03 17:57:23 : 
+
+2020-12-03 17:57:24 : 
+
+2020-12-03 17:57:25 : 
+
+2020-12-03 17:57:26 : 
+
+2020-12-03 17:57:27 : 
+
+2020-12-03 17:57:28 : 
+
+2020-12-03 17:57:29 : 
+
+2020-12-03 17:57:29 : 
+
+2020-12-03 17:57:30 : 
+
+2020-12-03 17:57:31 : 
+
+2020-12-03 17:57:32 : 
+
+2020-12-03 17:57:33 : 
+
+2020-12-03 17:57:34 : 
+
+2020-12-03 17:57:35 : 
+
+2020-12-03 17:57:36 : 
+
+2020-12-03 17:57:37 : 
+
+2020-12-03 17:57:38 : 
+
+2020-12-03 17:57:39 : 
+
+2020-12-03 17:57:40 : 
+
+2020-12-03 17:57:40 : 
+
+2020-12-03 17:57:41 : 
+
+2020-12-03 17:57:42 : 
+
+2020-12-03 17:57:43 : 
+
+2020-12-03 17:57:44 : 
+
+2020-12-03 17:57:45 : 
+
+2020-12-03 17:57:46 : 
+
+2020-12-03 17:57:47 : 
+
+2020-12-03 17:57:48 : 
+
+2020-12-03 17:57:48 : 
+
+2020-12-03 17:57:49 : 
+
+2020-12-03 17:57:50 : 
+
+2020-12-03 17:57:51 : 
+
+2020-12-03 17:57:53 : 
+
+2020-12-03 17:57:54 : 
+
+2020-12-03 17:57:54 : 
+
+2020-12-03 17:57:55 : 
+
+2020-12-03 17:57:56 : 
+
+2020-12-03 17:57:57 : 
+
+2020-12-03 17:57:58 : 
+
+2020-12-03 17:57:59 : 
+
+2020-12-03 17:58:00 : 
+
+2020-12-03 17:58:01 : 
+
+2020-12-03 17:58:02 : 
+
+2020-12-03 17:58:03 : 
+
+2020-12-03 17:58:04 : 
+
+2020-12-03 17:58:04 : 
+
+2020-12-03 17:58:06 : 
+
+2020-12-03 17:58:07 : 
+
+2020-12-03 17:58:08 : 
+
+2020-12-03 17:58:08 : 
+
+2020-12-03 17:58:09 : 
+
+2020-12-03 17:58:10 : 
+
+2020-12-03 17:58:11 : 
+
+2020-12-03 17:58:12 : 
+
+2020-12-03 17:58:13 : 
+
+2020-12-03 17:58:14 : 
+
+2020-12-03 17:58:15 : 
+
+2020-12-03 17:58:16 : 
+
+2020-12-03 17:58:17 : 
+
+2020-12-03 17:58:17 : 
+
+2020-12-03 17:58:18 : 
+
+2020-12-03 17:58:19 : 
+
+2020-12-03 17:58:20 : 
+
+2020-12-03 17:58:21 : 
+
+2020-12-03 17:58:22 : 
+
+2020-12-03 17:58:23 : 
+
+2020-12-03 17:58:24 : 
+
+2020-12-03 17:58:25 : 
+
+2020-12-03 17:58:25 : 
+
+2020-12-03 17:58:26 : 
+
+2020-12-03 17:58:27 : 
+
+2020-12-03 17:58:28 : 
+
+2020-12-03 17:58:29 : 
+
+2020-12-03 17:58:30 : 
+
+2020-12-03 17:58:31 : 
+
+2020-12-03 17:58:32 : 
+
+2020-12-03 17:58:32 : 
+
+2020-12-03 17:58:33 : 
+
+2020-12-03 17:58:34 : 
+
+2020-12-03 17:58:35 : 
+
+2020-12-03 17:58:36 : 
+
+2020-12-03 17:58:37 : 
+
+2020-12-03 17:58:38 : 
+
+2020-12-03 17:58:39 : 
+
+2020-12-03 17:58:39 : 
+
+2020-12-03 17:58:40 : 
+
+2020-12-03 17:58:41 : 
+
+2020-12-03 17:58:42 : 
+
+2020-12-03 17:58:43 : 
+
+2020-12-03 17:58:44 : 
+
+2020-12-03 17:58:45 : 
+
+2020-12-03 17:58:46 : 
+
+2020-12-03 17:58:46 : 
+
+2020-12-03 17:58:48 : 
+
+2020-12-03 17:58:50 : 
+
+2020-12-03 17:58:51 : 
+
+2020-12-03 17:58:52 : 
+
+2020-12-03 17:58:53 : 
+
+2020-12-03 17:58:54 : 
+
+2020-12-03 17:58:55 : 
+
+2020-12-03 17:58:56 : 
+
+2020-12-03 17:58:57 : 
+
+2020-12-03 17:58:58 : 
+
+2020-12-03 17:58:59 : 
+
+2020-12-03 17:59:00 : 
+
+2020-12-03 17:59:01 : 
+
+2020-12-03 17:59:02 : 
+
+2020-12-03 17:59:03 : 
+
+2020-12-03 17:59:04 : 
+
+2020-12-03 17:59:05 : 
+
+2020-12-03 17:59:06 : 
+
+2020-12-03 17:59:07 : 
+
+2020-12-03 17:59:08 : 
+
+2020-12-03 17:59:09 : 
+
+2020-12-03 17:59:10 : 
+
+2020-12-03 17:59:12 : 
+
+2020-12-03 17:59:13 : 
+
+2020-12-03 17:59:14 : 
+
+2020-12-03 17:59:15 : 
+
+2020-12-03 17:59:16 : 
+
+2020-12-03 17:59:17 : 
+
+2020-12-03 17:59:18 : 
+
+2020-12-03 17:59:18 : 
+
+2020-12-03 17:59:19 : 
+
+2020-12-03 17:59:20 : 
+
+2020-12-03 17:59:21 : 
+
+2020-12-03 17:59:22 : 
+
+2020-12-03 17:59:23 : 
+
+2020-12-03 17:59:24 : 
+
+2020-12-03 17:59:25 : 
+
+2020-12-03 17:59:26 : 
+
+2020-12-03 17:59:27 : 
+
+2020-12-03 17:59:28 : 
+
+2020-12-03 17:59:29 : 
+
+2020-12-03 17:59:30 : 
+
+2020-12-03 17:59:32 : 
+
+2020-12-03 17:59:33 : 
+
+2020-12-03 17:59:34 : 
+
+2020-12-03 17:59:35 : 
+
+2020-12-03 17:59:36 : 
+
+2020-12-03 17:59:37 : 
+
+2020-12-03 17:59:38 : 
+
+2020-12-03 17:59:39 : 
+
+2020-12-03 17:59:40 : 
+
+2020-12-03 17:59:41 : 
+
+2020-12-03 17:59:42 : 
+
+2020-12-03 17:59:43 : 
+
+2020-12-03 17:59:44 : 
+
+2020-12-03 17:59:45 : 
+
+2020-12-03 17:59:46 : 
+
+2020-12-03 17:59:47 : 
+
+2020-12-03 17:59:48 : 
+
+2020-12-03 17:59:50 : 
+
+2020-12-03 17:59:51 : 
+
+2020-12-03 17:59:51 : 
+
+2020-12-03 17:59:52 : 
+
+2020-12-03 17:59:54 : 
+
+2020-12-03 17:59:55 : 
+
+2020-12-03 17:59:56 : 
+
+2020-12-03 17:59:58 : 
+
+2020-12-03 17:59:58 : 
+
+2020-12-03 18:00:00 : 
+
+2020-12-03 18:00:01 : 
+
+2020-12-03 18:00:02 : 
+
+2020-12-03 18:00:02 : 
+
+2020-12-03 18:00:03 : 
+
+2020-12-03 18:00:04 : 
+
+2020-12-03 18:00:05 : 
+
+2020-12-03 18:00:06 : 
+
+2020-12-03 18:00:07 : 
+
+2020-12-03 18:00:08 : 
+
+2020-12-03 18:00:09 : 
+
+2020-12-03 18:00:11 : 
+
+2020-12-03 18:00:12 : 
+
+2020-12-03 18:00:13 : 
+
+2020-12-03 18:00:13 : 
+
+2020-12-03 18:00:14 : 
+
+2020-12-03 18:00:16 : 
+
+2020-12-03 18:00:17 : 
+
+2020-12-03 18:00:18 : 
+
+2020-12-03 18:00:19 : 
+
+2020-12-03 18:00:20 : 
+
+2020-12-03 18:00:21 : 
+
+2020-12-03 18:00:22 : 
+
+2020-12-03 18:00:23 : 
+
+2020-12-03 18:00:24 : 
+
+2020-12-03 18:00:25 : 
+
+2020-12-03 18:00:26 : 
+
+2020-12-03 18:00:27 : 
+
+2020-12-03 18:00:28 : 
+
+2020-12-03 18:00:29 : 
+
+2020-12-03 18:00:30 : 
+
+2020-12-03 18:00:31 : 
+
+2020-12-03 18:00:32 : 
+
+2020-12-03 18:00:33 : 
+
+2020-12-03 18:00:34 : 
+
+2020-12-03 18:00:35 : 
+
+2020-12-03 18:00:36 : 
+
+2020-12-03 18:00:37 : 
+
+2020-12-03 18:00:38 : 
+
+2020-12-03 18:00:40 : 
+
+2020-12-03 18:00:41 : 
+
+2020-12-03 18:00:42 : 
+
+2020-12-03 18:00:43 : 
+
+2020-12-03 18:00:44 : 
+
+2020-12-03 18:00:45 : 
+
+2020-12-03 18:00:46 : 
+
+2020-12-03 18:00:47 : 
+
+2020-12-03 18:00:48 : 
+
+2020-12-03 18:00:49 : 
+
+2020-12-03 18:00:50 : 
+
+2020-12-03 18:00:51 : 
+
+2020-12-03 18:00:52 : 
+
+2020-12-03 18:00:53 : 
+
+2020-12-03 18:00:54 : 
+
+2020-12-03 18:00:55 : 
+
+2020-12-03 18:00:56 : 
+
+2020-12-03 18:00:57 : 
+
+2020-12-03 18:00:58 : 
+
+2020-12-03 18:00:59 : 
+
+2020-12-03 18:01:00 : 
+
+2020-12-03 18:01:02 : 
+
+2020-12-03 18:01:03 : 
+
+2020-12-03 18:01:04 : 
+
+2020-12-03 18:01:05 : 
+
+2020-12-03 18:01:06 : 
+
+2020-12-03 18:01:07 : 
+
+2020-12-03 18:01:07 : 
+
+2020-12-03 18:01:08 : 
+
+2020-12-03 18:01:09 : 
+
+2020-12-03 18:01:10 : 
+
+2020-12-03 18:01:11 : 
+
+2020-12-03 18:01:12 : 
+
+2020-12-03 18:01:13 : 
+
+2020-12-03 18:01:14 : 
+
+2020-12-03 18:01:16 : 
+
+2020-12-03 18:01:17 : 
+
+2020-12-03 18:01:18 : 
+
+2020-12-03 18:01:18 : 
+
+2020-12-03 18:01:19 : 
+
+2020-12-03 18:01:21 : 
+
+2020-12-03 18:01:22 : 
+
+2020-12-03 18:01:23 : 
+
+2020-12-03 18:01:24 : 
+
+2020-12-03 18:01:25 : 
+
+2020-12-03 18:01:26 : 
+
+2020-12-03 18:01:27 : 
+
+2020-12-03 18:01:28 : 
+
+2020-12-03 18:01:29 : 
+
+2020-12-03 18:01:30 : 
+
+2020-12-03 18:01:31 : 
+
+2020-12-03 18:01:32 : 
+
+2020-12-03 18:01:33 : 
+
+2020-12-03 18:01:34 : 
+
+2020-12-03 18:01:35 : 
+
+2020-12-03 18:01:36 : 
+
+2020-12-03 18:01:37 : 
+
+2020-12-03 18:01:38 : 
+
+2020-12-03 18:01:39 : 
+
+2020-12-03 18:01:40 : 
+
+2020-12-03 18:01:41 : 
+
+2020-12-03 18:01:42 : 
+
+2020-12-03 18:01:43 : 
+
+2020-12-03 18:01:44 : 
+
+2020-12-03 18:01:45 : 
+
+2020-12-03 18:01:46 : 
+
+2020-12-03 18:01:47 : 
+
+2020-12-03 18:01:48 : 
+
+2020-12-03 18:01:49 : 
+
+2020-12-03 18:01:50 : 
+
+2020-12-03 18:01:51 : 
+
+2020-12-03 18:01:51 : 
+
+2020-12-03 18:01:52 : 
+
+2020-12-03 18:01:53 : 
+
+2020-12-03 18:01:54 : 
+
+2020-12-03 18:01:55 : 
+
+2020-12-03 18:01:56 : 
+
+2020-12-03 18:01:57 : 
+
+2020-12-03 18:01:58 : 
+
+2020-12-03 18:01:59 : 
+
+2020-12-03 18:02:00 : 
+
+2020-12-03 18:02:00 : 
+
+2020-12-03 18:02:01 : 
+
+2020-12-03 18:02:02 : 
+
+2020-12-03 18:02:03 : 
+
+2020-12-03 18:02:04 : 
+
+2020-12-03 18:02:05 : 
+
+2020-12-03 18:02:05 : 
+
+2020-12-03 18:02:06 : 
+
+2020-12-03 18:02:07 : 
+
+2020-12-03 18:02:08 : 
+
+2020-12-03 18:02:09 : 
+
+2020-12-03 18:02:10 : 
+
+2020-12-03 18:02:10 : 
+
+2020-12-03 18:02:11 : 
+
+2020-12-03 18:02:12 : 
+
+2020-12-03 18:02:13 : 
+
+2020-12-03 18:02:14 : 
+
+2020-12-03 18:02:15 : 
+
+2020-12-03 18:02:15 : 
+
+2020-12-03 18:02:16 : 
+
+2020-12-03 18:02:17 : 
+
+2020-12-03 18:02:18 : 
+
+2020-12-03 18:02:20 : 
+
+2020-12-03 18:02:20 : 
+
+2020-12-03 18:02:21 : 
+
+2020-12-03 18:02:21 : 
+
+2020-12-03 18:02:21 : 
+
+2020-12-03 18:02:21 : 
+
+2020-12-03 18:02:21 : 
+
+2020-12-03 18:02:21 : 
+
+2020-12-03 18:02:21 : 
+
+2020-12-03 18:02:21 : 
+
+2020-12-03 18:02:21 : 
+
+2020-12-03 18:02:21 : 
+
+2020-12-03 18:02:21 : 
+
+2020-12-03 18:02:21 : 
+
+2020-12-03 18:02:21 : 
+
+2020-12-03 18:02:21 : 
+
+2020-12-03 18:02:21 : 
+
+2020-12-03 18:02:21 : 
+
+2020-12-03 18:02:21 : 
+
+2020-12-03 18:02:21 : 
+
+------- Completed
+
+End Time : 2020-12-03 18:02:21
+Elapsed Time Minutes = 14.8251502990723
+Elapsed Time Hours = 0.247085954414474
+
+-------
+
+
+

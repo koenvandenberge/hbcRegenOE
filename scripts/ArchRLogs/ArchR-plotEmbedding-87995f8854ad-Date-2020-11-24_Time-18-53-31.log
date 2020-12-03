@@ -1,0 +1,741 @@
+
+           ___      .______        ______  __    __  .______      
+          /   \     |   _  \      /      ||  |  |  | |   _  \     
+         /  ^  \    |  |_)  |    |  ,----'|  |__|  | |  |_)  |    
+        /  /_\  \   |      /     |  |     |   __   | |      /     
+       /  _____  \  |  |\  \\___ |  `----.|  |  |  | |  |\  \\___.
+      /__/     \__\ | _| `._____| \______||__|  |__| | _| `._____|
+    
+Logging With ArchR!
+
+Start Time : 2020-11-24 18:53:31
+
+------- ArchR Info
+
+ArchRThreads = 4
+ArchRGenome = Mm10
+
+------- System Info
+
+Computer OS = unix
+Total Cores = 8
+
+------- Session Info
+
+R version 3.6.2 (2019-12-12)
+Platform: x86_64-apple-darwin15.6.0 (64-bit)
+Running under: macOS Mojave 10.14.5
+
+Matrix products: default
+BLAS:   /System/Library/Frameworks/Accelerate.framework/Versions/A/Frameworks/vecLib.framework/Versions/A/libBLAS.dylib
+LAPACK: /Library/Frameworks/R.framework/Versions/3.6/Resources/lib/libRlapack.dylib
+
+locale:
+[1] en_US.UTF-8/en_US.UTF-8/en_US.UTF-8/C/en_US.UTF-8/en_US.UTF-8
+
+attached base packages:
+ [1] parallel  stats4    grid      stats     graphics  grDevices utils     datasets  methods   base     
+
+other attached packages:
+ [1] cowplot_1.0.0                      forcats_0.4.0                      stringr_1.4.0                     
+ [4] dplyr_0.8.4                        purrr_0.3.3                        readr_1.3.1                       
+ [7] tidyr_1.0.2                        tibble_2.1.3                       tidyverse_1.3.0                   
+[10] chromVARmotifs_0.2.0               motifmatchr_1.8.0                  circlize_0.4.8                    
+[13] ComplexHeatmap_2.3.1               gtable_0.3.0                       harmony_1.0                       
+[16] Rcpp_1.0.3                         uwot_0.1.5                         gridExtra_2.3                     
+[19] nabor_0.5.0                        Seurat_3.1.5                       BSgenome.Mmusculus.UCSC.mm10_1.4.0
+[22] BSgenome_1.54.0                    rtracklayer_1.46.0                 Biostrings_2.54.0                 
+[25] XVector_0.26.0                     ArchR_0.9.5                        magrittr_1.5                      
+[28] rhdf5_2.30.1                       data.table_1.12.8                  SummarizedExperiment_1.16.1       
+[31] DelayedArray_0.12.2                BiocParallel_1.20.1                Biobase_2.46.0                    
+[34] GenomicRanges_1.38.0               GenomeInfoDb_1.22.0                IRanges_2.20.2                    
+[37] S4Vectors_0.24.3                   BiocGenerics_0.32.0                ggplot2_3.3.2                     
+[40] knitr_1.28                         matrixStats_0.56.0                 genomation_1.18.0                 
+[43] Matrix_1.2-18                     
+
+loaded via a namespace (and not attached):
+  [1] reticulate_1.14             R.utils_2.9.2               tidyselect_1.0.0            poweRlaw_0.70.2            
+  [5] RSQLite_2.2.0               AnnotationDbi_1.48.0        htmlwidgets_1.5.1           Rtsne_0.15                 
+  [9] munsell_0.5.0               codetools_0.2-16            ica_1.0-2                   future_1.16.0              
+ [13] withr_2.1.2                 colorspace_1.4-1            rstudioapi_0.11             ROCR_1.0-7                 
+ [17] listenv_0.8.0               labeling_0.3                GenomeInfoDbData_1.2.2      seqPattern_1.18.0          
+ [21] bit64_0.9-7                 farver_2.0.3                vctrs_0.2.2                 generics_0.0.2             
+ [25] xfun_0.12                   R6_2.4.1                    clue_0.3-57                 rsvd_1.0.2                 
+ [29] VGAM_1.1-2                  bitops_1.0-6                assertthat_0.2.1            scales_1.1.0               
+ [33] npsurv_0.4-0                Cairo_1.5-10                globals_0.12.5              seqLogo_1.50.0             
+ [37] rlang_0.4.4.9000            GlobalOptions_0.1.1         splines_3.6.2               lazyeval_0.2.2             
+ [41] impute_1.60.0               hexbin_1.28.0               broom_0.5.4                 modelr_0.1.5               
+ [45] yaml_2.2.1                  reshape2_1.4.3              backports_1.1.5             tools_3.6.2                
+ [49] gridBase_0.4-7              gplots_3.0.1.2              RColorBrewer_1.1-2          ggridges_0.5.2             
+ [53] plyr_1.8.5                  zlibbioc_1.32.0             RCurl_1.98-1.1              pbapply_1.4-2              
+ [57] GetoptLong_0.1.8            zoo_1.8-7                   haven_2.2.0                 ggrepel_0.8.1              
+ [61] cluster_2.1.0               fs_1.3.1                    RSpectra_0.16-0             reprex_0.3.0               
+ [65] lmtest_0.9-37               RANN_2.6.1                  packrat_0.5.0               fitdistrplus_1.0-14        
+ [69] hms_0.5.3                   patchwork_1.0.0             lsei_1.2-0                  evaluate_0.14              
+ [73] xtable_1.8-4                XML_3.99-0.3                readxl_1.3.1                shape_1.4.4                
+ [77] compiler_3.6.2              KernSmooth_2.23-16          crayon_1.3.4                R.oo_1.23.0                
+ [81] htmltools_0.4.0             TFBSTools_1.22.0            RcppParallel_4.4.4          lubridate_1.7.4            
+ [85] DBI_1.1.0                   dbplyr_1.4.2                MASS_7.3-51.4               cli_2.0.1                  
+ [89] R.methodsS3_1.7.1           gdata_2.18.0                igraph_1.2.4.2              pkgconfig_2.0.3            
+ [93] GenomicAlignments_1.22.1    TFMPvalue_0.0.8             plotly_4.9.1                xml2_1.3.2                 
+ [97] annotate_1.64.0             DirichletMultinomial_1.26.0 rvest_0.3.5                 digest_0.6.23              
+[101] sctransform_0.2.1           RcppAnnoy_0.0.14            tsne_0.1-3                  CNEr_1.20.0                
+[105] cellranger_1.1.0            rmarkdown_2.1               leiden_0.3.4                Rsamtools_2.2.1            
+[109] gtools_3.8.1                rjson_0.2.20                lifecycle_0.1.0             nlme_3.1-142               
+[113] jsonlite_1.6.1              Rhdf5lib_1.8.0              fansi_0.4.1                 viridisLite_0.3.0          
+[117] pillar_1.4.3                lattice_0.20-38             KEGGREST_1.26.1             httr_1.4.1                 
+[121] plotrix_3.7-7               survival_3.1-8              GO.db_3.10.0                glue_1.3.1                 
+[125] png_0.1-7                   bit_1.1-15.2                stringi_1.4.5               blob_1.2.1                 
+[129] caTools_1.18.0              memoise_1.1.0               irlba_2.3.3                 future.apply_1.4.0         
+[133] ape_5.3                    
+
+
+------- Log Info
+
+
+2020-11-24 18:53:31 : Input-Parameters, Class = list
+
+Input-Parameters$ArchRProj: length = 1
+class: ArchRProject 
+outputDirectory: /Users/koenvandenberge/Dropbox/research/brainStat/hbcRegenGithub/data/scATAC/archR_samples_pairwise 
+samples(6): s1Inj s3Inj ... s2Inj s1UI
+sampleColData names(1): ArrowFiles
+cellColData names(15): Sample TSSEnrichment ... runs clusters_cor
+numberOfCells(1): 1
+medianTSS(1): 13.414
+medianFrags(1): 97573
+
+
+Input-Parameters$embedding: length = 1
+[1] "UMAP_cor"
+
+
+Input-Parameters$colorBy: length = 1
+[1] "GeneScoreMatrix"
+
+
+Input-Parameters$name: length = 10
+[1] "OMP"     "ASCL1"   "NEUROD1" "KRT5"    "KRT14"   "TRP63"  
+
+
+Input-Parameters$log2Norm: length = 0
+NULL
+
+
+Input-Parameters$imputeWeights: length = 0
+NULL
+
+
+Input-Parameters$pal: length = 0
+NULL
+
+
+Input-Parameters$size: length = 1
+[1] 0.1
+
+
+Input-Parameters$sampleCells: length = 0
+NULL
+
+
+Input-Parameters$highlightCells: length = 0
+NULL
+
+
+Input-Parameters$rastr: length = 1
+[1] TRUE
+
+
+Input-Parameters$quantCut: length = 2
+[1] 0.01 0.99
+
+
+Input-Parameters$discreteSet: length = 0
+NULL
+
+
+Input-Parameters$continuousSet: length = 0
+NULL
+
+
+Input-Parameters$randomize: length = 1
+[1] TRUE
+
+
+Input-Parameters$keepAxis: length = 1
+[1] FALSE
+
+
+Input-Parameters$baseSize: length = 1
+[1] 10
+
+
+Input-Parameters$plotAs: length = 0
+NULL
+
+
+Input-Parameters$threads: length = 1
+[1] 4
+
+
+Input-Parameters$logFile: length = 1
+[1] "ArchRLogs/ArchR-plotEmbedding-87995f8854ad-Date-2020-11-24_Time-18-53-31.log"
+
+
+
+2020-11-24 18:53:31 : 
+
+2020-11-24 18:53:31 : Embedding data.frame, Class = data.frame
+Embedding data.frame: nRows = 4732, nCols = 2
+
+
+
+2020-11-24 18:53:31 : 
+
+2020-11-24 18:53:31 : 
+
+2020-11-24 18:53:31 : FeatureDF, Class = DFrame
+DataFrame with 24333 rows and 6 columns
+      seqnames     start       end  strand          name     idx
+         <Rle>   <array>   <array> <array>       <array> <array>
+1         chr1   3671498   3214482       2          Xkr4       1
+2         chr1   4409241   4290846       2           Rp1       2
+3         chr1   4497354   4490928       2         Sox17       3
+4         chr1   4785726   4773198       2        Mrpl15       4
+5         chr1   4807893   4846735       1        Lypla1       5
+...        ...       ...       ...     ...           ...     ...
+24329     chrX 169320372 169251538       2          Hccs    1039
+24330     chrX 169320422 169368178       1       Gm15246    1040
+24331     chrX 169685199 169990798       1          Mid1    1041
+24332     chrX 169779635 169776378       2 4933400A11Rik    1042
+24333     chrX 170672644 170678054       1          Asmt    1043
+
+
+2020-11-24 18:53:31 : idx, Class = integer
+
+idx: length = 10
+[1] 19912  2090 11964  7832  3880  8188
+
+
+
+2020-11-24 18:53:31 : FeatureDF-Subset, Class = DFrame
+DataFrame with 10 rows and 6 columns
+   seqnames     start       end  strand    name     idx
+      <Rle>   <array>   <array> <array> <array> <array>
+1      chr7  98145447  98143359       2     Omp    1316
+2     chr10  87493660  87491041       2   Ascl1     732
+3      chr2  79456636  79452641       2 Neurod1     711
+4     chr15 101712891 101707070       2    Krt5     842
+5     chr11 100207510 100203162       2   Krt14    1375
+6     chr16  25683765  25892088       1   Trp63     285
+7      chr7  30787905  30791083       1  Krtdap     678
+8      chr3  92485881  92483954       2  Sprr1a     548
+9      chr7  26808927  26821197       1  Cyp2g1     517
+10     chr9  57683655  57676937       2  Cyp1a2     640
+
+
+2020-11-24 18:53:35 : Feature-Matrix, Class = dgCMatrix
+Feature-Matrix: nRows = 10, nCols = 4732
+Feature-Matrix: NonZeroEntries = 20117, EntryRange = [ 0.017 , 27.725 ]
+5 x 5 sparse Matrix of class "dgCMatrix"
+     s1Inj#GAGATTCCAAGGTCGA-1 s1Inj#GCTCACTCAATTCTCT-1 s1Inj#TCGTTCGGTTAACCGT-1 s1Inj#TCACTCGTCATGCTTT-1
+[1,]                    0.238                    0.494                    0.899                    0.369
+[2,]                    0.747                    0.493                    .                        0.788
+[3,]                    0.783                    0.111                    0.114                    0.189
+[4,]                    1.547                    0.325                    0.703                    2.975
+[5,]                    1.180                    0.605                    0.326                    3.570
+     s1Inj#GTCGTAATCCGGAAAG-1
+[1,]                    0.483
+[2,]                    0.551
+[3,]                    0.396
+[4,]                    1.839
+[5,]                    1.448
+
+
+
+2020-11-24 18:53:35 : colorMat-Before-Impute, Class = matrix
+        s1Inj#GAGATTCCAAGGTCGA-1 s1Inj#GCTCACTCAATTCTCT-1 s1Inj#TCGTTCGGTTAACCGT-1 s1Inj#TCACTCGTCATGCTTT-1
+OMP                        0.238                    0.494                    0.899                    0.369
+ASCL1                      0.747                    0.493                    0.000                    0.788
+NEUROD1                    0.783                    0.111                    0.114                    0.189
+KRT5                       1.547                    0.325                    0.703                    2.975
+KRT14                      1.180                    0.605                    0.326                    3.570
+        s1Inj#GTCGTAATCCGGAAAG-1
+OMP                        0.483
+ASCL1                      0.551
+NEUROD1                    0.396
+KRT5                       1.839
+KRT14                      1.448
+
+colorMat-Before-Impute: nRows = 10, nCols = 4732
+
+
+2020-11-24 18:53:35 : colorMat-After-Impute, Class = matrix
+        s1Inj#GAGATTCCAAGGTCGA-1 s1Inj#GCTCACTCAATTCTCT-1 s1Inj#TCGTTCGGTTAACCGT-1 s1Inj#TCACTCGTCATGCTTT-1
+OMP                        0.238                    0.494                    0.899                    0.369
+ASCL1                      0.747                    0.493                    0.000                    0.788
+NEUROD1                    0.783                    0.111                    0.114                    0.189
+KRT5                       1.547                    0.325                    0.703                    2.975
+KRT14                      1.180                    0.605                    0.326                    3.570
+        s1Inj#GTCGTAATCCGGAAAG-1
+OMP                        0.483
+ASCL1                      0.551
+NEUROD1                    0.396
+KRT5                       1.839
+KRT14                      1.448
+
+colorMat-After-Impute: nRows = 10, nCols = 4732
+
+
+2020-11-24 18:53:35 : ColorParams 1, Class = list
+
+ColorParams 1$color: length = 4732
+s1Inj#GAGATTCCAAGGTCGA-1 s1Inj#GCTCACTCAATTCTCT-1 s1Inj#TCGTTCGGTTAACCGT-1 s1Inj#TCACTCGTCATGCTTT-1 
+                   0.238                    0.494                    0.899                    0.369 
+s1Inj#GTCGTAATCCGGAAAG-1 s1Inj#TGCTCACTCGCTAGTA-1 
+                   0.483                    0.375 
+
+
+ColorParams 1$discrete: length = 1
+[1] FALSE
+
+
+ColorParams 1$title: length = 1
+[1] "UMAP_cor of Harmony colored by\nGeneScoreMatrix : OMP"
+
+
+ColorParams 1$continuousSet: length = 1
+[1] "horizonExtra"
+
+
+
+2020-11-24 18:53:35 : PlotParams-1, Class = list
+
+PlotParams-1$color: length = 4732
+s1Inj#GAGATTCCAAGGTCGA-1 s1Inj#GCTCACTCAATTCTCT-1 s1Inj#TCGTTCGGTTAACCGT-1 s1Inj#TCACTCGTCATGCTTT-1 
+               0.3080113                0.5791801                0.9252399                0.4531224 
+s1Inj#GTCGTAATCCGGAAAG-1 s1Inj#TGCTCACTCGCTAGTA-1 
+               0.5685186                0.4594316 
+
+
+PlotParams-1$title: length = 1
+[1] "UMAP_cor of Harmony colored by\nGeneScoreMatrix : OMP"
+
+
+PlotParams-1$x: length = 4732
+[1] -0.6294394  1.5830798  0.4734877  0.1438639  0.8945384  1.3686827
+
+
+PlotParams-1$y: length = 4732
+[1]  0.9565714  2.5762093  4.4815292  4.0200786 -2.0739660  2.6656789
+
+
+PlotParams-1$baseSize: length = 1
+[1] 10
+
+
+PlotParams-1$xlabel: length = 1
+[1] "UMAP Dimension 1"
+
+
+PlotParams-1$ylabel: length = 1
+[1] "UMAP Dimension 2"
+
+
+PlotParams-1$pal: length = 256
+[1] "#000436" "#000439" "#00053D" "#000640" "#000744" "#000848"
+
+
+PlotParams-1$colorTitle: length = 1
+[1] "Log2(NormCounts + 1)"
+
+
+
+2020-11-24 18:53:35 : PlotParams-2, Class = list
+
+PlotParams-2$color: length = 4732
+s1Inj#GAGATTCCAAGGTCGA-1 s1Inj#GCTCACTCAATTCTCT-1 s1Inj#TCGTTCGGTTAACCGT-1 s1Inj#TCACTCGTCATGCTTT-1 
+               0.8048796                0.5782142                0.0000000                0.8383467 
+s1Inj#GTCGTAATCCGGAAAG-1 s1Inj#TGCTCACTCGCTAGTA-1 
+               0.6331987                1.6749126 
+
+
+PlotParams-2$title: length = 1
+[1] "UMAP_cor of Harmony colored by\nGeneScoreMatrix : ASCL1"
+
+
+PlotParams-2$x: length = 4732
+[1] -0.6294394  1.5830798  0.4734877  0.1438639  0.8945384  1.3686827
+
+
+PlotParams-2$y: length = 4732
+[1]  0.9565714  2.5762093  4.4815292  4.0200786 -2.0739660  2.6656789
+
+
+PlotParams-2$baseSize: length = 1
+[1] 10
+
+
+PlotParams-2$xlabel: length = 1
+[1] "UMAP Dimension 1"
+
+
+PlotParams-2$ylabel: length = 1
+[1] "UMAP Dimension 2"
+
+
+PlotParams-2$pal: length = 256
+[1] "#000436" "#000439" "#00053D" "#000640" "#000744" "#000848"
+
+
+PlotParams-2$colorTitle: length = 1
+[1] "Log2(NormCounts + 1)"
+
+
+
+2020-11-24 18:53:35 : PlotParams-3, Class = list
+
+PlotParams-3$color: length = 4732
+s1Inj#GAGATTCCAAGGTCGA-1 s1Inj#GCTCACTCAATTCTCT-1 s1Inj#TCGTTCGGTTAACCGT-1 s1Inj#TCACTCGTCATGCTTT-1 
+               0.8343067                0.1518588                0.1557492                0.2497487 
+s1Inj#GTCGTAATCCGGAAAG-1 s1Inj#TGCTCACTCGCTAGTA-1 
+               0.4812989                0.0000000 
+
+
+PlotParams-3$title: length = 1
+[1] "UMAP_cor of Harmony colored by\nGeneScoreMatrix : NEUROD1"
+
+
+PlotParams-3$x: length = 4732
+[1] -0.6294394  1.5830798  0.4734877  0.1438639  0.8945384  1.3686827
+
+
+PlotParams-3$y: length = 4732
+[1]  0.9565714  2.5762093  4.4815292  4.0200786 -2.0739660  2.6656789
+
+
+PlotParams-3$baseSize: length = 1
+[1] 10
+
+
+PlotParams-3$xlabel: length = 1
+[1] "UMAP Dimension 1"
+
+
+PlotParams-3$ylabel: length = 1
+[1] "UMAP Dimension 2"
+
+
+PlotParams-3$pal: length = 256
+[1] "#000436" "#000439" "#00053D" "#000640" "#000744" "#000848"
+
+
+PlotParams-3$colorTitle: length = 1
+[1] "Log2(NormCounts + 1)"
+
+
+
+2020-11-24 18:53:36 : PlotParams-4, Class = list
+
+PlotParams-4$color: length = 4732
+s1Inj#GAGATTCCAAGGTCGA-1 s1Inj#GCTCACTCAATTCTCT-1 s1Inj#TCGTTCGGTTAACCGT-1 s1Inj#TCACTCGTCATGCTTT-1 
+               1.3487990                0.4059924                0.7680784                1.9909549 
+s1Inj#GTCGTAATCCGGAAAG-1 s1Inj#TGCTCACTCGCTAGTA-1 
+               1.5053828                0.0000000 
+
+
+PlotParams-4$title: length = 1
+[1] "UMAP_cor of Harmony colored by\nGeneScoreMatrix : KRT5"
+
+
+PlotParams-4$x: length = 4732
+[1] -0.6294394  1.5830798  0.4734877  0.1438639  0.8945384  1.3686827
+
+
+PlotParams-4$y: length = 4732
+[1]  0.9565714  2.5762093  4.4815292  4.0200786 -2.0739660  2.6656789
+
+
+PlotParams-4$baseSize: length = 1
+[1] 10
+
+
+PlotParams-4$xlabel: length = 1
+[1] "UMAP Dimension 1"
+
+
+PlotParams-4$ylabel: length = 1
+[1] "UMAP Dimension 2"
+
+
+PlotParams-4$pal: length = 256
+[1] "#000436" "#000439" "#00053D" "#000640" "#000744" "#000848"
+
+
+PlotParams-4$colorTitle: length = 1
+[1] "Log2(NormCounts + 1)"
+
+
+
+2020-11-24 18:53:36 : PlotParams-5, Class = list
+
+PlotParams-5$color: length = 4732
+s1Inj#GAGATTCCAAGGTCGA-1 s1Inj#GCTCACTCAATTCTCT-1 s1Inj#TCGTTCGGTTAACCGT-1 s1Inj#TCACTCGTCATGCTTT-1 
+               1.1243281                0.6825733                0.4070808                2.1921942 
+s1Inj#GTCGTAATCCGGAAAG-1 s1Inj#TGCTCACTCGCTAGTA-1 
+               1.2916036                1.2862898 
+
+
+PlotParams-5$title: length = 1
+[1] "UMAP_cor of Harmony colored by\nGeneScoreMatrix : KRT14"
+
+
+PlotParams-5$x: length = 4732
+[1] -0.6294394  1.5830798  0.4734877  0.1438639  0.8945384  1.3686827
+
+
+PlotParams-5$y: length = 4732
+[1]  0.9565714  2.5762093  4.4815292  4.0200786 -2.0739660  2.6656789
+
+
+PlotParams-5$baseSize: length = 1
+[1] 10
+
+
+PlotParams-5$xlabel: length = 1
+[1] "UMAP Dimension 1"
+
+
+PlotParams-5$ylabel: length = 1
+[1] "UMAP Dimension 2"
+
+
+PlotParams-5$pal: length = 256
+[1] "#000436" "#000439" "#00053D" "#000640" "#000744" "#000848"
+
+
+PlotParams-5$colorTitle: length = 1
+[1] "Log2(NormCounts + 1)"
+
+
+
+2020-11-24 18:53:36 : PlotParams-6, Class = list
+
+PlotParams-6$color: length = 4732
+s1Inj#GAGATTCCAAGGTCGA-1 s1Inj#GCTCACTCAATTCTCT-1 s1Inj#TCGTTCGGTTAACCGT-1 s1Inj#TCACTCGTCATGCTTT-1 
+               0.7303139                1.0164963                0.3033424                1.0468403 
+s1Inj#GTCGTAATCCGGAAAG-1 s1Inj#TGCTCACTCGCTAGTA-1 
+               1.1096949                0.2190911 
+
+
+PlotParams-6$title: length = 1
+[1] "UMAP_cor of Harmony colored by\nGeneScoreMatrix : TRP63"
+
+
+PlotParams-6$x: length = 4732
+[1] -0.6294394  1.5830798  0.4734877  0.1438639  0.8945384  1.3686827
+
+
+PlotParams-6$y: length = 4732
+[1]  0.9565714  2.5762093  4.4815292  4.0200786 -2.0739660  2.6656789
+
+
+PlotParams-6$baseSize: length = 1
+[1] 10
+
+
+PlotParams-6$xlabel: length = 1
+[1] "UMAP Dimension 1"
+
+
+PlotParams-6$ylabel: length = 1
+[1] "UMAP Dimension 2"
+
+
+PlotParams-6$pal: length = 256
+[1] "#000436" "#000439" "#00053D" "#000640" "#000744" "#000848"
+
+
+PlotParams-6$colorTitle: length = 1
+[1] "Log2(NormCounts + 1)"
+
+
+
+2020-11-24 18:53:37 : PlotParams-7, Class = list
+
+PlotParams-7$color: length = 4732
+s1Inj#GAGATTCCAAGGTCGA-1 s1Inj#GCTCACTCAATTCTCT-1 s1Inj#TCGTTCGGTTAACCGT-1 s1Inj#TCACTCGTCATGCTTT-1 
+               0.8567865                0.1801479                0.0000000                0.2078929 
+s1Inj#GTCGTAATCCGGAAAG-1 s1Inj#TGCTCACTCGCTAGTA-1 
+               0.0000000                0.1243281 
+
+
+PlotParams-7$title: length = 1
+[1] "UMAP_cor of Harmony colored by\nGeneScoreMatrix : KRTDAP"
+
+
+PlotParams-7$x: length = 4732
+[1] -0.6294394  1.5830798  0.4734877  0.1438639  0.8945384  1.3686827
+
+
+PlotParams-7$y: length = 4732
+[1]  0.9565714  2.5762093  4.4815292  4.0200786 -2.0739660  2.6656789
+
+
+PlotParams-7$baseSize: length = 1
+[1] 10
+
+
+PlotParams-7$xlabel: length = 1
+[1] "UMAP Dimension 1"
+
+
+PlotParams-7$ylabel: length = 1
+[1] "UMAP Dimension 2"
+
+
+PlotParams-7$pal: length = 256
+[1] "#000436" "#000439" "#00053D" "#000640" "#000744" "#000848"
+
+
+PlotParams-7$colorTitle: length = 1
+[1] "Log2(NormCounts + 1)"
+
+
+
+2020-11-24 18:53:37 : PlotParams-8, Class = list
+
+PlotParams-8$color: length = 4732
+s1Inj#GAGATTCCAAGGTCGA-1 s1Inj#GCTCACTCAATTCTCT-1 s1Inj#TCGTTCGGTTAACCGT-1 s1Inj#TCACTCGTCATGCTTT-1 
+               1.0321008                0.7832471                0.0000000                0.9478531 
+s1Inj#GTCGTAATCCGGAAAG-1 s1Inj#TGCTCACTCGCTAGTA-1 
+               0.7215914                0.1203519 
+
+
+PlotParams-8$title: length = 1
+[1] "UMAP_cor of Harmony colored by\nGeneScoreMatrix : SPRR1A"
+
+
+PlotParams-8$x: length = 4732
+[1] -0.6294394  1.5830798  0.4734877  0.1438639  0.8945384  1.3686827
+
+
+PlotParams-8$y: length = 4732
+[1]  0.9565714  2.5762093  4.4815292  4.0200786 -2.0739660  2.6656789
+
+
+PlotParams-8$baseSize: length = 1
+[1] 10
+
+
+PlotParams-8$xlabel: length = 1
+[1] "UMAP Dimension 1"
+
+
+PlotParams-8$ylabel: length = 1
+[1] "UMAP Dimension 2"
+
+
+PlotParams-8$pal: length = 256
+[1] "#000436" "#000439" "#00053D" "#000640" "#000744" "#000848"
+
+
+PlotParams-8$colorTitle: length = 1
+[1] "Log2(NormCounts + 1)"
+
+
+
+2020-11-24 18:53:38 : PlotParams-9, Class = list
+
+PlotParams-9$color: length = 4732
+s1Inj#GAGATTCCAAGGTCGA-1 s1Inj#GCTCACTCAATTCTCT-1 s1Inj#TCGTTCGGTTAACCGT-1 s1Inj#TCACTCGTCATGCTTT-1 
+              0.07997538               0.05380644               0.13224780               0.00000000 
+s1Inj#GTCGTAATCCGGAAAG-1 s1Inj#TGCTCACTCGCTAGTA-1 
+              0.29042440               0.00000000 
+
+
+PlotParams-9$title: length = 1
+[1] "UMAP_cor of Harmony colored by\nGeneScoreMatrix : CYP2G1"
+
+
+PlotParams-9$x: length = 4732
+[1] -0.6294394  1.5830798  0.4734877  0.1438639  0.8945384  1.3686827
+
+
+PlotParams-9$y: length = 4732
+[1]  0.9565714  2.5762093  4.4815292  4.0200786 -2.0739660  2.6656789
+
+
+PlotParams-9$baseSize: length = 1
+[1] 10
+
+
+PlotParams-9$xlabel: length = 1
+[1] "UMAP Dimension 1"
+
+
+PlotParams-9$ylabel: length = 1
+[1] "UMAP Dimension 2"
+
+
+PlotParams-9$pal: length = 256
+[1] "#000436" "#000439" "#00053D" "#000640" "#000744" "#000848"
+
+
+PlotParams-9$colorTitle: length = 1
+[1] "Log2(NormCounts + 1)"
+
+
+
+2020-11-24 18:53:38 : PlotParams-10, Class = list
+
+PlotParams-10$color: length = 4732
+s1Inj#GAGATTCCAAGGTCGA-1 s1Inj#GCTCACTCAATTCTCT-1 s1Inj#TCGTTCGGTTAACCGT-1 s1Inj#TCACTCGTCATGCTTT-1 
+              0.09491165               0.07176267               0.00000000               0.00000000 
+s1Inj#GTCGTAATCCGGAAAG-1 s1Inj#TGCTCACTCGCTAGTA-1 
+              0.08406426               0.26663664 
+
+
+PlotParams-10$title: length = 1
+[1] "UMAP_cor of Harmony colored by\nGeneScoreMatrix : CYP1A2"
+
+
+PlotParams-10$x: length = 4732
+[1] -0.6294394  1.5830798  0.4734877  0.1438639  0.8945384  1.3686827
+
+
+PlotParams-10$y: length = 4732
+[1]  0.9565714  2.5762093  4.4815292  4.0200786 -2.0739660  2.6656789
+
+
+PlotParams-10$baseSize: length = 1
+[1] 10
+
+
+PlotParams-10$xlabel: length = 1
+[1] "UMAP Dimension 1"
+
+
+PlotParams-10$ylabel: length = 1
+[1] "UMAP Dimension 2"
+
+
+PlotParams-10$pal: length = 256
+[1] "#000436" "#000439" "#00053D" "#000640" "#000744" "#000848"
+
+
+PlotParams-10$colorTitle: length = 1
+[1] "Log2(NormCounts + 1)"
+
+
+
+------- Completed
+
+End Time : 2020-11-24 18:53:39
+Elapsed Time Minutes = 0.138407766819
+Elapsed Time Hours = 0.00230694943004184
+
+-------
+
+
+

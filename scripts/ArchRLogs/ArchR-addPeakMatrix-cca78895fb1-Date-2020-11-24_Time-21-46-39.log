@@ -1,0 +1,359 @@
+
+           ___      .______        ______  __    __  .______      
+          /   \     |   _  \      /      ||  |  |  | |   _  \     
+         /  ^  \    |  |_)  |    |  ,----'|  |__|  | |  |_)  |    
+        /  /_\  \   |      /     |  |     |   __   | |      /     
+       /  _____  \  |  |\  \\___ |  `----.|  |  |  | |  |\  \\___.
+      /__/     \__\ | _| `._____| \______||__|  |__| | _| `._____|
+    
+Logging With ArchR!
+
+Start Time : 2020-11-24 21:46:39
+
+------- ArchR Info
+
+ArchRThreads = 1
+ArchRGenome = Mm10
+
+------- System Info
+
+Computer OS = unix
+Total Cores = 8
+
+------- Session Info
+
+R version 3.6.2 (2019-12-12)
+Platform: x86_64-apple-darwin15.6.0 (64-bit)
+Running under: macOS Mojave 10.14.5
+
+Matrix products: default
+BLAS:   /Library/Frameworks/R.framework/Versions/3.6/Resources/lib/libRblas.0.dylib
+LAPACK: /Library/Frameworks/R.framework/Versions/3.6/Resources/lib/libRlapack.dylib
+
+locale:
+[1] en_US.UTF-8/en_US.UTF-8/en_US.UTF-8/C/en_US.UTF-8/en_US.UTF-8
+
+attached base packages:
+ [1] parallel  stats4    grid      stats     graphics  grDevices utils    
+ [8] datasets  methods   base     
+
+other attached packages:
+ [1] circlize_0.4.8                     ComplexHeatmap_2.3.1              
+ [3] presto_1.0.0                       gtable_0.3.0                      
+ [5] harmony_1.0                        Rcpp_1.0.3                        
+ [7] uwot_0.1.5                         gridExtra_2.3                     
+ [9] nabor_0.5.0                        Seurat_3.1.5                      
+[11] Rsamtools_2.2.1                    BSgenome.Mmusculus.UCSC.mm10_1.4.0
+[13] BSgenome_1.54.0                    rtracklayer_1.46.0                
+[15] Biostrings_2.54.0                  XVector_0.26.0                    
+[17] ArchR_0.9.5                        magrittr_1.5                      
+[19] rhdf5_2.30.1                       data.table_1.12.8                 
+[21] SummarizedExperiment_1.16.1        DelayedArray_0.12.2               
+[23] BiocParallel_1.20.1                Biobase_2.46.0                    
+[25] GenomicRanges_1.38.0               GenomeInfoDb_1.22.0               
+[27] IRanges_2.20.2                     S4Vectors_0.24.3                  
+[29] BiocGenerics_0.32.0                ggplot2_3.3.2                     
+[31] knitr_1.28                         matrixStats_0.56.0                
+[33] genomation_1.18.0                  Matrix_1.2-18                     
+
+loaded via a namespace (and not attached):
+  [1] plyr_1.8.5               igraph_1.2.4.2           lazyeval_0.2.2          
+  [4] splines_3.6.2            listenv_0.8.0            gridBase_0.4-7          
+  [7] digest_0.6.23            htmltools_0.4.0          gdata_2.18.0            
+ [10] cluster_2.1.0            ROCR_1.0-7               globals_0.12.5          
+ [13] readr_1.3.1              RcppParallel_4.4.4       colorspace_1.4-1        
+ [16] ggrepel_0.8.1            xfun_0.12                dplyr_0.8.4             
+ [19] crayon_1.3.4             RCurl_1.98-1.1           jsonlite_1.6.1          
+ [22] hexbin_1.28.0            impute_1.60.0            survival_3.1-8          
+ [25] zoo_1.8-7                ape_5.3                  glue_1.3.1              
+ [28] zlibbioc_1.32.0          leiden_0.3.4             GetoptLong_0.1.8        
+ [31] Rhdf5lib_1.8.0           shape_1.4.4              future.apply_1.4.0      
+ [34] scales_1.1.0             plotrix_3.7-7            viridisLite_0.3.0       
+ [37] clue_0.3-57              reticulate_1.14          rsvd_1.0.2              
+ [40] tsne_0.1-3               htmlwidgets_1.5.1        httr_1.4.1              
+ [43] gplots_3.0.1.2           RColorBrewer_1.1-2       ica_1.0-2               
+ [46] pkgconfig_2.0.3          XML_3.99-0.3             farver_2.0.3            
+ [49] tidyselect_1.0.0         labeling_0.3             rlang_0.4.4.9000        
+ [52] reshape2_1.4.3           munsell_0.5.0            tools_3.6.2             
+ [55] ggridges_0.5.2           evaluate_0.14            stringr_1.4.0           
+ [58] yaml_2.2.1               npsurv_0.4-0             fitdistrplus_1.0-14     
+ [61] caTools_1.18.0           purrr_0.3.3              RANN_2.6.1              
+ [64] pbapply_1.4-2            future_1.16.0            nlme_3.1-142            
+ [67] compiler_3.6.2           plotly_4.9.1             png_0.1-7               
+ [70] lsei_1.2-0               tibble_2.1.3             stringi_1.4.5           
+ [73] RSpectra_0.16-0          lattice_0.20-38          vctrs_0.2.2             
+ [76] pillar_1.4.3             lifecycle_0.1.0          lmtest_0.9-37           
+ [79] GlobalOptions_0.1.1      RcppAnnoy_0.0.14         cowplot_1.0.0           
+ [82] bitops_1.0-6             irlba_2.3.3              patchwork_1.0.0         
+ [85] R6_2.4.1                 KernSmooth_2.23-16       codetools_0.2-16        
+ [88] MASS_7.3-51.4            gtools_3.8.1             assertthat_0.2.1        
+ [91] rjson_0.2.20             withr_2.1.2              GenomicAlignments_1.22.1
+ [94] sctransform_0.2.1        GenomeInfoDbData_1.2.2   hms_0.5.3               
+ [97] tidyr_1.0.2              rmarkdown_2.1            Cairo_1.5-10            
+[100] Rtsne_0.15               seqPattern_1.18.0       
+
+
+------- Log Info
+
+
+2020-11-24 21:46:39 : peakSet, Class = GRanges
+GRanges object with 183713 ranges and 12 metadata columns:
+            seqnames              ranges strand |     score
+               <Rle>           <IRanges>  <Rle> | <numeric>
+  C2_Hybrid     chr1     3094009-3094509      * |   2.55383
+  C2_Hybrid     chr1     3094608-3095108      * |   26.7973
+     C1_Inj     chr1     3164668-3165168      * |   2.68149
+  C2_Hybrid     chr1     3203776-3204276      * |    40.481
+      C3_UI     chr1     3221039-3221539      * |   7.06557
+        ...      ...                 ...    ... .       ...
+  C2_Hybrid     chrX 169930577-169931077      * |   10.1869
+  C2_Hybrid     chrX 169931206-169931706      * |   4.46394
+      C3_UI     chrX 169937043-169937543      * |   16.2194
+  C2_Hybrid     chrX 169940459-169940959      * |   9.17849
+      C3_UI     chrX 169950951-169951451      * |   6.15739
+            replicateScoreQuantile groupScoreQuantile Reproducibility
+                         <numeric>          <numeric>       <numeric>
+  C2_Hybrid                  0.086              0.016               2
+  C2_Hybrid                  0.658               0.58               5
+     C1_Inj                  0.597              0.451               2
+  C2_Hybrid                  0.739              0.685               4
+      C3_UI                   0.33               0.16               2
+        ...                    ...                ...             ...
+  C2_Hybrid                  0.418              0.285               4
+  C2_Hybrid                  0.154              0.055               3
+      C3_UI                  0.614               0.47               3
+  C2_Hybrid                  0.404               0.27               2
+      C3_UI                  0.355              0.195               4
+               GroupReplicate distToGeneStart   nearestGene    peakType
+                  <character>       <integer>   <character> <character>
+  C2_Hybrid  C2_Hybrid._.s2UI          577238          Xkr4      Distal
+  C2_Hybrid  C2_Hybrid._.s3UI          576639          Xkr4      Distal
+     C1_Inj    C1_Inj._.Other          506579          Xkr4      Distal
+  C2_Hybrid  C2_Hybrid._.s3UI          467471          Xkr4      Distal
+      C3_UI      C3_UI._.s2UI          450208          Xkr4    Intronic
+        ...               ...             ...           ...         ...
+  C2_Hybrid  C2_Hybrid._.s3UI          151191 4933400A11Rik    Intronic
+  C2_Hybrid  C2_Hybrid._.s3UI          151820 4933400A11Rik    Intronic
+      C3_UI      C3_UI._.s1UI          157657 4933400A11Rik    Intronic
+  C2_Hybrid C2_Hybrid._.s3Inj          161073 4933400A11Rik    Intronic
+      C3_UI      C3_UI._.s1UI          171565 4933400A11Rik    Intronic
+            distToTSS  nearestTSS        GC       idx
+            <integer> <character> <numeric> <integer>
+  C2_Hybrid    121372  uc007afg.1    0.5329         1
+  C2_Hybrid    120773  uc007afg.1    0.4112         2
+     C1_Inj     50713  uc007afg.1    0.3653         3
+  C2_Hybrid     11605  uc007afg.1    0.4052         4
+      C3_UI      5656  uc007afg.1    0.4192         5
+        ...       ...         ...       ...       ...
+  C2_Hybrid      3872  uc009rco.1    0.3912      3710
+  C2_Hybrid      4501  uc009rco.1    0.4331      3711
+      C3_UI     10338  uc009rco.1    0.4311      3712
+  C2_Hybrid     13754  uc009rco.1    0.4491      3713
+      C3_UI     21683  uc009rco.1    0.3832      3714
+  -------
+  seqinfo: 20 sequences from an unspecified genome; no seqlengths
+
+2020-11-24 21:46:39 : Batch Execution w/ safelapply!, 0 mins elapsed.
+
+2020-11-24 21:46:39 : featureDF, Class = data.frame
+featureDF: nRows = 183713, nCols = 4
+  seqnames idx   start     end
+1     chr1   1 3094009 3094509
+2     chr1   2 3094608 3095108
+3     chr1   3 3164668 3165168
+4     chr1   4 3203776 3204276
+5     chr1   5 3221039 3221539
+6     chr1   6 3249187 3249687
+
+
+2020-11-24 21:46:39 : Adding s1Inj to PeakMatrix for Chr (1 of 20)!, 0.009 mins elapsed.
+2020-11-24 21:46:41 : Adding s1Inj to PeakMatrix for Chr (2 of 20)!, 0.044 mins elapsed.
+2020-11-24 21:46:44 : Adding s1Inj to PeakMatrix for Chr (3 of 20)!, 0.081 mins elapsed.
+2020-11-24 21:46:46 : Adding s1Inj to PeakMatrix for Chr (4 of 20)!, 0.114 mins elapsed.
+2020-11-24 21:46:48 : Adding s1Inj to PeakMatrix for Chr (5 of 20)!, 0.149 mins elapsed.
+2020-11-24 21:46:50 : Adding s1Inj to PeakMatrix for Chr (6 of 20)!, 0.183 mins elapsed.
+2020-11-24 21:46:52 : Adding s1Inj to PeakMatrix for Chr (7 of 20)!, 0.216 mins elapsed.
+2020-11-24 21:46:54 : Adding s1Inj to PeakMatrix for Chr (8 of 20)!, 0.252 mins elapsed.
+2020-11-24 21:46:56 : Adding s1Inj to PeakMatrix for Chr (9 of 20)!, 0.286 mins elapsed.
+2020-11-24 21:46:58 : Adding s1Inj to PeakMatrix for Chr (10 of 20)!, 0.32 mins elapsed.
+2020-11-24 21:47:00 : Adding s1Inj to PeakMatrix for Chr (11 of 20)!, 0.353 mins elapsed.
+2020-11-24 21:47:02 : Adding s1Inj to PeakMatrix for Chr (12 of 20)!, 0.391 mins elapsed.
+2020-11-24 21:47:04 : Adding s1Inj to PeakMatrix for Chr (13 of 20)!, 0.423 mins elapsed.
+2020-11-24 21:47:06 : Adding s1Inj to PeakMatrix for Chr (14 of 20)!, 0.454 mins elapsed.
+2020-11-24 21:47:08 : Adding s1Inj to PeakMatrix for Chr (15 of 20)!, 0.484 mins elapsed.
+2020-11-24 21:47:10 : Adding s1Inj to PeakMatrix for Chr (16 of 20)!, 0.516 mins elapsed.
+2020-11-24 21:47:11 : Adding s1Inj to PeakMatrix for Chr (17 of 20)!, 0.544 mins elapsed.
+2020-11-24 21:47:13 : Adding s1Inj to PeakMatrix for Chr (18 of 20)!, 0.576 mins elapsed.
+2020-11-24 21:47:15 : Adding s1Inj to PeakMatrix for Chr (19 of 20)!, 0.604 mins elapsed.
+2020-11-24 21:47:17 : Adding s1Inj to PeakMatrix for Chr (20 of 20)!, 0.63 mins elapsed.
+
+2020-11-24 21:47:18 : featureDF, Class = data.frame
+featureDF: nRows = 183713, nCols = 4
+  seqnames idx   start     end
+1     chr1   1 3094009 3094509
+2     chr1   2 3094608 3095108
+3     chr1   3 3164668 3165168
+4     chr1   4 3203776 3204276
+5     chr1   5 3221039 3221539
+6     chr1   6 3249187 3249687
+
+
+2020-11-24 21:47:19 : Adding s3Inj to PeakMatrix for Chr (1 of 20)!, 0.01 mins elapsed.
+2020-11-24 21:47:21 : Adding s3Inj to PeakMatrix for Chr (2 of 20)!, 0.041 mins elapsed.
+2020-11-24 21:47:23 : Adding s3Inj to PeakMatrix for Chr (3 of 20)!, 0.074 mins elapsed.
+2020-11-24 21:47:25 : Adding s3Inj to PeakMatrix for Chr (4 of 20)!, 0.107 mins elapsed.
+2020-11-24 21:47:27 : Adding s3Inj to PeakMatrix for Chr (5 of 20)!, 0.145 mins elapsed.
+2020-11-24 21:47:29 : Adding s3Inj to PeakMatrix for Chr (6 of 20)!, 0.186 mins elapsed.
+2020-11-24 21:47:32 : Adding s3Inj to PeakMatrix for Chr (7 of 20)!, 0.227 mins elapsed.
+2020-11-24 21:47:34 : Adding s3Inj to PeakMatrix for Chr (8 of 20)!, 0.27 mins elapsed.
+2020-11-24 21:47:37 : Adding s3Inj to PeakMatrix for Chr (9 of 20)!, 0.309 mins elapsed.
+2020-11-24 21:47:39 : Adding s3Inj to PeakMatrix for Chr (10 of 20)!, 0.343 mins elapsed.
+2020-11-24 21:47:41 : Adding s3Inj to PeakMatrix for Chr (11 of 20)!, 0.375 mins elapsed.
+2020-11-24 21:47:43 : Adding s3Inj to PeakMatrix for Chr (12 of 20)!, 0.406 mins elapsed.
+2020-11-24 21:47:44 : Adding s3Inj to PeakMatrix for Chr (13 of 20)!, 0.432 mins elapsed.
+2020-11-24 21:47:46 : Adding s3Inj to PeakMatrix for Chr (14 of 20)!, 0.458 mins elapsed.
+2020-11-24 21:47:47 : Adding s3Inj to PeakMatrix for Chr (15 of 20)!, 0.483 mins elapsed.
+2020-11-24 21:47:49 : Adding s3Inj to PeakMatrix for Chr (16 of 20)!, 0.509 mins elapsed.
+2020-11-24 21:47:50 : Adding s3Inj to PeakMatrix for Chr (17 of 20)!, 0.533 mins elapsed.
+2020-11-24 21:47:52 : Adding s3Inj to PeakMatrix for Chr (18 of 20)!, 0.559 mins elapsed.
+2020-11-24 21:47:53 : Adding s3Inj to PeakMatrix for Chr (19 of 20)!, 0.582 mins elapsed.
+2020-11-24 21:47:55 : Adding s3Inj to PeakMatrix for Chr (20 of 20)!, 0.605 mins elapsed.
+
+2020-11-24 21:47:56 : featureDF, Class = data.frame
+featureDF: nRows = 183713, nCols = 4
+  seqnames idx   start     end
+1     chr1   1 3094009 3094509
+2     chr1   2 3094608 3095108
+3     chr1   3 3164668 3165168
+4     chr1   4 3203776 3204276
+5     chr1   5 3221039 3221539
+6     chr1   6 3249187 3249687
+
+
+2020-11-24 21:47:57 : Adding s3UI to PeakMatrix for Chr (1 of 20)!, 0.009 mins elapsed.
+2020-11-24 21:47:58 : Adding s3UI to PeakMatrix for Chr (2 of 20)!, 0.038 mins elapsed.
+2020-11-24 21:48:00 : Adding s3UI to PeakMatrix for Chr (3 of 20)!, 0.068 mins elapsed.
+2020-11-24 21:48:02 : Adding s3UI to PeakMatrix for Chr (4 of 20)!, 0.095 mins elapsed.
+2020-11-24 21:48:03 : Adding s3UI to PeakMatrix for Chr (5 of 20)!, 0.124 mins elapsed.
+2020-11-24 21:48:05 : Adding s3UI to PeakMatrix for Chr (6 of 20)!, 0.153 mins elapsed.
+2020-11-24 21:48:07 : Adding s3UI to PeakMatrix for Chr (7 of 20)!, 0.18 mins elapsed.
+2020-11-24 21:48:09 : Adding s3UI to PeakMatrix for Chr (8 of 20)!, 0.21 mins elapsed.
+2020-11-24 21:48:10 : Adding s3UI to PeakMatrix for Chr (9 of 20)!, 0.239 mins elapsed.
+2020-11-24 21:48:12 : Adding s3UI to PeakMatrix for Chr (10 of 20)!, 0.267 mins elapsed.
+2020-11-24 21:48:14 : Adding s3UI to PeakMatrix for Chr (11 of 20)!, 0.295 mins elapsed.
+2020-11-24 21:48:15 : Adding s3UI to PeakMatrix for Chr (12 of 20)!, 0.325 mins elapsed.
+2020-11-24 21:48:17 : Adding s3UI to PeakMatrix for Chr (13 of 20)!, 0.353 mins elapsed.
+2020-11-24 21:48:19 : Adding s3UI to PeakMatrix for Chr (14 of 20)!, 0.379 mins elapsed.
+2020-11-24 21:48:20 : Adding s3UI to PeakMatrix for Chr (15 of 20)!, 0.405 mins elapsed.
+2020-11-24 21:48:22 : Adding s3UI to PeakMatrix for Chr (16 of 20)!, 0.431 mins elapsed.
+2020-11-24 21:48:23 : Adding s3UI to PeakMatrix for Chr (17 of 20)!, 0.455 mins elapsed.
+2020-11-24 21:48:25 : Adding s3UI to PeakMatrix for Chr (18 of 20)!, 0.481 mins elapsed.
+2020-11-24 21:48:26 : Adding s3UI to PeakMatrix for Chr (19 of 20)!, 0.505 mins elapsed.
+2020-11-24 21:48:28 : Adding s3UI to PeakMatrix for Chr (20 of 20)!, 0.529 mins elapsed.
+
+2020-11-24 21:48:29 : featureDF, Class = data.frame
+featureDF: nRows = 183713, nCols = 4
+  seqnames idx   start     end
+1     chr1   1 3094009 3094509
+2     chr1   2 3094608 3095108
+3     chr1   3 3164668 3165168
+4     chr1   4 3203776 3204276
+5     chr1   5 3221039 3221539
+6     chr1   6 3249187 3249687
+
+
+2020-11-24 21:48:30 : Adding s2UI to PeakMatrix for Chr (1 of 20)!, 0.009 mins elapsed.
+2020-11-24 21:48:31 : Adding s2UI to PeakMatrix for Chr (2 of 20)!, 0.036 mins elapsed.
+2020-11-24 21:48:33 : Adding s2UI to PeakMatrix for Chr (3 of 20)!, 0.063 mins elapsed.
+2020-11-24 21:48:34 : Adding s2UI to PeakMatrix for Chr (4 of 20)!, 0.089 mins elapsed.
+2020-11-24 21:48:36 : Adding s2UI to PeakMatrix for Chr (5 of 20)!, 0.116 mins elapsed.
+2020-11-24 21:48:38 : Adding s2UI to PeakMatrix for Chr (6 of 20)!, 0.142 mins elapsed.
+2020-11-24 21:48:39 : Adding s2UI to PeakMatrix for Chr (7 of 20)!, 0.167 mins elapsed.
+2020-11-24 21:48:41 : Adding s2UI to PeakMatrix for Chr (8 of 20)!, 0.194 mins elapsed.
+2020-11-24 21:48:42 : Adding s2UI to PeakMatrix for Chr (9 of 20)!, 0.22 mins elapsed.
+2020-11-24 21:48:44 : Adding s2UI to PeakMatrix for Chr (10 of 20)!, 0.245 mins elapsed.
+2020-11-24 21:48:45 : Adding s2UI to PeakMatrix for Chr (11 of 20)!, 0.271 mins elapsed.
+2020-11-24 21:48:47 : Adding s2UI to PeakMatrix for Chr (12 of 20)!, 0.298 mins elapsed.
+2020-11-24 21:48:48 : Adding s2UI to PeakMatrix for Chr (13 of 20)!, 0.323 mins elapsed.
+2020-11-24 21:48:50 : Adding s2UI to PeakMatrix for Chr (14 of 20)!, 0.348 mins elapsed.
+2020-11-24 21:48:51 : Adding s2UI to PeakMatrix for Chr (15 of 20)!, 0.374 mins elapsed.
+2020-11-24 21:48:53 : Adding s2UI to PeakMatrix for Chr (16 of 20)!, 0.4 mins elapsed.
+2020-11-24 21:48:55 : Adding s2UI to PeakMatrix for Chr (17 of 20)!, 0.426 mins elapsed.
+2020-11-24 21:48:56 : Adding s2UI to PeakMatrix for Chr (18 of 20)!, 0.453 mins elapsed.
+2020-11-24 21:48:58 : Adding s2UI to PeakMatrix for Chr (19 of 20)!, 0.477 mins elapsed.
+2020-11-24 21:48:59 : Adding s2UI to PeakMatrix for Chr (20 of 20)!, 0.501 mins elapsed.
+
+2020-11-24 21:49:01 : featureDF, Class = data.frame
+featureDF: nRows = 183713, nCols = 4
+  seqnames idx   start     end
+1     chr1   1 3094009 3094509
+2     chr1   2 3094608 3095108
+3     chr1   3 3164668 3165168
+4     chr1   4 3203776 3204276
+5     chr1   5 3221039 3221539
+6     chr1   6 3249187 3249687
+
+
+2020-11-24 21:49:01 : Adding s2Inj to PeakMatrix for Chr (1 of 20)!, 0.01 mins elapsed.
+2020-11-24 21:49:03 : Adding s2Inj to PeakMatrix for Chr (2 of 20)!, 0.038 mins elapsed.
+2020-11-24 21:49:04 : Adding s2Inj to PeakMatrix for Chr (3 of 20)!, 0.064 mins elapsed.
+2020-11-24 21:49:06 : Adding s2Inj to PeakMatrix for Chr (4 of 20)!, 0.089 mins elapsed.
+2020-11-24 21:49:08 : Adding s2Inj to PeakMatrix for Chr (5 of 20)!, 0.115 mins elapsed.
+2020-11-24 21:49:09 : Adding s2Inj to PeakMatrix for Chr (6 of 20)!, 0.142 mins elapsed.
+2020-11-24 21:49:11 : Adding s2Inj to PeakMatrix for Chr (7 of 20)!, 0.166 mins elapsed.
+2020-11-24 21:49:12 : Adding s2Inj to PeakMatrix for Chr (8 of 20)!, 0.193 mins elapsed.
+2020-11-24 21:49:14 : Adding s2Inj to PeakMatrix for Chr (9 of 20)!, 0.218 mins elapsed.
+2020-11-24 21:49:15 : Adding s2Inj to PeakMatrix for Chr (10 of 20)!, 0.242 mins elapsed.
+2020-11-24 21:49:17 : Adding s2Inj to PeakMatrix for Chr (11 of 20)!, 0.267 mins elapsed.
+2020-11-24 21:49:18 : Adding s2Inj to PeakMatrix for Chr (12 of 20)!, 0.293 mins elapsed.
+2020-11-24 21:49:20 : Adding s2Inj to PeakMatrix for Chr (13 of 20)!, 0.317 mins elapsed.
+2020-11-24 21:49:21 : Adding s2Inj to PeakMatrix for Chr (14 of 20)!, 0.341 mins elapsed.
+2020-11-24 21:49:23 : Adding s2Inj to PeakMatrix for Chr (15 of 20)!, 0.365 mins elapsed.
+2020-11-24 21:49:24 : Adding s2Inj to PeakMatrix for Chr (16 of 20)!, 0.39 mins elapsed.
+2020-11-24 21:49:25 : Adding s2Inj to PeakMatrix for Chr (17 of 20)!, 0.414 mins elapsed.
+2020-11-24 21:49:27 : Adding s2Inj to PeakMatrix for Chr (18 of 20)!, 0.439 mins elapsed.
+2020-11-24 21:49:28 : Adding s2Inj to PeakMatrix for Chr (19 of 20)!, 0.463 mins elapsed.
+2020-11-24 21:49:30 : Adding s2Inj to PeakMatrix for Chr (20 of 20)!, 0.487 mins elapsed.
+
+2020-11-24 21:49:31 : featureDF, Class = data.frame
+featureDF: nRows = 183713, nCols = 4
+  seqnames idx   start     end
+1     chr1   1 3094009 3094509
+2     chr1   2 3094608 3095108
+3     chr1   3 3164668 3165168
+4     chr1   4 3203776 3204276
+5     chr1   5 3221039 3221539
+6     chr1   6 3249187 3249687
+
+
+2020-11-24 21:49:32 : Adding s1UI to PeakMatrix for Chr (1 of 20)!, 0.011 mins elapsed.
+2020-11-24 21:49:33 : Adding s1UI to PeakMatrix for Chr (2 of 20)!, 0.036 mins elapsed.
+2020-11-24 21:49:35 : Adding s1UI to PeakMatrix for Chr (3 of 20)!, 0.062 mins elapsed.
+2020-11-24 21:49:36 : Adding s1UI to PeakMatrix for Chr (4 of 20)!, 0.085 mins elapsed.
+2020-11-24 21:49:38 : Adding s1UI to PeakMatrix for Chr (5 of 20)!, 0.11 mins elapsed.
+2020-11-24 21:49:39 : Adding s1UI to PeakMatrix for Chr (6 of 20)!, 0.134 mins elapsed.
+2020-11-24 21:49:41 : Adding s1UI to PeakMatrix for Chr (7 of 20)!, 0.157 mins elapsed.
+2020-11-24 21:49:42 : Adding s1UI to PeakMatrix for Chr (8 of 20)!, 0.182 mins elapsed.
+2020-11-24 21:49:44 : Adding s1UI to PeakMatrix for Chr (9 of 20)!, 0.205 mins elapsed.
+2020-11-24 21:49:45 : Adding s1UI to PeakMatrix for Chr (10 of 20)!, 0.23 mins elapsed.
+2020-11-24 21:49:46 : Adding s1UI to PeakMatrix for Chr (11 of 20)!, 0.254 mins elapsed.
+2020-11-24 21:49:48 : Adding s1UI to PeakMatrix for Chr (12 of 20)!, 0.28 mins elapsed.
+2020-11-24 21:49:49 : Adding s1UI to PeakMatrix for Chr (13 of 20)!, 0.303 mins elapsed.
+2020-11-24 21:49:51 : Adding s1UI to PeakMatrix for Chr (14 of 20)!, 0.326 mins elapsed.
+2020-11-24 21:49:52 : Adding s1UI to PeakMatrix for Chr (15 of 20)!, 0.349 mins elapsed.
+2020-11-24 21:49:54 : Adding s1UI to PeakMatrix for Chr (16 of 20)!, 0.372 mins elapsed.
+2020-11-24 21:49:55 : Adding s1UI to PeakMatrix for Chr (17 of 20)!, 0.395 mins elapsed.
+2020-11-24 21:49:56 : Adding s1UI to PeakMatrix for Chr (18 of 20)!, 0.419 mins elapsed.
+2020-11-24 21:49:58 : Adding s1UI to PeakMatrix for Chr (19 of 20)!, 0.441 mins elapsed.
+2020-11-24 21:49:59 : Adding s1UI to PeakMatrix for Chr (20 of 20)!, 0.464 mins elapsed.
+
+------- Completed
+
+End Time : 2020-11-24 21:50:00
+Elapsed Time Minutes = 3.36590969959895
+Elapsed Time Hours = 0.0560985624790192
+
+-------
+
+
+

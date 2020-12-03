@@ -1,0 +1,319 @@
+---
+title: "Preprocessing of dataset for trajectory inference"
+author: "Koen Van den Berge"
+date: "4/15/2020"
+output: 
+  html_document:
+    toc: true
+    toc_float: true
+---
+
+```{r pkg}
+set.seed(3)
+suppressPackageStartupMessages({
+  library(SingleCellExperiment)
+  library(rgl)
+  library(clusterExperiment)
+  library(RColorBrewer)
+  library(ggplot2)
+  library(dplyr)
+})
+colby <- function(values, g=4){
+  if(is(values, "character")){
+    cols <- as.numeric(as.factor(values))
+    return(cols)
+  }
+  if(is(values, "factor")){
+    ncl <- nlevels(values)
+    if(ncl > 9){
+          colpal <- c(RColorBrewer::brewer.pal(9, 'Set1'), wesanderson::wes_palette("Darjeeling1", n=ncl-9, type="continuous"))
+    } else {
+       colpal <- RColorBrewer::brewer.pal(9, 'Set1')
+    }
+    cols <- colpal[as.numeric(values)]
+    return(cols)
+  }
+  if(is(values, "numeric")){
+    pal <- wesanderson::wes_palette("Zissou1", n=g, type="continuous")
+    gg <- Hmisc::cut2(values, g=g)
+    if(nlevels(gg) < g){
+      nl <- nlevels(gg)
+      if(nl == 2) pal <- pal[c(1,g)]
+    }
+    cols <- pal[gg]
+    return(cols)
+  }
+}
+cols <- brewer.pal(9,'Set1')
+colsBig <- clusterExperiment::massivePalette
+plotDRTimePoint <- function(dr, timePoint, cols, legendCex=1, legendPos="topright", ...){
+  plot(dr, col=cols[timePoint], pch=16, cex=1/2, xlab="UMAP1", ylab="UMAP2", bty='l', ...)
+  legend(legendPos, legend=levels(timePoint), col=cols[1:nlevels(timePoint)], pch=16, bty='n', cex=legendCex)
+}
+plotDRExpression <- function(dr, counts){
+  df = data.frame(dim1=dr[,1], dim2=dr[,2], y=counts)
+  df %>% ggplot(aes(x=dim1, y=dim2, col=y)) + 
+    geom_point(size=2/3) + scale_color_viridis_c(alpha=.6) + theme_classic()
+}
+```
+
+# Import data
+
+
+```{r loadData}
+dataDir <- "../data"
+cl <- readRDS(paste0(dataDir,"/cl_OE.rds"))
+load(paste0(dataDir,"/regenK5_scone_none,fq,ruv_k=1,no_bio,batch_rsec_adjP_mergecutoff_0.01_20190609_085359.Rda"))
+subset <- readRDS(paste0(dataDir,"/subset_index.rds"))
+batch <- droplevels(colData(cl2)$batch[subset])
+counts <- assays(cl2)$counts[,subset]
+colnames(counts) <- colData(cl2)$samples[subset]
+timePoint <- as.character(colData(cl2)$batch[subset])
+timePoint <- factor(unlist(lapply(strsplit(timePoint, split="_"), "[[", 1)),
+                    levels=c("24HPI", "48HPI", "96HPI", "7DPI", "14DPI", "Mix"))
+rm(cl2) ; gc()
+```
+
+# Remove doublets
+
+Doublets were identified by Boying Gong using DoubletFinder on each individual sample.
+
+```{r}
+# Remove Doublets
+doublets <- read.csv(paste0(dataDir,"/doublet_prediction_sample.csv"), stringsAsFactors = FALSE)
+hist(doublets$doubletFinderScore)
+
+doubID <- which(doublets$doubletFinderPred)
+doubletCells <- doublets$cell[doubID] #271 doublets (~1%)
+
+counts_noDoubs <- counts[,-doubID]
+timePoint_noDoubs <- timePoint[-doubID]
+cl_noDoubs <- cl[-doubID]
+```
+
+
+# Dimensionality reduction
+
+```{r eda}
+library(uwot)
+library(irlba)
+
+### top 100 PCs
+set.seed(15)
+fVar <- rowVars(counts_noDoubs)
+fMean <- rowMeans(counts_noDoubs)
+highVarFeatures <- order(fVar, decreasing=TRUE)[1:500]
+pcIk <- irlba(log1p(counts_noDoubs[highVarFeatures,]), nv=100)
+
+# UMAP on principal directions
+umIk50 <- uwot::umap(pcIk$v, n_components=3)
+rownames(umIk50) <- colnames(counts_noDoubs)
+plot(umIk50,  col=alpha(brewer.pal(6,'Set1')[timePoint_noDoubs],.4), pch=16, cex=1/2,
+     xlab="UMAP1", ylab="UMAP2", bty='l')
+legend("bottomright",levels(timePoint),pch=16,col=brewer.pal(6,'Set1'), bty='n')
+plot(umIk50,  col=alpha(brewer.pal(9,'Set1')[factor(cl_noDoubs)],.4), pch=16, cex=1/2,
+     xlab="UMAP1", ylab="UMAP2", bty='l')
+oldCelltype <- c("SUS", "IN3", "rHBC", "IN2", "GBC", "Neuron", "IN1", "HBC", "MV")
+oldCelltype <- factor(oldCelltype, levels=oldCelltype)
+legend("bottomright",levels(oldCelltype),pch=16,col=brewer.pal(9,'Set1'), bty='n')
+
+
+plot3d(umIk50, aspect = 'iso', col=brewer.pal(9,'Set1')[factor(cl_noDoubs)], alpha=.3)
+plot3d(umIk50, aspect = 'iso', col=brewer.pal(6,'Set1')[timePoint_noDoubs], alpha=.3)
+``` 
+
+
+
+# Interpreting (some of) the islands
+
+```{r}
+# 24h and 48h cells at mature neuron stage are true neurons => some neurons slipped through
+plot3d(umIk50, aspect = 'iso', col=colby(counts_noDoubs["Omp",]), alpha=.3)
+plot3d(umIk50, aspect = 'iso', col=colby(counts_noDoubs["Scg2",]), alpha=.3)
+plot3d(umIk50, aspect = 'iso', col=colby(counts_noDoubs["Neurod1",]), alpha=.3)
+
+# SUS
+plot3d(umIk50, aspect = 'iso', col=colby(counts_noDoubs["Cyp2g1",]), alpha=.3)
+plot3d(umIk50, aspect = 'iso', col=colby(counts_noDoubs["Cyp1a2",]), alpha=.3)
+plot3d(umIk50, aspect = 'iso', col=colby(counts_noDoubs["Vmo1",]), alpha=.3)
+plot3d(umIk50, aspect = 'iso', col=colby(counts_noDoubs["Muc2",]), alpha=.3)
+
+# HBC
+plot3d(umIk50, aspect = 'iso', col=colby(counts_noDoubs["Krt5",]), alpha=.3)
+plot3d(umIk50, aspect = 'iso', col=colby(counts_noDoubs["Krt14",]), alpha=.3)
+plot3d(umIk50, aspect = 'iso', col=colby(counts_noDoubs["Krt15",]), alpha=.3)
+plot3d(umIk50, aspect = 'iso', col=colby(counts_noDoubs["Trp63",]), alpha=.3)
+plot3d(umIk50, aspect = 'iso', col=colby(counts_noDoubs["Gpr87",]), alpha=.3)
+
+# GBC
+plot3d(umIk50, aspect = 'iso', col=colby(counts_noDoubs["Sprr1a",]), alpha=.3)
+plot3d(umIk50, aspect = 'iso', col=colby(counts_noDoubs["Ascl1",]), alpha=.3)
+plot3d(umIk50, aspect = 'iso', col=colby(counts_noDoubs["Prim1",]), alpha=.3)
+plot3d(umIk50, aspect = 'iso', col=colby(counts_noDoubs["Tk1",]), alpha=.3)
+plot3d(umIk50, aspect = 'iso', col=colby(counts_noDoubs["Plk1",]), alpha=.3)
+
+# MV
+plot3d(umIk50, aspect = 'iso', col=colby(counts_noDoubs["Ascl3",]), alpha=.3)
+plot3d(umIk50, aspect = 'iso', col=colby(counts_noDoubs["Trpm5",]), alpha=.3)
+```
+
+# Remove chronologically asyncrhonous cells (bridge, mature neuron 24/48h cells)
+
+## Bridge cells
+
+```{r}
+plot3d(umIk50, aspect = 'iso', 
+       col=cols[timePoint_noDoubs], 
+       alpha=.6)
+
+
+bridgeRegionID <- (umIk50[,1] < -3.3 & umIk50[,1] > -4.5) & (umIk50[,2] < 0)
+plot3d(umIk50, aspect = 'iso', 
+       col=colby(factor(bridgeRegionID), g=2), alpha=.6)
+bridgeAllCells <- which(bridgeRegionID)
+bridgeID <- bridgeAllCells[timePoint_noDoubs[bridgeAllCells] %in% levels(timePoint_noDoubs)[1:3]]
+# plot cells to be removed
+bridgeLogical <- vector(length=nrow(umIk50))
+bridgeLogical[bridgeID] <- TRUE
+plot3d(umIk50, aspect = 'iso', 
+       col=colby(factor(bridgeLogical), g=2), alpha=.4)
+
+bridgeCellNames <- rownames(umIk50)[bridgeID]
+rm(bridgeLogical, bridgeAllCells) 
+```
+
+## Mature neuron 24/48h
+
+```{r}
+plot3d(umIk50, aspect = 'iso', 
+       col=cols[timePoint_noDoubs], 
+       alpha=.6)
+
+mnCellID <- which(umIk50[,1] < -6.5)
+mnCellID <- mnCellID[timePoint_noDoubs[mnCellID] %in% levels(timePoint_noDoubs)[1:2]]
+mnLogical <- vector(length=nrow(umIk50))
+mnLogical[mnCellID] <- TRUE
+plot3d(umIk50, aspect = 'iso', 
+       col=colby(factor(mnLogical), g=2), alpha=.4)
+
+rm(mnLogical)
+```
+
+## Remove these
+
+```{r}
+rmAsync <- c(bridgeID, mnCellID)
+
+umIk50_async <- umIk50[-rmAsync,]
+counts_noDoubs_async <- counts_noDoubs[,-rmAsync]
+timePoint_noDoubs_async <- timePoint_noDoubs[-rmAsync]
+cl_noDoubs_async <- cl_noDoubs[-rmAsync]
+
+rm(counts, counts_noDoubs) ; gc()
+```
+
+# Dimensionality reduction
+
+## Using David Brann's gene selection and PCA objects
+
+```{r}
+dataDavid <- "../data/objectsFromDavid"
+davidGenes <- read.table(paste0(dataDavid, "/genes_used.txt"), stringsAsFactors = FALSE)[,1]
+davidPC <- readRDS(paste0(dataDavid, "/pcs.rds"))
+davidAnnotation <- read.csv(paste0(dataDavid, "/Datta_annotation_HBC_lineage_newPCs.csv"))
+clDavid <- davidAnnotation$leiden_0_6_caleb20PCs
+mergedCl <- vector(length=nrow(davidAnnotation))
+mergedCl[clDavid %in% c(13,9,6,1)] <- "HBC*"
+mergedCl[clDavid %in% c(3,0,5,15)] <- "HBC"
+mergedCl[clDavid %in% c(11)] <- "GBC"
+mergedCl[clDavid %in% c(11)] <- "GBC"
+mergedCl[clDavid %in% c(10,12,4)] <- "iOSN"
+mergedCl[clDavid %in% c(8)] <- "mOSN"
+mergedCl[clDavid %in% c(2)] <- "Sus"
+mergedCl[clDavid %in% c(14)] <- "MV"
+mergedCl[clDavid %in% c(7)] <- "RE HBC"
+mergedCl[clDavid %in% c(16)] <- "RE"
+mergedCl <- factor(mergedCl)
+
+umDavid1 <- uwot::umap(davidPC, n_neighbors=20, min_dist=0.5)
+
+plotDRTimePoint(dr=umDavid1, timePoint=factor(clDavid), cols=colsBig, legendCex=2/3)
+plotDRTimePoint(dr=umDavid1, timePoint=factor(mergedCl), cols=colsBig, legendCex=4/5, legendPos="bottomright")
+plotDRTimePoint(dr=umDavid1, timePoint=timePoint_noDoubs_async, cols=brewer.pal(9, 'Set1'), legendPos="bottomright")
+plotDRTimePoint(dr=umDavid1, timePoint=factor(cl_noDoubs_async), cols=brewer.pal(9, 'Set1'), legendCex=4/5, legendPos="bottomleft", main="clusterExperiment labels")
+
+```
+
+## Reproduce their pipeline using more PCs
+
+```{r}
+normDavid <- sweep(counts_noDoubs_async, 2, colSums(counts_noDoubs_async), "/") * median(colSums(counts_noDoubs_async))
+
+## genes that have been removed
+davidGenes[!davidGenes %in% rownames(normDavid)]
+davidGenes2 <- intersect(davidGenes, rownames(normDavid))
+
+## genes that have been removed
+hvGenes <- order(rowVars(normDavid), decreasing=TRUE)[1:length(davidGenes2)]
+
+pc100David_hvg <- irlba(log1p(normDavid[hvGenes,]), nv=100)
+
+umDavid_hvg <- uwot::umap(pc100David_hvg$v, n_neighbors=20, min_dist=0.5)
+
+plotDRTimePoint(dr=umDavid_hvg, timePoint=factor(mergedCl), cols=colsBig, legendCex=4/5, legendPos="topleft", main="Datta cluster labels")
+plotDRTimePoint(dr=umDavid_hvg, timePoint=factor(timePoint_noDoubs_async), cols=brewer.pal(9, 'Set1'), legendCex=4/5, legendPos="topleft", main="Time point")
+plotDRTimePoint(dr=umDavid_hvg, timePoint=factor(cl_noDoubs_async), cols=brewer.pal(9, 'Set1'), legendCex=4/5, legendPos="topleft", main="clusterExperiment labels")
+```
+
+Check expression of respiratory genes and other markers
+
+```{r}
+# Respiratory cells
+plotDRExpression(umDavid_hvg, log1p(counts_noDoubs_async["Adh7",])) + ggtitle("Adh7")
+plotDRExpression(umDavid_hvg, log1p(counts_noDoubs_async["Reg3g",])) + ggtitle("Reg3g")
+
+# HBC
+plotDRExpression(umDavid_hvg, log1p(counts_noDoubs_async["Krt5",])) + ggtitle("Krt5")
+plotDRExpression(umDavid_hvg, log1p(counts_noDoubs_async["Krt14",])) + ggtitle("Krt14")
+
+plotDRExpression(umDavid_hvg, log1p(counts_noDoubs_async["Trp63",])) + ggtitle("Trp63")
+
+# HBC*
+plotDRExpression(umDavid_hvg, log1p(counts_noDoubs_async["Sprr1a",])) + ggtitle("Sprr1a")
+plotDRExpression(umDavid_hvg, log1p(counts_noDoubs_async["Krtdap",])) + ggtitle("Krtdap")
+
+# GBC
+plotDRExpression(umDavid_hvg, log1p(counts_noDoubs_async["Ascl1",])) + ggtitle("Ascl1")
+
+```
+
+
+# Remove respiratory and microvillous cells
+
+```{r}
+counts_noResp_noMV <- counts_noDoubs_async[,!mergedCl %in% c("RE", "RE HBC", "MV")]
+```
+
+
+## Save files
+
+```{r, eval=FALSE}
+# counts
+saveRDS(counts_noResp_noMV, file="../data/finalTrajectory/counts_noResp_noMV.rds")
+# timePoints
+timePoint_noResp_noMV <- timePoint_noDoubs_async[!mergedCl %in% c("RE", "RE HBC", "MV")]
+saveRDS(timePoint_noResp_noMV, file="../data/finalTrajectory/timePoint_noResp_noMV.rds")
+# Datta labels
+mergedCl_noResp_noMV <- mergedCl[!mergedCl %in% c("RE", "RE HBC", "MV")]
+saveRDS(mergedCl_noResp_noMV, file="../data/finalTrajectory/dattaCl_noResp_noMV.rds")
+# clusterExperiment labels
+cl_noResp_noMV <- timePoint_noDoubs_async[!mergedCl %in% c("RE", "RE HBC", "MV")]
+saveRDS(cl_noResp_noMV, file="../data/finalTrajectory/rsecCl.rds")
+```
+
+
+
+```{r}
+sessionInfo()
+```
+

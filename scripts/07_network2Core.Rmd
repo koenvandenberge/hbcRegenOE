@@ -1,0 +1,93 @@
+---
+title: "Get 2 core of networks"
+author: "Koen Van den Berge"
+date: "11/19/2020"
+output: html_document
+---
+
+```{r}
+## activated HBC
+load("../data/associationNetworkKim/result_realdata/3-dataTFtranscelsalpha059515result.RData")
+adjHBCAct <- adj.zinb1
+dimnames(adjHBCAct) <- list(colnames(datatest), colnames(datatest))
+adjHBCAct <- adjHBCAct[!rowSums(adjHBCAct) == 0,]
+adjHBCAct <- adjHBCAct[,!colSums(adjHBCAct) == 0]
+rm(adj.zinb1, datatest)
+
+## GBC
+load("../data/associationNetworkKim/result_realdata/4-dataTFtranscelsalpha059515result.RData")
+adjGBC <- adj.zinb1
+dimnames(adjGBC) <- list(colnames(datatest), colnames(datatest))
+adjGBC <- adjGBC[!rowSums(adjGBC) == 0,]
+adjGBC <- adjGBC[,!colSums(adjGBC) == 0]
+rm(adj.zinb1, datatest)
+
+## iOSN
+load("../data/associationNetworkKim/result_realdata/2-dataTFtranscelsalpha059515result.RData")
+adjiOSN <- adj.zinb1
+dimnames(adjiOSN) <- list(colnames(datatest), colnames(datatest))
+adjiOSN <- adjiOSN[!rowSums(adjiOSN) == 0,]
+adjiOSN <- adjiOSN[,!colSums(adjiOSN) == 0]
+rm(adj.zinb1, datatest)
+
+## mOSN
+load("../data/associationNetworkKim/result_realdata/5-dataTFtranscelsalpha059515result.RData")
+adjmOSN <- adj.zinb1
+dimnames(adjmOSN) <- list(colnames(datatest), colnames(datatest))
+adjmOSN <- adjmOSN[!rowSums(adjmOSN) == 0,]
+adjmOSN <- adjmOSN[,!colSums(adjmOSN) == 0]
+rm(adj.zinb1, datatest)
+
+## rHBC
+load("../data/associationNetworkKim/result_realdata/1-dataTFtranscelsalpha059515result.RData")
+adjrHBC <- adj.zinb1
+dimnames(adjrHBC) <- list(colnames(datatest), colnames(datatest))
+adjrHBC <- adjrHBC[!rowSums(adjrHBC) == 0,]
+adjrHBC <- adjrHBC[,!colSums(adjrHBC) == 0]
+rm(adj.zinb1, datatest)
+
+## Sus
+load("../data/associationNetworkKim/result_realdata/Sus-dataTFtranscelsalpha059515result.RData")
+adjSus <- adj.zinb1
+dimnames(adjSus) <- list(colnames(datatest), colnames(datatest))
+adjSus <- adjSus[!rowSums(adjSus) == 0,]
+adjSus <- adjSus[,!colSums(adjSus) == 0]
+rm(adj.zinb1, datatest)
+```
+
+
+
+```{r}
+extractCore <- function(A, degree = 3){
+  converg <- FALSE
+  old.nrow <- nrow(A)
+  while(!converg){
+    d <- colSums(A)
+    to.keep <- which(d>=degree)
+    if(old.nrow==length(to.keep)){
+      converg <- TRUE
+    }
+    old.nrow <- length(to.keep)
+    A <- A[to.keep,to.keep]
+  }
+  return(A)
+}
+
+adjHBCAct2 <- extractCore(adjHBCAct, degree = 2)
+adjGBC2 <- extractCore(adjGBC, degree = 2)
+adjiOSN2 <- extractCore(adjiOSN, degree = 2)
+adjmOSN2 <- extractCore(adjmOSN, degree = 2)
+adjrHBC2 <- extractCore(adjrHBC, degree = 2)
+adjSus2 <- extractCore(adjSus, degree = 2)
+
+
+
+saveRDS(list("hbcAct" = adjHBCAct2, 
+             "GBC" = adjGBC2, 
+             "iOSN" = adjiOSN2, 
+             "mOSN" = adjmOSN2,
+             "rHBC" = adjrHBC2,
+             "Sus" = adjSus2), file="../data/adjMatrices_2core_all.rds")
+
+```
+

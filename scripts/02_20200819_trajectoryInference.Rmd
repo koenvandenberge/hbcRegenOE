@@ -1,0 +1,109 @@
+---
+title: "Trajectory Inference"
+author: "Koen Van den Berge"
+date: "8/19/2020"
+output: html_document
+---
+
+```{r}
+set.seed(3)
+suppressPackageStartupMessages({
+  library(SingleCellExperiment)
+  library(rgl)
+  library(clusterExperiment)
+  library(RColorBrewer)
+  library(ggplot2)
+  library(dplyr)
+  library(irlba)
+  library(slingshot)
+})
+colby <- function(values, g=4){
+  if(is(values, "character")){
+    cols <- as.numeric(as.factor(values))
+    return(cols)
+  }
+  if(is(values, "factor")){
+    ncl <- nlevels(values)
+    if(ncl > 9){
+          colpal <- c(RColorBrewer::brewer.pal(9, 'Set1'), wesanderson::wes_palette("Darjeeling1", n=ncl-9, type="continuous"))
+    } else {
+       colpal <- RColorBrewer::brewer.pal(9, 'Set1')
+    }
+    cols <- colpal[as.numeric(values)]
+    return(cols)
+  }
+  if(is(values, "numeric")){
+    pal <- wesanderson::wes_palette("Zissou1", n=g, type="continuous")
+    gg <- Hmisc::cut2(values, g=g)
+    if(nlevels(gg) < g){
+      nl <- nlevels(gg)
+      if(nl == 2) pal <- pal[c(1,g)]
+    }
+    cols <- pal[gg]
+    return(cols)
+  }
+}
+cols <- brewer.pal(9,'Set1')
+colsBig <- clusterExperiment::massivePalette
+```
+
+
+
+```{r}
+# counts
+counts <- readRDS(file="../data/finalTrajectory/counts_noResp_noMV.rds")
+# timePoints
+timePoint <- readRDS(file="../data/finalTrajectory/timePoint_noResp_noMV.rds")
+# Datta labels
+clDatta <- readRDS(file="../data/finalTrajectory/dattaCl_noResp_noMV.rds")
+# clusterExperiment labels
+clCE <- readRDS(file="../data/finalTrajectory/rsecCl.rds")
+```
+
+
+```{r}
+set.seed(40)
+hvGenes <- order(rowVars(counts), decreasing=TRUE)[1:1000]
+irlba100 <- irlba(log1p(counts[hvGenes,]), nv=25)
+pc100 <- irlba100$v %*% diag(irlba100$d) 
+#umap_3d <- uwot::umap(pc100, min_dist=0.4, n_neighbors=10, n_components=3)
+umap_3d <- uwot::umap(pc100, min_dist=0.2, n_components=3)
+
+
+# Datta labels
+plot3d(umap_3d, aspect = 'iso', col=colsBig[clDatta], alpha=.6)
+# timepoints
+plot3d(umap_3d, aspect = 'iso', col=brewer.pal(9,'Set1')[timePoint], alpha=.6)
+```
+
+```{r}
+set.seed(40)
+hc <- hclust(dist(umap_3d))
+
+clus <- cutree(hc, k=9)
+plot3d(umap_3d, aspect = 'iso', col=brewer.pal(9,'Set1')[timePoint], alpha=.6)
+plot3d(umap_3d, aspect = 'iso', col=colsBig[factor(clus)], alpha=.6)
+plot(1:9,col=colsBig[1:9],pch=16)
+
+lin <- getLineages(umap_3d, clus, start.clus=8)
+
+plot3d(umap_3d, aspect = 'iso', col=colsBig[factor(clus)], alpha=.6)
+plot3d(lin, add=TRUE, col="black", lwd=4)
+
+
+crv <- getCurves(lin)
+
+plot3d(umap_3d, aspect = 'iso', col=colsBig[factor(clus)], alpha=.6)
+plot3d(crv, add=TRUE, col="black", lwd=4)
+
+
+plot3d(umap_3d, aspect = 'iso', col=brewer.pal(9,'Set1')[timePoint], alpha=.6)
+plot3d(crv, add=TRUE, col="black", lwd=4)
+#saveRDS(crv, file="../data/finalTrajectory/sling.rds")
+```
+
+
+```{r}
+sessionInfo()
+```
+

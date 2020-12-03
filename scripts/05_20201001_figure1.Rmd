@@ -1,0 +1,408 @@
+---
+title: "Figure 1 OE"
+author: "Koen Van den Berge"
+date: "10/1/2020"
+output: html_document
+---
+
+
+# Load data
+
+```{r pkg}
+here::set_here()
+suppressPackageStartupMessages({
+  library(slingshot)
+  library(tradeSeq)
+  library(SingleCellExperiment)
+  library(cowplot)
+  library(rgl)
+  library(clusterExperiment)
+  library(RColorBrewer)
+  library(aggregation)
+  library(ggplot2)
+  library(pheatmap)
+  library(wesanderson)
+  library(UpSetR)
+  library(gridExtra)
+  library(scales)
+})
+```
+
+# Import data
+
+```{r loadData}
+sds <- readRDS("../data/finalTrajectory/sling.rds")
+counts <- readRDS("../data/finalTrajectory/counts_noResp_noMV.rds")
+counts <- round(counts)
+sce <- readRDS("../data/finalTrajectory/sce_tradeSeq20200904.rds")
+timePoint <- readRDS("../data/finalTrajectory/timePoint_noResp_noMV.rds")
+clDatta <- readRDS("../data/finalTrajectory/dattaCl_noResp_noMV.rds")
+```
+
+# Chronological timepoints
+
+```{r}
+plot3d(reducedDim(sds), aspect = 'iso', col=brewer.pal(9,'Set1')[timePoint], alpha=.6)
+
+df <- data.frame(UMAP1=reducedDim(sds)[,1],
+                 UMAP2=reducedDim(sds)[,2],
+                 time=factor(timePoint),
+                 col=brewer.pal(9,'Set1')[timePoint])
+
+ggplot(df, aes(x=UMAP1, y=UMAP2, col=time)) +
+  geom_point(size=.2, alpha=.5) +
+  scale_color_manual(values = brewer.pal(9,'Set1')) +
+  theme_classic() +
+  ggtitle("Cells colored by sampled timepoint") +
+  guides(colour = guide_legend(override.aes = list(alpha = 1, size=1.5)))
+ggsave("../plots/timePointDR.png", width=9)
+
+```
+
+
+
+# 3D plot of trajectory
+
+```{r}
+plot3d(reducedDim(sds), aspect = 'iso', col=brewer.pal(9,'Set1')[timePoint], alpha=.6)
+plot3d(sds, add=TRUE, col=c("black"), lwd=4)
+
+plot3d(reducedDim(sds), aspect = 'iso', col=brewer.pal(9,'Set1')[clDatta], alpha=.6)
+plot3d(sds, add=TRUE, col=c("black"), lwd=4)
+
+
+plot3d(reducedDim(sds), aspect = 'iso', col=brewer.pal(9,'Set1')[clDatta], alpha=.3,
+       box=FALSE)
+plot3d(sds, add=TRUE, col=c("black"), lwd=6)
+
+
+
+plot3d(reducedDim(sds), aspect = 'iso', col=brewer.pal(9,'Set1')[clDatta], alpha=.3,
+       box=FALSE, axes = FALSE, xlab = "UMAP1", ylab="UMAP2", zlab="UMAP3")
+plot3d(sds, add=TRUE, col=c("black"), lwd=5)
+axis3d('x', at = NULL, labels = FALSE, tick = TRUE, line = 0, 
+	pos = NULL, nticks = 5) 
+axis3d('y', at = NULL, labels = FALSE, tick = TRUE, line = 0, 
+	pos = NULL, nticks = 5) 
+axis3d('z', at = NULL, labels = FALSE, tick = TRUE, line = 0, 
+	pos = NULL, nticks = 5)
+rgl.postscript("../plots/tmp_trajectory.pdf","pdf")
+
+```
+
+# 2D plots of trajectory with cell types
+
+```{r}
+# pairs(reducedDim(sds), col=brewer.pal(9,'Set1')[clDatta], pch=16, cex=1/2)
+
+dims <- c(1,2)
+plot(reducedDim(sds)[,dims], col=alpha(brewer.pal(9,'Set1')[clDatta], .6), 
+     pch=16, cex=1/2, main="Dims 1 and 2")
+for(ii in seq_along(slingCurves(sds))){
+    c <- slingCurves(sds)[[ii]]
+    lines(c$s[c$ord, dims], lwd = 3, col = "black")
+}
+
+dims <- c(1,3)
+plot(reducedDim(sds)[,dims], col=alpha(brewer.pal(9,'Set1')[clDatta], .6), 
+     pch=16, cex=1/2, main="Dims 1 and 3")
+for(ii in seq_along(slingCurves(sds))){
+    c <- slingCurves(sds)[[ii]]
+    lines(c$s[c$ord, dims], lwd = 3, col = "black")
+}
+
+dims <- c(2,3)
+plot(reducedDim(sds)[,dims], col=alpha(brewer.pal(9,'Set1')[clDatta], .6), 
+     pch=16, cex=1/2, main="Dims 1 and 3")
+for(ii in seq_along(slingCurves(sds))){
+    c <- slingCurves(sds)[[ii]]
+    lines(c$s[c$ord, dims], lwd = 3, col = "black")
+}
+```
+
+# Marker genes
+
+```{r}
+library(ggplot2)
+markers <- c("Krt5", "Krt14",
+             "Sprr1a", "Trp63", #need 2 good HBC* markers here.
+             "Cyp2g1", "Cyp1a2",
+             "Ascl1", "Neurod1",
+             "Omp")
+
+dims <- c(1,3)
+rd <- reducedDims(sds)[,dims]
+
+markerPlotList <- list()
+for(mm in 1:length(markers)){
+  y <- log1p(counts[markers[mm],])
+  df <- data.frame(dim1=rd[,1],
+                   dim2=rd[,2],
+                   y=y)
+  markerPlotList[[mm]] <- ggplot(df, aes(x=dim1, y=dim2, colour=y)) +
+    geom_point(alpha=.3, size=1/2) +
+    scale_color_viridis_c() +
+    theme_classic() +
+    ggtitle(markers[mm]) +
+    theme(legend.position = "none")
+}
+
+
+pMarker <- cowplot::plot_grid(plotlist = markerPlotList)
+pMarker
+```
+
+# Differential expression: most significantly increasing genes in each lineage
+
+```{r}
+getUpGenes <- function(yhatDf, lineage){
+  yhatDf1 <- yhatDf[yhatDf$lineage == lineage,]
+  upGenes <- yhatDf1 %>% 
+    group_by(gene) %>%
+    summarize(up = yhat[20] > yhat[1]) %>%
+    filter(up == TRUE)
+  return(upGenes)
+}
+```
+
+
+```{r}
+asTestRes <- associationTest(sce, lineages = TRUE)
+
+## check which genes are increasing
+library(tidyverse)
+yhatDf <- predictSmooth(sce, gene=names(sce), nPoints=20)
+upGenesNeur <- getUpGenes(yhatDf, lineage=1)
+upGenesSus <- getUpGenes(yhatDf, lineage=2)
+upGenesHBC <- getUpGenes(yhatDf, lineage=3)
+
+## order according to test statistic
+asTestResNeurIncreas <- asTestRes[rownames(asTestRes) %in% upGenesNeur$gene,]
+asTestResSusIncreas <- asTestRes[rownames(asTestRes) %in% upGenesSus$gene,]
+asTestResHBCIncreas <- asTestRes[rownames(asTestRes) %in% upGenesHBC$gene,]
+
+ooNeur <- order(asTestResNeurIncreas$waldStat_1, decreasing=TRUE)
+ooSus <- order(asTestResSusIncreas$waldStat_2, decreasing=TRUE)
+ooHBC <- order(asTestResHBCIncreas$waldStat_3, decreasing=TRUE)
+
+
+
+plotlist <- list()
+lineages <- c("Neur", "Sus", "HBC")
+for(ll in 1:3){
+  curoo <- get(paste0("oo",lineages[ll]))
+  curres <- get(paste0("asTestRes",lineages[ll],"Increas"))
+  plothlp <- list()
+  for(kk in 1:4){
+    plothlp[[kk]] <- plotSmoothers(sce, counts, gene=rownames(curres)[curoo[kk]], alpha= 1/5, lwd=3/2) +
+      ggtitle(names(sce)[curoo[kk]]) +
+      theme(legend.position = "none")
+  }
+  plotlist[[ll]] <- plothlp
+}
+
+pNeur <- cowplot::plot_grid(plotlist=plotlist[[1]])
+pSus <- cowplot::plot_grid(plotlist=plotlist[[2]])
+pHBC <- cowplot::plot_grid(plotlist=plotlist[[3]])
+pNeur
+pSus
+pHBC
+
+## legend
+pLeg <- plotSmoothers(sce, counts, gene=rownames(curres)[curoo[kk]], alpha= 1/5, lwd=3/2) +
+  scale_color_viridis_d(alpha = 1/5, labels = c("Neur", "Sus", "rHBC")) +
+  guides(colour = guide_legend(override.aes = list(alpha = 1, size=1.5)))
+pLeg
+leg <- cowplot::get_legend(pLeg)
+```
+
+# Composite main plot
+
+```{r}
+p1 <- cowplot::plot_grid(NULL, pMarker, nrow=1, ncol=2, labels=c("a", "b")) #empty space for pasting 3D trajectory
+p2 <- cowplot::plot_grid(pNeur, pSus, pHBC, nrow=1, labels=c("c", "d", "e"))
+p3 <- cowplot::plot_grid(p2, leg, rel_widths = c(0.9,0.1))
+p4 <- cowplot::plot_grid(p1, 
+                         p3,
+                         nrow=2)
+p4
+ggsave("../plots/figure1.pdf", width=12, height=10)
+ggsave("../plots/figure1.png", width=12, height=10)
+```
+
+
+
+# Shared vs unique DE genes
+
+```{r}
+library(UpSetR)
+asTestRes2 <- tradeSeq::associationTest(sce, l2fc = log2(1.5), lineages = TRUE)
+
+neurGenes <- names(sce)[which(p.adjust(asTestRes2$pvalue_1, "fdr") <= 0.05)]
+susGenes <- names(sce)[which(p.adjust(asTestRes2$pvalue_2, "fdr") <= 0.05)]
+hbcGenes <- names(sce)[which(p.adjust(asTestRes2$pvalue_3, "fdr") <= 0.05)]
+geneList <- list("Neuron" = neurGenes,
+                 "Sus" = susGenes,
+                 "HBC" = hbcGenes)
+
+upset(fromList(geneList), order.by = "freq")
+```
+
+# tradeSeq tests
+
+The fold-change cut-off enforces us to find genes with low counts, as it needs to be changing multiplicatitively in a short pseudotime region (between 2 knots). A better approach could be to require the fold-change between any two knots (not just subsequent knots), which could avoid this issue.
+
+```{r, eval=FALSE}
+asTestRes2 <- tradeSeq::associationTest(sce, l2fc = log2(2), lineages = TRUE)
+ooNeur <- order(asTestRes2$waldStat_1, decreasing=TRUE)
+head(asTestRes2[ooNeur,], n=20)
+ii=893
+
+plotSmoothers(sce, counts, "Gadl1")
+
+source("~/Dropbox/research/tradeSeq/R/utils.R")
+models = sce
+global = TRUE
+lineages = TRUE
+l2fc = 1.5
+
+
+library(microbenchmark)
+m <- microbenchmark(chol2inv(chol(t(LQR) %*% Sigma %*% LQR)),
+                    qr.solve(t(LQR) %*% Sigma %*% LQR),
+                    solve(t(LQR) %*% Sigma %*% LQR))
+autoplot(m)
+```
+
+Cholesky: 
+```{r, eval=FALSE}
+                 waldStat df pvalue   waldStat_1 df_1 pvalue_1 waldStat_2 df_2 pvalue_2   waldStat_3 df_3
+Mirg                   NA NA     NA 1.425933e+10    6        0         NA   NA       NA 8.315470e+10    5
+Foxc2                  NA NA     NA 9.445026e+04    6        0         NA   NA       NA 1.072057e+04    5
+Cd34           235330.428 15      0 4.727966e+04    6        0 188050.765    4        0 0.000000e+00    5
+Ankrd66         73684.530 15      0 3.789552e+04    6        0  35788.967    4        0 0.000000e+00    5
+X1700016D06Rik  89418.217 15      0 2.282748e+04    6        0  33293.667    4        0 3.329707e+04    5
+Tnni1           22333.572 15      0 2.233357e+04    6        0      0.000    4        1 0.000000e+00    5
+Calcrl          24131.739 15      0 2.138513e+04    6        0   2746.607    4        0 0.000000e+00    5
+Fsip1          365274.314 15      0 2.002143e+04    6        0 345252.885    4        0 0.000000e+00    5
+Csf2            37444.701 15      0 1.925447e+04    6        0      0.000    4        1 1.819023e+04    5
+Slc45a1        135144.276 15      0 1.913165e+04    6        0 115743.576    4        0 2.690510e+02    5
+Nipal4          28643.631 15      0 1.777150e+04    6        0  10872.134    4        0 0.000000e+00    5
+Calm4           18057.771 15      0 1.650576e+04    6        0   1552.015    4        0 0.000000e+00    5
+Fez1           221572.240 15      0 1.588545e+04    6        0      0.000    4        1 2.056868e+05    5
+Kcna5          190251.044 15      0 1.554569e+04    6        0 156821.972    4        0 1.788338e+04    5
+Ablim3          29004.600 15      0 1.234130e+04    6        0  16663.298    4        0 0.000000e+00    5
+H2.Q10          12236.784 15      0 1.223678e+04    6        0      0.000    4        1 0.000000e+00    5
+Gadl1           12279.900 15      0 9.939643e+03    6        0      0.000    4        1 2.340257e+03    5
+Scn8a           13321.067 15      0 9.758511e+03    6        0   3562.555    4        0 0.000000e+00    5
+X1700003E16Rik   9594.932 15      0 9.594932e+03    6        0      0.000    4        1 0.000000e+00    5
+Cldn22           9725.939 15      0 9.333388e+03    6        0      0.000    4        1 3.925512e+02    5
+```
+
+
+
+
+
+```{r, eval=FALSE}
+asTestRes2 <- associationTest(sce, l2fc = log2(2), lineages = TRUE)
+ooNeur <- order(asTestRes2$waldStat_1, decreasing=TRUE)
+head(asTestRes2[ooNeur,], n=20)
+```
+
+
+qr.solve:
+```{r, eval=FALSE}
+                 waldStat df pvalue waldStat_1 df_1 pvalue_1 waldStat_2 df_2 pvalue_2  waldStat_3 df_3 pvalue_3
+Foxc2                  NA NA     NA  94450.256    6        0         NA   NA       NA  10720.5737    5        0
+Olfr1260               NA NA     NA  76199.524    6        0         NA   NA       NA          NA   NA       NA
+Cd34           235330.428 15      0  47279.663    6        0 188050.765    4        0      0.0000    5        1
+Olfr1414               NA NA     NA  31179.037    6        0         NA   NA       NA          NA   NA       NA
+X1700016D06Rik  89418.217 15      0  22827.485    6        0  33293.667    4        0  33297.0656    5        0
+Tnni1           22333.572 15      0  22333.572    6        0      0.000    4        1      0.0000    5        1
+Calcrl          24131.739 15      0  21385.132    6        0   2746.607    4        0      0.0000    5        1
+Fsip1          365274.314 15      0  20021.429    6        0 345252.885    4        0      0.0000    5        1
+Csf2            37444.701 15      0  19254.471    6        0      0.000    4        1  18190.2296    5        0
+Slc45a1        135144.275 15      0  19131.651    6        0 115743.576    4        0    269.0510    5        0
+Nipal4          28643.631 15      0  17771.497    6        0  10872.134    4        0      0.0000    5        1
+Calm4           18057.771 15      0  16505.756    6        0   1552.015    4        0      0.0000    5        1
+Fez1           221572.240 15      0  15885.450    6        0      0.000    4        1 205686.7902    5        0
+Kcna5          190251.044 15      0  15545.690    6        0 156821.972    4        0  17883.3819    5        0
+Ablim3          29004.600 15      0  12341.302    6        0  16663.298    4        0      0.0000    5        1
+H2.Q10          12236.784 15      0  12236.784    6        0      0.000    4        1      0.0000    5        1
+Gadl1           12279.900 15      0   9939.643    6        0      0.000    4        1   2340.2574    5        0
+Scn8a           13321.067 15      0   9758.511    6        0   3562.555    4        0      0.0000    5        1
+X1700003E16Rik   9594.932 15      0   9594.932    6        0      0.000    4        1      0.0000    5        1
+Cldn22           9725.939 15      0   9333.388    6        0      0.000    4        1    392.5512    5        0
+```
+
+
+
+```{r, eval=FALSE}
+LAll = L
+L1
+
+
+
+plotSmoothers(models, counts, names(models)[3])
+
+# beta <- matrix(unlist(rowData(models)$tradeSeq$beta[[1]][3,2:8]), ncol=1)
+# Sigma <- rowData(models)$tradeSeq$Sigma[[3]][2:8, 2:8]
+
+beta <- c(-1.0225962, -1.2397080, -1.1019727, -0.8609921, -0.3385614, -0.3264623, -1.8066244)
+Sigma <- matrix(c(1.601427, 1.595840, 1.596526, 1.596448, 1.596352, 1.596359, 1.596357,
+                  1.595840, 1.598979, 1.596530, 1.596202, 1.596349, 1.596373, 1.596361,
+                  1.596526, 1.596530, 1.600218, 1.598507, 1.596165, 1.596067, 1.596227,
+                  1.596448, 1.596202, 1.598507, 1.600457, 1.596377, 1.595518, 1.595990,
+                  1.596352, 1.596349, 1.596165, 1.596377, 1.599540, 1.598141, 1.597084,
+                  1.596359, 1.596373, 1.596067, 1.595518, 1.598141, 1.598296, 1.595843,
+                  1.596357, 1.596361, 1.596227, 1.595990, 1.597084, 1.595843, 1.601241),
+                nrow = 7, ncol=7, byrow=FALSE)
+
+## current implementation: compare subsequent knots
+Lss <- matrix(0, nrow=7, ncol=6)
+rownames(Lss) <- paste0("knot", 1:7)
+for(kk in 1:6){
+  Lss[kk:(kk+1),kk] <- c(-1, 1)
+}
+qr(Lss)$rank #full rank
+
+## first knot vs others: also full rank
+L1 <- matrix(0, nrow=7, ncol=6)
+rownames(L1) <- paste0("knot", 1:7)
+for(kk in 1:6){
+  L1[c(1, kk+1),kk] <- c(-1, 1)
+}
+qr(L1)$rank #full rank
+
+
+
+# log fold change of subsequent implementation
+logFcSS <- t(Lss) %*% beta
+logFcSS
+# log fold change of first knot implementation
+logFC1 <- t(L1) %*% beta
+logFC1
+
+# Wald test statistic is the same.
+t(logFcSS) %*% solve(t(Lss) %*% Sigma %*% Lss) %*% logFcSS
+t(logFC1) %*% solve(t(L1) %*% Sigma %*% L1) %*% logFC1
+
+
+# now we use a fold change cut-off
+cutoff <- log(1.5)
+estSS <- matrix(sign(logFcSS) * (pmax(0, abs(logFcSS) - cutoff)), ncol = 1) # zero or remainder
+estSS
+est1 <- matrix(sign(logFC1) * (pmax(0, abs(logFC1) - cutoff)), ncol = 1) # zero or remainder
+est1
+
+# Wald test statistic is pretty different depending on the implementation.
+t(estSS) %*% solve(t(Lss) %*% Sigma %*% Lss) %*% estSS
+t(est1) %*% solve(t(L1) %*% Sigma %*% L1) %*% est1
+
+## sign of contrasts matters: test statistic is different
+Lss[Lss != 0] <- 1
+logFcSS <- t(Lss) %*% beta
+t(logFcSS) %*% solve(t(Lss) %*% Sigma %*% Lss) %*% logFcSS
+
+```
+

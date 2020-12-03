@@ -1,0 +1,683 @@
+---
+title: 'Hunting for TFs using tradeSeq: incorporating derivative threshold'
+author: "Koen Van den Berge"
+date: "1/17/2020"
+output: 
+  html_document:
+    toc: true
+    toc_float: true
+---
+
+
+```{r pkg}
+here::set_here()
+suppressPackageStartupMessages({
+  library(slingshot)
+  library(tradeSeq)
+  library(SingleCellExperiment)
+  library(cowplot)
+  library(rgl)
+  library(clusterExperiment)
+  library(RColorBrewer)
+  library(aggregation)
+  library(ggplot2)
+  library(pheatmap)
+  library(wesanderson)
+  library(UpSetR)
+  library(gridExtra)
+})
+```
+
+# Import data
+
+```{r loadData}
+sds <- readRDS("../data/finalTrajectory/sling.rds")
+counts <- readRDS("../data/finalTrajectory/counts_noResp_noMV.rds")
+counts <- round(counts)
+sce <- readRDS("../data/finalTrajectory/sce_tradeSeq20200904.rds")
+load("../data/ALL_TF.Rda")
+clDatta <- readRDS("../data/finalTrajectory/dattaCl_noResp_noMV.rds")
+```
+
+# Helper functions
+
+```{r}
+source("https://raw.githubusercontent.com/statOmics/tradeSeq/master/R/utils.R")
+epsilon <- 1e-6
+
+calculateDerivatives <- function(sce, gene, lineage, epsilon=1e-6, nPoints=100){
+  ## gather all required objects
+  id <- which(rownames(sce) == gene)
+  beta <- matrix(unlist(rowData(sce)$tradeSeq$beta[id,]),ncol=1)
+  if(any(is.na(beta))){
+    dfsd <- data.frame(der=rep(NA, nPoints), sdDer=rep(NA, nPoints))
+    colnames(dfsd) <- c(paste0("der",lineage), paste0("sdDer",lineage))
+    return(dfsd)
+  }
+  Sigma <- rowData(sce)$tradeSeq$Sigma[[id]]
+  X <- colData(sce)$tradeSeq$X
+  slingshotColData <- colData(sce)$slingshot
+  pseudotime <- slingshotColData[,grep(x = colnames(slingshotColData),
+                                                            pattern = "pseudotime")]
+  dm <- colData(sce)$tradeSeq$dm
+
+  ## calculate lp matrix with finite differencing    
+  newd1 <- .getPredictRangeDf(dm, lineage, nPoints=nPoints)
+  newd2 <- newd1
+  newd1[,paste0("t",lineage)] <- newd1[,paste0("t",lineage)] - epsilon
+  X0 <- predictGAM(X, newd1, pseudotime)
+  newd2[,paste0("t",lineage)] <- newd2[,paste0("t",lineage)] + epsilon
+  X1 <- predictGAM(X, newd2, pseudotime)
+  Xp <- (X1-X0)/(2*epsilon) ## maps coefficients to (fd approx.) derivatives
+  
+  ## calculate first derivative
+  df <- Xp%*%beta              ## ith smooth derivative
+  df.sd <- rowSums(Xp%*%Sigma*Xp)^.5 ## cheap diag(Xi%*%b$Vp%*%t(Xi))^.5
+  dfsd <- data.frame(der=df, sdDer=df.sd)
+  colnames(dfsd) <- c(paste0("der",lineage), paste0("sdDer",lineage))
+  return(dfsd)
+}
+
+
+calculateDerivativesWithSigma <- function(sce, gene, lineage, epsilon=1e-6, nPoints=100){
+  ## gather all required objects
+  id <- which(rownames(sce) == gene)
+  beta <- matrix(unlist(rowData(sce)$tradeSeq$beta[id,]),ncol=1)
+  Sigma <- rowData(sce)$tradeSeq$Sigma[[id]]
+  X <- colData(sce)$tradeSeq$X
+  slingshotColData <- colData(sce)$slingshot
+  pseudotime <- slingshotColData[,grep(x = colnames(slingshotColData),
+                                                            pattern = "pseudotime")]
+  dm <- colData(sce)$tradeSeq$dm
+
+  ## calculate lp matrix with finite differencing    
+  newd1 <- .getPredictRangeDf(dm, lineage, nPoints=nPoints)
+  newd2 <- newd1
+  newd1[,paste0("t",lineage)] <- newd1[,paste0("t",lineage)] - epsilon
+  X0 <- predictGAM(X, newd1, pseudotime)
+  newd2[,paste0("t",lineage)] <- newd2[,paste0("t",lineage)] + epsilon
+  X1 <- predictGAM(X, newd2, pseudotime)
+  Xp <- (X1-X0)/(2*epsilon) ## maps coefficients to (fd approx.) derivatives
+  
+  ## calculate first derivative
+  df <- Xp%*%beta              ## ith smooth derivative
+  #df.sd <- rowSums(Xp%*%Sigma*Xp)^.5 ## cheap diag(Xi%*%b$Vp%*%t(Xi))^.5
+  sigmaDer <- Xp%*%Sigma%*%t(Xp)
+  dfsd <- list(der=df, sdDer=sigmaDer)
+  names(dfsd) <- c(paste0("der",lineage), paste0("sdDer",lineage))
+  return(dfsd)
+}
+
+
+
+plotSmoothersWithDerivatives <- function(sce, gene, counts, gridDf, derDf){
+  
+  dfAll <- as.data.frame(cbind(gridDf,derDf))
+  
+  cowplot::plot_grid(
+    #smoothers
+    plotSmoothers(sce, gene=gene, counts=counts, lwd=1),
+    ggplot(dfAll, aes(x=grid1, y=derDf$der1)) +
+      geom_line() +
+      geom_line(aes(x=grid1, y=derDf$der1 - 2*derDf$sdDer1), lty=2) +
+      geom_line(aes(x=grid1, y=derDf$der1 + 2*derDf$sdDer1), lty=2) +
+      geom_hline(yintercept=0, col="red") +
+      ggtitle("Neuronal lineage") +
+      ylab("First derivative"),
+    ggplot(dfAll, aes(x=grid2, y=derDf$der2)) +
+      geom_line() +
+      geom_line(aes(x=grid2, y=derDf$der2 - 2*derDf$sdDer2), lty=2) +
+      geom_line(aes(x=grid2, y=derDf$der2 + 2*derDf$sdDer2), lty=2) +
+      geom_hline(yintercept=0, col="red") +
+      ggtitle("rHBC lineage") +
+      ylab("First derivative"),
+    ggplot(dfAll, aes(x=grid3, y=derDf$der3)) +
+      geom_line() +
+      geom_line(aes(x=grid3, y=derDf$der3 - 2*derDf$sdDer3), lty=2) +
+      geom_line(aes(x=grid3, y=derDf$der3 + 2*derDf$sdDer3), lty=2) +
+      geom_hline(yintercept=0, col="red") +
+      ggtitle("SUS lineage") +
+      ylab("First derivative"),
+    # test statistics
+    ggplot(dfAll, aes(x=grid1, y=derDf$der1/derDf$sdDer1)) +
+      geom_line() +
+      geom_line(aes(x=grid2, y=derDf$der2/derDf$sdDer2)) +
+      geom_line(aes(x=grid3, y=derDf$der3/derDf$sdDer3)) +
+      geom_hline(yintercept=0, col="red") +
+      ggtitle("Test statistics"),
+    nrow=3, ncol=2
+  )
+}
+
+
+
+makeGSEATable <- function(overlapFile, nBP=20){
+  overlap <- readLines(overlapFile)
+  overlapSets <- overlap[10:30]
+  overlapSetsSplit <- sapply(overlapSets, function(x) strsplit(x, split = "\t"))
+  gsNames <- unname(unlist(lapply(overlapSetsSplit, "[[", 1)))
+  genesInSet <- unname(unlist(lapply(overlapSetsSplit, "[[", 2)))
+  genesInOverlap <- unname(unlist(lapply(overlapSetsSplit, "[[", 4)))
+  pvalUniqGam <- unname(unlist(lapply(overlapSetsSplit, "[[", 6)))
+  qval <- unname(unlist(lapply(overlapSetsSplit, "[[", 7)))
+  gsNames <- tolower(gsNames)
+  gsNames <- gsub(x = gsNames, pattern = "_", replacement = " ")
+  gsNames[-1] <- unname(sapply(gsNames[-1], function(x) substr(x, 4, nchar(x))))
+  tab <- data.frame(
+    geneSet = gsNames[-1],
+    overlap = as.numeric(genesInOverlap[-1]),
+    genesInSet = as.numeric(genesInSet[-1]),
+    qvalue = qval[-1]
+  )
+  #library(xtable)
+  #print(xtable(tab), type="html")
+  return(tab)
+}
+```
+
+# Estimate first derivatives
+
+```{r}
+tf <- intersect(ALL_TF, rownames(sce))
+
+# derAllTF <- list()
+# for(ii in 1:length(tf)){
+#   gene <- tf[ii]
+#   derGene <- do.call(cbind, sapply(1:3, function(ll){
+#     calculateDerivatives(sce=sce,
+#                         gene=gene,
+#                         lineage=ll,
+#                         nPoints=100)
+#   }, simplify=FALSE))
+#   derAllTF[[ii]] <- derGene
+# }
+# saveRDS(derAllTF, file="../data/derAllTF_20200916.rds")
+derAllTF <- readRDS("../data/derAllTF_20200916.rds")
+names(derAllTF) <- tf
+```
+
+# Order TFs based on expression peak, require a threshold on derivative to be called significant
+
+A gene's expression peaks when its first derivative equals zero.
+Hence, we could use this to order the TFs which have a significant expression peak.
+
+Since the goal of this analysis is ordering of genes, we will ignore multiple testing correction across genes. However, since we want to restrict ourselves to genes that actually do have a significant expression peak, we will do within-gene FWER correction.
+
+```{r}
+nPoints <- 100
+dm <- colData(sce)$tradeSeq$dm
+grid1 <- tradeSeq:::.getPredictRangeDf(dm = dm, 
+                                       lineageId = 1,
+                                       conditionId = NULL,
+                                       nPoints = nPoints)
+
+
+cp <- c('#1B9E77', '#E6AB02',  '#E7298A', '#66A61E', '#BEAED4' ,'#D95F02',   '#A6761D', '#666666',  '#1F78B4') #Rebecca colors
+cl <- factor(colnames(sds@clusterLabels)[apply(sds@clusterLabels,1,which.max)])
+
+colDf <- data.frame(cl=levels(cl),
+                    rcCol=cp, #RKC colors
+                    trCol=brewer.pal(9,'Set1')) #KS colors
+
+
+### write a function that creates an Anno object with length as nPoints.
+anno <- function(lineage, nPoints, sds, dm, cl, lengthThresh=5){
+   cp <- c('#1B9E77', '#E6AB02',  '#E7298A', '#66A61E', '#BEAED4' ,'#D95F02',   '#A6761D', '#666666',  '#1F78B4') #Rebecca colors
+  #cl <- factor(colnames(sds@clusterLabels)[apply(sds@clusterLabels,1,which.max)])
+  pt <- slingPseudotime(sds)[,lineage]
+  #cw <- slingCurveWeights(sds)
+  #linID <- apply(cw,1,which.max)
+  linID <- apply(dm[,paste0("l",1:3)], 1, which.max)
+  pt1 <- pt[linID == lineage]
+  cl1 <- droplevels(cl[linID == lineage])
+  ## divide pseudotime in nPoint
+  #qq <- quantile(pt1, probs = seq(0,1,length=nPoints+1))
+  qq <- seq(0, max(pt1), length.out=nPoints+1)
+  allCols <- c()
+  for(kk in 1:nPoints){
+    id <- which(pt1 > qq[kk] & pt1 < qq[kk+1])
+    if(length(id) < lengthThresh){
+      allCols[kk] <- "white"
+      next
+    }
+    maxCl <- names(sort(table(droplevels(cl1[id])), decreasing=TRUE))[1]
+    col <- which(levels(cl) == maxCl)
+    allCols[kk] <- cp[col]
+  }
+  return(allCols)
+}
+
+orderPeakGenesThresh <- function(grid1, derivatives, tf, lineage, sce, cl,
+                           main=NULL, ablines=NULL, plotHist=TRUE,
+                           plotLines = TRUE, plotHeatmap = TRUE, 
+                           threshold = 0.025, clusteredHeatmap=TRUE,
+                           show_rownames = TRUE, show_colnames=FALSE){
+  
+  # grid1 is the grid on which the derivatives have been calculated
+  # derivatives is a list of first derivatives and their SD
+  # tf is a vector of all TF names
+  # lineage is the lineage of interest
+  # sce are the fitted tradeSeq models
+  # cl are the cluster labels
+
+  nPoints <- nrow(grid1)
+  # 1. first select genes with a significant first derivative anywhere in the lineage.
+  # I do not consider negative first derivatives here since we're focussed on peaks.
+  ## a. calculate p-values without threshold => for selecting uniquely peaking genes
+  pvalNeurAllNoThresh <- lapply(derivatives, function(x){
+    der <- x[,(lineage*2 - 1)]
+    derSD <- x[,(lineage*2)]
+    testStat <- der / derSD
+    # testStat <- (abs(der)-threshold) / derSD
+    pvals <- pmin(1,(1-pnorm(testStat)))
+    return(pvals)
+  })
+  pvalNoThresh <- do.call(rbind,pvalNeurAllNoThresh)
+  ## b. calculate p-values with threshold.
+  resNeurAll <- lapply(derivatives, function(x){
+    der <- x[,(lineage*2 - 1)]
+    derSD <- x[,(lineage*2)]
+    # testStat <- der / derSD
+    testStat <- (abs(der)-threshold) / derSD
+    pvals <- pmin(1,(1-pnorm(testStat)))
+    pvals[der < threshold] <- 1
+    return(list(testStat=testStat,
+                pvals=pvals))
+  })
+  pvalNeurAll <- lapply(resNeurAll, function(x) x$pvals)
+  testNeurAll <- lapply(resNeurAll, function(x) x$testStat)
+  pvalThresh <- do.call(rbind,pvalNeurAll)
+  testThresh <- do.call(rbind,testNeurAll)
+  maxTestsThresh <- matrixStats::rowMaxs(testThresh)
+  # Check significance.
+  neurPeakGenes <- tf[unlist(lapply(pvalNeurAll, function(x) any(p.adjust(x, "holm") <= 0.05)))]
+  pvalNeurAll <- pvalNeurAll[neurPeakGenes]
+  length(neurPeakGenes) / length(tf)
+  
+  
+  # 2. then define the most pronounced peak by looking at the maximum test statistic for each gene
+  tLin <- grid1[,paste0("t",lineage)]
+  tNeur <- tLin[unlist(lapply(pvalNeurAll, which.min))]
+  # hist(tNeur) 
+  
+  # 3. then define where that peak peaks by checking where the first derivative crosses zero the first time AFTER the pseudotime value defined above.
+  firstPeak <- c()
+  for(ii in 1:length(neurPeakGenes)){
+    gene <- neurPeakGenes[ii]
+    tMax <- tNeur[ii]
+    d1 <- derivatives[[gene]][,paste0("der",lineage)]
+    # check where the derivative crosses zero first time AFTER tNeur
+    d1 <- d1[grid1[,paste0("t",lineage)] > tMax]
+    t1 <- grid1[,paste0("t",lineage)][grid1[,paste0("t",lineage)] > tMax]
+    tCrossZero <- t1[which(diff(sign(d1))==-2)]
+    if(length(tCrossZero)==0){
+      firstPeak[ii] <- NA
+      next
+    }
+    firstPeak[ii] <- min(tCrossZero)
+  }
+  names(firstPeak) <- neurPeakGenes
+  firstPeak[is.na(firstPeak)] <- max(grid1)
+  oo <- order(firstPeak, decreasing=FALSE)
+  
+  if(plotHist){
+    hist(firstPeak, breaks=50, main=paste0("Peak times: ", main),
+                    xlim = c(0,max(grid1)))
+  }
+  
+  
+
+  ## line plot
+  X <- colData(sce)$tradeSeq$X # linear predictor
+  slingshotColData <- colData(sce)$slingshot
+  pseudotime <- slingshotColData[,grep(x = colnames(slingshotColData),
+                                        pattern = "pseudotime")]
+  betaMat <- rowData(sce)$tradeSeq$beta[[1]]
+  rownames(betaMat) <- rownames(sce)
+  Xdf <- predictGAM(lpmatrix = X,
+                    df = grid1,
+                    pseudotime = pseudotime)
+  
+  yhatMat <- matrix(NA, nrow=length(firstPeak), ncol=nPoints)
+  rownames(yhatMat) <- names(firstPeak)
+  for(ii in 1:length(firstPeak)){
+    beta <- betaMat[rownames(yhatMat)[ii],]
+    yhat <-  c(exp(t(Xdf %*% t(beta))))
+    yhatMat[ii,] <- yhat
+  }
+  yhatMatScaled <- t(scale(t(yhatMat)))
+  
+    if(plotLines){
+    pal <- wesanderson::wes_palette("Zissou1", n=length(firstPeak), type="continuous")
+  plot(x=grid1[,paste0("t",lineage)], y=seq(min(yhatMatScaled), max(yhatMatScaled), length.out=nPoints), type='n', bty='l',
+       ylab="Standardized Expression", xlab="Pseudotime", main=main)
+  for(ii in 1:length(firstPeak)){
+    lines(x=grid1[,paste0("t",lineage)], y=yhatMatScaled[names(firstPeak)[oo][ii],], col=pal[ii])
+  }
+  if(!is.null(ablines)) abline(v=ablines, col="black", lwd=3)
+  }
+  
+  
+  ## heatmap
+   if(plotHeatmap){
+    annCols <- anno(lineage, nPoints, sds, dm, cl)
+    annCols2 <- as.character(colDf$trCol[match(annCols, colDf$rcCol)])
+    annCols2[is.na(annCols2)] <- "white"
+    dfAnn <- data.frame(cellType=annCols, cellType2=annCols2)
+    rownames(dfAnn) <- colnames(yhatMatScaled)
+    annColors <- list()
+    annColors[[1]] <- as.character(levels(factor(annCols)))
+    names(annColors[[1]]) <- levels(factor(annCols))
+    annColors[[2]] <- as.character(levels(factor(annCols2)))
+    names(annColors[[2]]) <- levels(factor(annCols2))
+    names(annColors) <- c("cellType", "cellType2")
+    
+    pal <- wesanderson::wes_palette("Zissou1", n=12, type="continuous")
+    yhatMatScaledOrdered <- yhatMatScaled[names(firstPeak)[oo],]
+    colnames(yhatMatScaledOrdered) <- rownames(dfAnn) <- as.character(1:ncol(yhatMatScaledOrdered))
+    pheatmap(yhatMatScaledOrdered, cluster_cols=FALSE, cluster_rows=FALSE,
+           border_color=NA, col=pal, main=main, annotation_col=dfAnn, 
+             annotation_colors = annColors, annotation_names_col = FALSE,
+             annotation_legend = FALSE, show_rownames = show_rownames,
+           show_colnames = show_colnames)#, colors=cols, breaks=breaks)
+    if(clusteredHeatmap){
+      pheatmap(yhatMatScaledOrdered, cluster_cols=FALSE, cluster_rows=TRUE,
+           border_color=NA, col=pal, main=paste0(main,": Clustered genes"), annotation_col=dfAnn, 
+             annotation_colors = annColors, annotation_names_col = FALSE,
+             annotation_legend = FALSE, show_rownames = show_rownames,
+           show_colnames = show_colnames)
+    }
+  }
+
+  return(list(firstPeak=firstPeak, standExpr=yhatMatScaled,
+              yhat=yhatMat,
+              pvalNoThresh=pvalNoThresh, pvalThresh=pvalThresh,
+              maxTestStats = maxTestsThresh))
+}
+
+heatmapScaledAcrossAllLineages <- function(models, genes, sds, nPoints, outFile, g=20,
+                                           cl, width=40, height=20){
+  ### scaled across all lineages
+  yhat <- tradeSeq::predictSmooth(models=models, gene=genes, nPoints=nPoints, tidy=FALSE)
+  yhat_stand <- t(scale(t(log(yhat))))
+  
+  titles <- c("Neuronal", "Sustentacular", "rHBC")
+  yhatList <- list(neur=yhat_stand[,1:nPoints],
+                      rhbc=yhat_stand[,(nPoints+1):(2*nPoints)],
+                      sus=yhat_stand[,(2*nPoints+1):(3*nPoints)])
+  dm <- colData(models)$tradeSeq$dm
+  pal <- wesanderson::wes_palette("Zissou1", n=g+1, type="continuous")
+  breaks <- Hmisc::cut2(yhat_stand, g=g+1, onlycuts=TRUE)
+  plotList <- list()
+  for(ii in 1:3){
+    annCols <- anno(ii, nPoints, sds, dm, cl)
+    annCols2 <- as.character(colDf$trCol[match(annCols, colDf$rcCol)])
+    annCols2[is.na(annCols2)] <- "white"
+    dfAnn <- data.frame(cellType=annCols, cellType2=annCols2)
+    rownames(dfAnn) <- colnames(yhatList[[ii]])
+    annColors <- list()
+    annColors[[1]] <- as.character(levels(factor(annCols)))
+    names(annColors[[1]]) <- levels(factor(annCols))
+    annColors[[2]] <- as.character(levels(factor(annCols2)))
+    names(annColors[[2]]) <- levels(factor(annCols2))
+    names(annColors) <- c("cellType", "cellType2")
+
+    ph <- pheatmap(yhatList[[ii]], cluster_cols=FALSE, cluster_rows=FALSE,
+             border_color=NA, main=titles[ii], breaks=breaks, color=pal,
+             show_colnames = FALSE, annotation_col=dfAnn, 
+             annotation_colors = annColors, annotation_names_col = FALSE,
+             annotation_legend = FALSE)
+    plotList[[ii]] <- ph[[4]]
+  }
+  pp <- cowplot::plot_grid(plotlist=plotList, nrow=1)
+  ggsave(filename = outFile, plot = pp, 
+         units = "in", width=width, height=height)
+}
+```
+
+## Example plot of derivatives and associated test statistics
+
+```{r}
+grid1 <- tradeSeq:::.getPredictRangeDf(dm = dm, 
+                                       lineageId = 1,
+                                       conditionId = NULL,
+                                       nPoints = nPoints)
+grid2 <- tradeSeq:::.getPredictRangeDf(dm = dm, 
+                                       lineageId = 2,
+                                       conditionId = NULL,
+                                       nPoints = nPoints)
+grid3 <- tradeSeq:::.getPredictRangeDf(dm = dm, 
+                                       lineageId = 3,
+                                       conditionId = NULL,
+                                       nPoints = nPoints)
+gridDf <- data.frame(grid1=grid1$t1,
+                     grid2=grid2$t2,
+                     grid3=grid3$t3)
+plotSmoothersWithDerivatives(sce, "Junb", counts, gridDf = gridDf, derDf=derAllTF[["Junb"]])
+```
+
+## Lineage-specific ordering
+
+```{r}
+# neuronal lineage
+pdf("../plots/peakAnalysis_Thresholded/neuronal/orderedPeaksPlots.pdf")
+neurRes <- orderPeakGenesThresh(grid=grid1, derivatives=derAllTF, tf=tf, lineage=1, sce=sce,
+                            cl=clDatta, main="Neuronal", threshold = 0.1, show_rownames = FALSE)
+neurPeaks <- neurRes$firstPeak
+dev.off()
+pdf("../plots/peakAnalysis_Thresholded/neuronal/orderedPeaksPlots_tallHeatmaps.pdf", width=10, height=65)
+neurRes <- orderPeakGenesThresh(grid=grid1, derivatives=derAllTF, tf=tf, lineage=1, sce=sce,
+                            cl=clDatta, main="Neuronal", plotHist=FALSE, plotLines=FALSE,
+                            threshold = 0.1)
+dev.off()
+
+
+# Sus lineage
+pdf("../plots/peakAnalysis_Thresholded/sus/orderedPeaksPlots.pdf")
+susRes <- orderPeakGenesThresh(grid1=grid2, derivatives=derAllTF, tf=tf, lineage=2, sce=sce,
+               cl=clDatta, main="Sustentacular", threshold = 0.1)
+susPeaks <- susRes$firstPeak
+dev.off()
+pdf("../plots/peakAnalysis_Thresholded/sus/orderedPeaksPlots_tallHeatmaps.pdf", width=10, height=40)
+susRes <- orderPeakGenesThresh(grid1=grid2, derivatives=derAllTF, tf=tf, lineage=2, sce=sce,
+               cl=clDatta, main="Sustentacular", plotHist=FALSE, plotLines=FALSE, threshold = 0.1)
+dev.off()
+
+# rHBC lineage
+pdf("../plots/peakAnalysis_Thresholded/sus/orderedPeaksPlots.pdf")
+rhbcRes <- orderPeakGenesThresh(grid1=grid3, derivatives=derAllTF, tf=tf, lineage=3, sce=sce,
+               cl=clDatta, main="rHBC", threshold = 0.1)
+rhbcPeaks <- rhbcRes$firstPeak
+dev.off()
+pdf("../plots/peakAnalysis_Thresholded/rhbc/orderedPeaksPlots_tallHeatmaps.pdf", width=10, height=60)
+rhbcRes <- orderPeakGenesThresh(grid1=grid3, derivatives=derAllTF, tf=tf, lineage=3, sce=sce,
+               cl=clDatta, main="rHBC", plotHist=FALSE, plotLines=FALSE, 
+               threshold = 0.1)
+dev.off()
+
+peakList <- list(neur=neurPeaks, 
+                 sus=susPeaks,  
+                 rhbc=rhbcPeaks)
+peakResList <- list(neur=neurRes, 
+                    sus=susRes, 
+                    rhbc=rhbcRes)
+
+saveRDS(peakList, file="../data/peakList_thresholded.rds")
+saveRDS(peakResList, file="../data/peakRes_thresholded.rds")
+
+``` 
+
+### Custom plots for paper
+
+```{r}
+# Neuronal
+png("../plots/peakAnalysis_Thresholded/neuronal/lines_neuronal.png", width=9, height=10, units="in", res=300)
+neurRes <- orderPeakGenesThresh(grid=grid1, derivatives=derAllTF, tf=tf, lineage=1, sce=sce,
+                            cl=clDatta, main="Neuronal", plotHist=FALSE, plotLines=TRUE,
+                            plotHeatmap = FALSE, threshold = 0.1, clusteredHeatmap = FALSE,
+                            show_rownames=FALSE)
+dev.off()
+png("../plots/peakAnalysis_Thresholded/neuronal/cascadeHeatmap_neuronal.png", width=9, height=10, units="in", res=300)
+neurRes <- orderPeakGenesThresh(grid=grid1, derivatives=derAllTF, tf=tf, lineage=1, sce=sce,
+                            cl=clDatta, main="Neuronal", plotHist=FALSE, plotLines=FALSE,
+                            plotHeatmap = TRUE, threshold = 0.1, clusteredHeatmap = FALSE,
+                            show_rownames=FALSE)
+dev.off()
+
+# Sus
+png("../plots/peakAnalysis_Thresholded/sus/lines_sus.png", width=9, height=10, units="in", res=300)
+susRes <- orderPeakGenesThresh(grid=grid2, derivatives=derAllTF, tf=tf, lineage=2, sce=sce,
+                            cl=clDatta, main="Sustentacular", plotHist=FALSE, plotLines=TRUE,
+                            plotHeatmap = FALSE, threshold = 0.1, clusteredHeatmap = FALSE,
+                            show_rownames=FALSE)
+dev.off()
+png("../plots/peakAnalysis_Thresholded/sus/cascadeHeatmap_sus.png", width=9, height=10, units="in", res=300)
+susRes <- orderPeakGenesThresh(grid=grid2, derivatives=derAllTF, tf=tf, lineage=2, sce=sce,
+                            cl=clDatta, main="Sustentacular", plotHist=FALSE, plotLines=FALSE,
+                            plotHeatmap = TRUE, threshold = 0.1, clusteredHeatmap = FALSE,
+                            show_rownames=FALSE)
+dev.off()
+
+# HBC
+png("../plots/peakAnalysis_Thresholded/rhbc/lines_rhbc.png", width=9, height=10, units="in", res=300)
+rhbcRes <- orderPeakGenesThresh(grid=grid3, derivatives=derAllTF, tf=tf, lineage=3, sce=sce,
+                            cl=clDatta, main="rHBC", plotHist=FALSE, plotLines=TRUE,
+                            plotHeatmap = FALSE, threshold = 0.1, clusteredHeatmap = FALSE,
+                            show_rownames=FALSE)
+dev.off()
+png("../plots/peakAnalysis_Thresholded/rhbc/cascadeHeatmap_rhbc.png", width=9, height=10, units="in", res=300)
+rhbcRes <- orderPeakGenesThresh(grid=grid3, derivatives=derAllTF, tf=tf, lineage=3, sce=sce,
+                            cl=clDatta, main="rHBC", plotHist=FALSE, plotLines=FALSE,
+                            plotHeatmap = TRUE, threshold = 0.1, clusteredHeatmap = FALSE,
+                            show_rownames=FALSE)
+dev.off()
+
+```
+
+
+## Identify shared and unique lineage TFs
+
+We can use the results above to identify shared and unique TFs for each lineage, using a set diff.
+For shared TFs, we first aggregate the p-values testing whether a derivative is different from zero within the gene, using Sidak aggregation. Next, we perform FDR correction on the aggregated p-values for each lineage separately. The TFs that are significant post FDR correction in all three lineages are considered to be shared.
+
+For TFs uniquely peaking in a lineage, we retain TFs that are significantly peaking in that lineage, and that are higher expressed in that lineage versus the other two lineages, by a fold change threshold of $1.5$ on the maximum fitted expression value.
+
+```{r}
+yhatAllTF <- predictSmooth(sce, gene=tf, nPoints=100, tidy=FALSE)
+
+library(aggregation)
+## shared TFs
+# aggregate p-values using Sidak method for each lineage
+aggPvals <- cbind(apply(neurRes$pvalThresh, 1, sidak),
+                  apply(rhbcRes$pvalThresh, 1, sidak),
+                  apply(susRes$pvalThresh, 1, sidak))
+# FDR correction for each lineage across all TFs
+aggPvalsFDR <- apply(aggPvals,2,p.adjust,method="fdr")
+barplot(table(rowSums(aggPvalsFDR <= 0.05)), xlab="Number of lineages in which a TF significantly peaks.")
+sharedTF <- rownames(aggPvalsFDR)[which(rowSums(aggPvalsFDR <= 0.05) == 3)]
+length(sharedTF)
+
+## unique TFs
+getUniqueTFs <- function(peakResList, yhatAllTF, lineage, name, fcThreshold=1.5){
+  # get TFs identified for that lineage
+  tfLineage <- names(peakResList[[name]]$firstPeak)
+  # within that set, check if expression is much higher
+  linID <- ((lineage-1)*100+1):(lineage*100)
+  delta <- rowMax(yhatAllTF[tfLineage,linID]) / rowMax(yhatAllTF[tfLineage,-linID])
+  tfLineageDelta <- tfLineage[delta > fcThreshold]
+  return(tfLineageDelta)
+}
+neurUniqTFs <- getUniqueTFs(peakResList, yhatAllTF, lineage=1, name="neur")
+susUniqTFs <- getUniqueTFs(peakResList, yhatAllTF, lineage=2, name="sus")
+rhbcUniqTFs <- getUniqueTFs(peakResList, yhatAllTF, lineage=3, name="rhbc")
+length(neurUniqTFs) ; length(susUniqTFs) ; length(rhbcUniqTFs) 
+
+
+write.table(sharedTF, file="../data/sharedTF.txt", row.names=FALSE, col.names=FALSE, quote=FALSE)
+write.table(neurUniqTFs, file="../data/neurUniqTf_threshold.txt", row.names=FALSE, col.names=FALSE, quote=FALSE)
+write.table(susUniqTFs, file="../data/susUniqTf_threshold.txt", row.names=FALSE, col.names=FALSE, quote=FALSE)
+write.table(rhbcUniqTFs, file="../data/rhbcUniqTf_threshold.txt", row.names=FALSE, col.names=FALSE, quote=FALSE)
+```
+
+## Heatmaps of shared and unique transcription factors
+
+### TFs shared across all lineages
+
+```{r}
+### scaled across all lineages
+heatmapScaledAcrossAllLineages(models=sce,
+                              genes=sharedTF,
+                              nPoints=100,
+                              sds=sds,
+                              cl=clDatta,
+                              height=40,
+                              outFile="../plots/peakAnalysis_Thresholded/shared/sharedTF_bigHeatmap_scaledAcrossAllLineages.pdf")
+```
+
+### Unique TFs for each lineage
+
+Note that we do not identify any uniquely peaking TFs for the SUS lineage.
+
+```{r, echo=FALSE, eval=TRUE}
+# neuronal: scaled across all lineages
+heatmapScaledAcrossAllLineages(models=sce,
+                              genes=neurUniqTFs,
+                              nPoints=100,
+                              sds=sds,
+                              cl=clDatta,
+                              height=40,
+                              outFile="../plots/peakAnalysis_Thresholded/neuronal/neurUniqTF_heatmapScaledAcrossAllLineages.pdf")
+
+# sus
+heatmapScaledAcrossAllLineages(models=sce,
+                              genes=susUniqTFs,
+                              nPoints=100,
+                              sds=sds,
+                              cl=clDatta,
+                              outFile="../plots/peakAnalysis_Thresholded/sus/susUniqTF_heatmapScaledAcrossAllLineages_threshold.pdf")
+
+# rhbc
+heatmapScaledAcrossAllLineages(models=sce,
+                              genes=rhbcUniqTFs,
+                              nPoints=100,
+                              sds=sds,
+                              cl=clDatta,
+                              outFile="../plots/peakAnalysis_Thresholded/rhbc/rhbcUniqTF_heatmapScaledAcrossAllLineages.pdf")
+```
+
+
+
+### Smoother plots of unique genes
+
+```{r}
+
+pdf("../plots/peakAnalysis_Thresholded/neuronal/smootherPlots_neurTFs.pdf")
+for(ii in 1:length(neurUniqTFs)){
+  print(plotSmoothers(sce, counts, sort(neurUniqTFs)[ii], pointCol = clDatta) +
+          ggtitle(sort(neurUniqTFs)[ii]))
+}
+dev.off()
+
+pdf("../plots/peakAnalysis_Thresholded/sus/smootherPlots_susTFs.pdf")
+for(ii in 1:length(susUniqTFs)){
+   print(plotSmoothers(sce, counts, sort(susUniqTFs)[ii], pointCol = clDatta) +
+          ggtitle(sort(susUniqTFs)[ii]))
+}
+dev.off()
+
+pdf("../plots/peakAnalysis_Thresholded/rhbc/smootherPlots_rhbcTFs.pdf")
+for(ii in 1:length(rhbcUniqTFs)){
+  print(plotSmoothers(sce, counts, sort(rhbcUniqTFs)[ii], pointCol = clDatta) +
+          ggtitle(sort(rhbcUniqTFs)[ii]))
+}
+dev.off()
+```
+
+# Session Info
+
+```{r}
+sessionInfo()
+```
+
+
+

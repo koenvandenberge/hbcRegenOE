@@ -1,0 +1,67 @@
+---
+title: "Evaluate required number of knots in HBC regen data"
+author: "Koen Van den Berge"
+date: "4/23/2020"
+output: html_notebook
+---
+
+```{r}
+setwd("/accounts/campus/koenvdberge/Documents/brainStat/hbcRegen/")
+library(tradeSeq)
+library(SingleCellExperiment)
+```
+
+```{r}
+sds <- readRDS("finalTrajectory/sling.rds")
+counts <- readRDS("finalTrajectory/counts_noResp_noMV.rds")
+counts <- round(counts)
+BPPARAM <- BiocParallel::bpparam()
+BPPARAM # lists current options
+BPPARAM$workers <- 2 # use 4 cores
+offset <- rep(1, ncol(counts)) #data have already been normalized
+
+set.seed(5)
+sce <- fitGAM(counts,
+             sds = sds,
+             nknots = 4,
+             parallel = TRUE,
+             BPPARAM = BPPARAM,
+             offset = offset)
+date <- Sys.Date()
+date <- gsub(x=date, pattern="-", replacement="")
+saveRDS(sce, file=paste0("sce_tradeSeq_4knots",date,".rds"))
+```
+
+```{r}
+set.seed(5)
+sce <- fitGAM(counts,
+              sds = sds,
+              nknots = 7,
+              parallel = TRUE,
+              BPPARAM = BPPARAM,
+              offset = offset)
+date <- Sys.Date()
+date <- gsub(x=date, pattern="-", replacement="")
+saveRDS(sce, file=paste0("sce_tradeSeq_7knots",date,".rds"))
+```
+
+
+```{r}
+set.seed(5)
+sce <- fitGAM(counts,
+              sds = sds,
+              nknots = 10,
+              parallel = TRUE,
+              BPPARAM = BPPARAM,
+              offset = offset)
+date <- Sys.Date()
+date <- gsub(x=date, pattern="-", replacement="")
+saveRDS(sce, file=paste0("sce_tradeSeq_10knots",date,".rds"))
+```
+
+# Session info
+
+```{r}
+sessionInfo()
+```
+

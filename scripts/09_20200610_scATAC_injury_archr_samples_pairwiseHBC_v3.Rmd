@@ -1,0 +1,451 @@
+---
+title: "scATAC-seq analysis using ArchR"
+author: "Koen Van den Berge"
+date: "June 17, 2020"
+output: 
+  html_document:
+    toc: true
+    toc_float: true
+---
+
+```{r}
+#knitr::opts_chunk$set(message = FALSE, echo = FALSE)
+library(Matrix)
+library(genomation)
+library(matrixStats)
+library(knitr)
+library(ggplot2)
+library(ArchR)
+```
+
+
+Data was preprocessed by Tiffany using the Cell Ranger Pipeline: https://support.10xgenomics.com/single-cell-atac/software/pipelines/latest/algorithms/overview
+
+Based on marker genes, plots below,
+
+ - Cluster 1-3 express HBC markers
+ - Cluster 4 seems to be neuronal (Omp, Cnga2 only expressed in cl4). Seeems split in 2, possibly inhibitory and excitatory?
+ - Cluster 5 expresses SUS markers (Cyp2g1).
+ - Cluster 6 doesn't really seem to be consistent and doesnt really express anything so may be low quality cells.
+ 
+
+```{r, echo=FALSE, messages=FALSE, eval=TRUE}
+cl10x <- read.csv("../data/scATAC/clusters_kmeans6.csv")
+lib <- read.csv("../data/scATAC/LibraryID.csv", stringsAsFactors = FALSE)
+lib$LibraryID <- as.factor(lib$LibraryID)
+lib$sample <- factor(substr(as.character(lib$LibraryID), 
+                     nchar(as.character(lib$LibraryID))-1,
+                     nchar(as.character(lib$LibraryID))))
+libColors <- c("steelblue", "dodgerblue", "blue", 
+               "orange", "darkgoldenrod2", "gold")
+
+set.seed(1)
+sample1Files <- c("../data/scATAC/UI_r1_fragments.tsv.gz", "../data/scATAC/24HPI_r1_fragments.tsv.gz")
+sample2Files <- c("../data/scATAC/UI_r2_fragments.tsv.gz", "../data/scATAC/24HPI_r2_fragments.tsv.gz")
+sample3Files <- c("../data/scATAC/UI_r3_fragments.tsv.gz", "../data/scATAC/24HPI_r3_fragments.tsv.gz")
+inputFiles <- c(sample1Files, sample2Files, sample3Files)
+names(inputFiles) <- c("s1UI", "s1Inj", "s2UI", "s2Inj", "s3UI", "s3Inj")
+addArchRGenome("mm10")
+
+
+ArrowFiles <- createArrowFiles(
+  inputFiles = inputFiles,
+  sampleNames = names(inputFiles),
+  outputNames = paste0("../data/scATAC/", names(inputFiles),".arrow"),
+  filterTSS = 4, 
+  filterFrags = 1000, 
+  addTileMat = TRUE,
+  addGeneScoreMat = TRUE,
+  verbose = FALSE,
+  QCDir = "../data/scATAC/QC/",
+  logFile = "../data/scATAC/arrowLogFile.txt"
+)
+
+
+proj <- ArchRProject(
+  ArrowFiles = ArrowFiles, 
+  outputDirectory = "../data/scATAC/archR_samples_pairwise",
+  copyArrows = TRUE
+)
+
+
+doubScores <- addDoubletScores(
+  input = proj,
+  k = 10, 
+  knnMethod = "UMAP",
+  LSIMethod = 1,
+  verbose = FALSE
+)
+
+## batches are runs
+samples <- proj@cellColData$Sample
+runs <- factor(substr(samples, start=1, stop = 2))
+proj@cellColData$runs <- runs
+
+proj <- addIterativeLSI(ArchRProj = proj, 
+                        useMatrix = "TileMatrix", 
+                        name = "IterativeLSI")
+# Batch correction on run effect
+proj <- addHarmony(
+    ArchRProj = proj,
+    reducedDims = "IterativeLSI",
+    name = "Harmony",
+    groupBy = "runs",
+  verbose = FALSE
+)
+
+## clustering and UMAP on batch corrected
+set.seed(44)
+proj <- addClusters(input = proj, reducedDims = "Harmony", method="Seurat", resolution=.4, force=TRUE, name="clusters_cor",
+  verbose = FALSE)
+proj <- addUMAP(ArchRProj = proj, reducedDims = "Harmony", force=TRUE, name="UMAP_cor",
+  verbose = FALSE)
+```
+
+```{r plots, messages=FALSE, eval=TRUE}
+
+## plots: batch correction
+p3 <- plotEmbedding(ArchRProj = proj, colorBy = "cellColData", name = "Sample", embedding = "UMAP_cor")
+p4 <- plotEmbedding(ArchRProj = proj, colorBy = "cellColData", name = "clusters_cor", embedding = "UMAP_cor")
+ggAlignPlots(p3, p4, type = "h")
+```
+
+Distribution of samples within clusters, and marker genes.
+
+```{r, echo=FALSE, messages=FALSE, eval=TRUE}
+markers <- c("OMP", "ASCL1", "NEUROD1",
+             "KRT5", "KRT14", "TRP63", "KRTDAP",
+             "SPRR1A", 
+             "CYP2G1", "CYP1A2")
+
+pMarkers <- plotEmbedding(ArchRProj = proj, colorBy = "GeneScoreMatrix", name = markers, embedding = "UMAP_cor")
+pMarkers
+
+# HBC: 3,4,5,6,7,9
+# Neur: 1,2
+# Sus: 8
+hbcClusters <- c("C3", "C4", "C6", "C7", "C8", "C9", "C10")
+neurClusters <- c("C1", "C2")
+susClusters <- "C5"
+
+cl <- proj@cellColData$clusters_cor
+names(cl) <- rownames(proj@cellColData)
+clUniq <- unique(cl)
+fracs <- list()
+for(cc in 1:length(clUniq)){
+  id <- which(cl == clUniq[cc])
+  libId <- substr(unlist(lapply(strsplit(names(cl)[id], split="#"), "[[", 1)),
+                  start=3, stop=5)
+  fracs[[cc]] <- table(libId) / length(libId)
+}
+
+df <- data.frame(cl=rep(hbcClusters, each=2),
+                 treatment=rep(c("Inj", "UI"), length(hbcClusters)),
+                 fraction=unlist(fracs[which(clUniq %in% hbcClusters)]))
+
+ggplot(df, aes(x=treatment, y=fraction, fill=treatment)) + 
+  geom_bar(stat="identity") +
+  facet_wrap(.~cl)
+```
+
+## DA analysis on gene scores, comparing injured vs non-injured HBCs
+
+
+```{r, echo=FALSE, messages=FALSE, eval=TRUE}
+clMerged <- proj@cellColData$clusters_cor
+clMerged[clMerged %in% hbcClusters] <- "HBC"
+clMerged[clMerged %in% neurClusters] <- "Neur"
+clMerged[clMerged %in% susClusters] <- "Sus"
+proj@cellColData$clMerged <- clMerged
+plotEmbedding(ArchRProj = proj, colorBy = "cellColData", name = "clMerged", embedding = "UMAP_cor")
+
+## create treatment variable
+treat <- unlist(lapply(strsplit(x=as.character(proj@cellColData$Sample), split="#"), "[[", 1))
+treat <- factor(substr(treat, 3, nchar(treat)))
+proj@cellColData$treat <- treat
+```
+
+## Plots for paper on full dataset
+
+```{r}
+library(ggplot2)
+plotEmbedding(ArchRProj = proj, 
+              colorBy = "cellColData", 
+              name = "clMerged", 
+              embedding = "UMAP_cor")
+umapDims <- ArchR::getEmbedding(proj, "UMAP_cor")
+colnames(umapDims) <- c("UMAP1", "UMAP2")
+umapDims$clMerged <- getCellColData(proj, select = "clMerged")$clMerged
+umapDims$clMerged[umapDims$clMerged == "Neur"] <- "Neuronal"
+umapDims$clMerged[umapDims$clMerged == "Sus"] <- "Sustentacular"
+
+pCellType <- ggplot(umapDims, aes(x=UMAP1, y=UMAP2, color=clMerged)) +
+  geom_point(size = 1) + 
+  theme_classic() +
+  labs(color = "Cell type")
+
+pCellType
+  
+```
+
+
+# Preliminary HBC analysis without integration
+
+```{r}
+## select cells for DA
+nCells(proj)
+proj <- proj[which(clMerged == "HBC"),]
+proj <- addUMAP(ArchRProj = proj, reducedDims = "Harmony", force=TRUE, name="UMAP_cor",
+  verbose = FALSE)
+plotEmbedding(ArchRProj = proj, colorBy = "cellColData", name = "clMerged", embedding = "UMAP_cor")
+
+
+hbcInj <- vector(length=nCells(proj))
+hbcInj[proj@cellColData$treat == "Inj"] <- "hbc_inj"
+hbcInj[proj@cellColData$treat == "UI"] <- "hbc_uninj"
+proj@cellColData$hbcInj <- hbcInj
+plotEmbedding(ArchRProj = proj, colorBy = "cellColData", name = "hbcInj", embedding = "UMAP_cor")
+
+
+markerRes <- getMarkerFeatures(
+    ArchRProj = proj, 
+    useMatrix = "GeneScoreMatrix", 
+    groupBy = "hbcInj",
+    bias = c("TSSEnrichment", "log10(nFrags)"),
+    testMethod = "wilcoxon",
+  verbose = FALSE)
+
+markerList <- getMarkers(markerRes, cutOff = "FDR <= 0.01 & Log2FC >= 1.25")
+heatmapMarkers <- plotMarkerHeatmap(
+  seMarker = markerRes, 
+  labelMarkers = markers,
+  cutOff = "FDR <= 0.01 & Log2FC >= 1.25", 
+  transpose = TRUE
+)
+```
+
+```{r}
+# ComplexHeatmap::draw(heatmapMarkers, heatmap_legend_side = "bot", annotation_legend_side = "bot")
+```
+
+
+## Manually merge HBC clusters 
+
+```{r}
+plotEmbedding(ArchRProj = proj, colorBy = "cellColData", name = "clusters_cor", embedding = "UMAP_cor")
+plotEmbedding(ArchRProj = proj, colorBy = "cellColData", name = "hbcInj", embedding = "UMAP_cor")
+
+clHBCMerged <- as.character(proj@cellColData$clusters_cor)
+clHBCMerged[clHBCMerged %in% c("C3", "C4")] <- "C1_Inj"
+clHBCMerged[clHBCMerged %in% c("C9", "C10")] <- "C2_Hybrid"
+clHBCMerged[clHBCMerged %in% c("C6", "C7", "C8")] <- "C3_UI"
+proj@cellColData$clHBCMerged <- clHBCMerged
+plotEmbedding(ArchRProj = proj, colorBy = "cellColData", name = "clHBCMerged", embedding = "UMAP_cor")
+
+df <- data.frame(cl=proj$clHBCMerged,
+                 treatment=proj$treat)
+
+pBar <- ggplot(df, aes(x=treatment, fill=treatment)) + 
+  geom_bar(stat="count") +
+  facet_wrap(.~cl)
+pBar
+
+
+markerHBCCl <- getMarkerFeatures(
+    ArchRProj = proj, 
+    useMatrix = "GeneScoreMatrix", 
+    groupBy = "clHBCMerged",
+    bias = c("TSSEnrichment", "log10(nFrags)"),
+    testMethod = "wilcoxon",
+  verbose = FALSE)
+
+markerList_HBCCl <- getMarkers(markerHBCCl, cutOff = "FDR <= 0.01 & Log2FC >= 1.25")
+# saveRDS(markerList_HBCCl, file="../data/markerList_atac_ArchR_hbcClusters.rds")
+
+heatmapMarkers <- plotMarkerHeatmap(
+  seMarker = markerHBCCl, 
+  labelMarkers = markers,
+  cutOff = "FDR <= 0.01 & Log2FC >= 1.25", 
+  transpose = TRUE
+)
+
+heatmapHBC <- plotMarkerHeatmap(
+  seMarker = markerHBCCl, 
+  cutOff = "FDR <= 0.01 & Log2FC >= 1.25", 
+  transpose = TRUE
+)
+ComplexHeatmap::draw(heatmapHBC, heatmap_legend_side = "bot", annotation_legend_side = "bot")
+
+```
+
+## Plot for paper on preliminary HBC analysis
+
+```{r}
+library(ggplot2)
+umapDimsHBC <- ArchR::getEmbedding(proj, "UMAP_cor")
+colnames(umapDimsHBC) <- c("UMAP1", "UMAP2")
+umapDimsHBC$clHBCMerged <- getCellColData(proj, select = "clHBCMerged")$clHBCMerged
+umapDimsHBC$treat <- getCellColData(proj, select = "treat")$treat
+
+# cell state
+pstate <- ggplot(umapDimsHBC, aes(x=UMAP1, y=UMAP2, color=clHBCMerged)) +
+  geom_point(size = 1) + 
+  theme_classic() +
+  labs(color = "Cell state")
+
+# injury treatment
+pinj <- ggplot(umapDimsHBC, aes(x=UMAP1, y=UMAP2, color=treat)) +
+  geom_point(size = 1) + 
+  theme_classic() +
+  labs(color = "Treatment") + 
+  scale_color_manual(values = c("orange", "darkseagreen3")) 
+
+cowplot::plot_grid(pstate, pinj, nrow=1)
+ggsave("../plots/hbcDR.png", width=10)
+
+```
+
+## Export gene activity data for custom downstream analysis
+
+```{r, eval=FALSE}
+useMatrix="GeneScoreMatrix"
+ArrowFiles <- getArrowFiles(proj)
+featureDF <- ArchR:::.getFeatureDF(head(ArrowFiles, 2), "GeneScoreMatrix")
+geneMat <- ArchR:::.getPartialMatrix(ArrowFiles, 
+            featureDF = featureDF, threads = 1, useMatrix = "GeneScoreMatrix", 
+            cellNames = rownames(proj@cellColData), progress = FALSE)
+rownames(geneMat) <- featureDF$name
+saveRDS(geneMat, file="../data/scATAC/geneMatArchrHbc.rds")
+```
+
+
+## Create pseudobulk for peak calling
+
+```{r, echo=FALSE, messages=FALSE, eval=TRUE}
+proj <- addGroupCoverages(ArchRProj = proj, 
+                          groupBy = "clHBCMerged", 
+                          minReplicates = 2, 
+                          maxReplicates = 6,
+                          force = TRUE)
+```
+
+# Peak calling
+
+```{r, echo=FALSE, messages=FALSE, eval=TRUE}
+pathToMacs2 <- "/Users/koenvandenberge/opt/anaconda3/bin/macs2"
+proj <- addReproduciblePeakSet(
+    ArchRProj = proj, 
+    groupBy = "clHBCMerged", 
+    pathToMacs2 = pathToMacs2)
+projPeaks <- addPeakMatrix(proj)
+peakGR <- getPeakSet(projPeaks)
+```
+
+
+# Motif enrichment
+
+```{r}
+# add motifs
+projPeaks <- addMotifAnnotations(ArchRProj = projPeaks, 
+                                motifSet = "cisbp", 
+                                name = "Motif",
+                                force=TRUE)
+
+# get markers
+peakMarkersHBC <- getMarkerFeatures(
+    ArchRProj = projPeaks, 
+    useMatrix = "PeakMatrix", 
+    groupBy = "clHBCMerged",
+    bias = c("TSSEnrichment", "log10(nFrags)"),
+    testMethod = "wilcoxon",
+  verbose = FALSE)
+
+peakMarkerListHBC <- getMarkers(peakMarkersHBC, cutOff = "FDR <= 0.01 & Log2FC >= 1.25")
+saveRDS(markerList_HBCCl, file="../data/scATAC/markerList_atac_ArchR_hbcClusters.rds")
+
+heatmapMarkers <- plotMarkerHeatmap(
+  seMarker = peakMarkersHBC, 
+  cutOff = "FDR <= 0.01 & Log2FC >= 1.25", 
+  transpose = TRUE
+)
+ComplexHeatmap::draw(heatmapMarkers, heatmap_legend_side = "bot", annotation_legend_side = "bot")
+
+
+## upregulated motifs 
+motifsUp <- peakAnnoEnrichment(
+    seMarker = peakMarkersHBC,
+    ArchRProj = projPeaks,
+    peakAnnotation = "Motif",
+    cutOff = "FDR <= 0.05 & Log2FC >= 0.5"
+  )
+
+heatmapMotifsUp <- plotEnrichHeatmap(motifsUp, transpose = TRUE)
+pMotif <- ComplexHeatmap::draw(heatmapMotifsUp, heatmap_legend_side = "bot", annotation_legend_side = "bot")
+pMotif
+
+heatmapMotifsMatrix <- plotEnrichHeatmap(motifsUp, transpose = TRUE, returnMatrix = TRUE)
+colnames(heatmapMotifsMatrix) <- unlist(lapply(strsplit(colnames(heatmapMotifsMatrix), split="_"), "[[", 1))
+
+pMotif <- Heatmap(heatmapMotifsMatrix, 
+        cluster_rows = FALSE,
+        cluster_columns = FALSE,
+        col = paletteContinuous(set = "comet", n = 100),
+        column_names_gp = gpar(fontsize = 11),
+        row_names_gp = gpar(fontsize = 13),
+        heatmap_legend_param = list(title = "-log10 p-adj."))
+pMotif
+
+
+png("../plots/motifHeatmapHBCStates.png", width=10, height=7, units="in", res=300)
+ComplexHeatmap::draw(heatmapMotifsUp, heatmap_legend_side = "bot", annotation_legend_side = "bot")
+dev.off()
+```
+
+## Export peak data for custom downstream analysis
+
+```{r, eval=FALSE}
+useMatrix="PeakMatrix"
+ArrowFiles <- getArrowFiles(projPeaks)
+featureDF <- ArchR:::.getFeatureDF(head(ArrowFiles, 2), "PeakMatrix")
+peakMat <- ArchR:::.getPartialMatrix(ArrowFiles, 
+            featureDF = featureDF, threads = 1, useMatrix = "PeakMatrix", 
+            cellNames = rownames(projPeaks@cellColData), progress = FALSE)
+rownames(peakMat) <- featureDF$name
+saveRDS(peakMat, file="../data/scATAC/peakMatArchrHbc_v2.rds")
+```
+
+# Save ArchR project
+
+```{r, eval=FALSE}
+saveArchRProject(ArchRProj = projPeaks, outputDirectory = "../data/scATAC/archR_samples_pairwise_v2", load = FALSE)
+```
+
+# Composite plot
+
+```{r}
+library(cowplot)
+library(grid)
+
+# DR of all cells
+pCellType
+  
+# DR of HBCs
+pstate 
+
+# Barplot of injured vs uninjured in HBC states
+pBar
+
+# Motif enrichment
+ComplexHeatmap::draw(Heatmap(heatmapMotifsMatrix))
+
+# Composite
+cowplot::plot_grid(pCellType + scale_color_manual(values = RColorBrewer::brewer.pal(9, "Set1")[c(2, 5, 9)]),
+                   pstate,
+                   pBar + theme_bw() + ylab("Cell count") + xlab("Treatment"),
+                   grid::grid.grabExpr(ComplexHeatmap::draw(pMotif)),
+                   nrow=2,
+                   ncol=2,
+                   labels=letters[1:4])
+ggsave("../plots/figure3.png", width=12, height=9)
+```
+

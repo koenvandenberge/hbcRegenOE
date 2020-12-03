@@ -1,0 +1,972 @@
+---
+title: "Activated and renewed HBC clustering and comparison with scATAC-seq"
+author: "Koen Van den Berge"
+date: "7/22/2020"
+output: 
+  html_document:
+    toc: true
+    toc_float: true
+---
+
+
+```{r pkg}
+here::set_here()
+suppressPackageStartupMessages({
+  library(slingshot)
+  library(SingleCellExperiment)
+  library(cowplot)
+  library(rgl)
+  library(clusterExperiment)
+  library(RColorBrewer)
+  library(ggplot2)
+  library(pheatmap)
+  library(wesanderson)
+  library(gridExtra)
+  library(irlba)
+  library(tidyverse)
+})
+```
+
+# Import data
+
+```{r loadData}
+sds <- readRDS("../data/finalTrajectory/sling.rds")
+counts <- readRDS("../data/finalTrajectory/counts_noResp_noMV.rds")
+# counts <- round(counts)
+sce <- readRDS("../data/finalTrajectory/sce_tradeSeq20200904.rds")
+load("../data/ALL_TF.Rda")
+clDatta <- readRDS("../data/finalTrajectory/dattaCl_noResp_noMV.rds")
+timePoint <- readRDS("../data/finalTrajectory/timePoint_noResp_noMV.rds")
+```
+
+# Select activated and renewed HBC clusters
+
+I will select 
+
+ - activated HBCs as cells sampled in the 24h timepoint that are in the starting cluster
+ - renewed ('resting') HBCs as cells sampled in the 14D timepoint that are in the HBC cluster
+
+```{r}
+cols <- c("#E41A1C", "#377EB8", "#4DAF4A", "#984EA3", "#FF7F00", "#FFFF33", "#A65628", "#F781BF", "#999999")
+view3d( theta = 10, phi = 10)
+# Datta labels
+plot3d(reducedDim(sds), aspect = 'iso', col=cols[clDatta], alpha=.6, xlab="UMAP1", ylab="UMAP2", zlab="UMAP3", box=FALSE, top=TRUE)
+plot3d(sds, add=TRUE, lwd=3, col="black")
+
+# timepoints
+plot3d(reducedDim(sds), aspect = 'iso', col=cols[timePoint], alpha=.6, xlab="UMAP1", ylab="UMAP2", zlab="UMAP3", box=FALSE, top=TRUE)
+plot3d(sds, add=TRUE, lwd=3, col="black")
+
+# cluster labels used for TI
+clSds <- apply(slingClusterLabels(sds), 1, which.max)
+plot3d(reducedDim(sds), aspect = 'iso', col=cols[clSds], alpha=.6, xlab="UMAP1", ylab="UMAP2", zlab="UMAP3", box=FALSE, top=TRUE)
+plot3d(sds, add=TRUE, lwd=3, col="black")
+
+
+actHBCId <- which(clSds == 8 & timePoint == "24HPI")
+restHBCId <- which(clDatta == "HBC" & timePoint == "14DPI")
+grpHBC <- rep(NA, length(c(actHBCId, restHBCId)))
+grpHBC[1:length(actHBCId)] <- "activated"
+grpHBC[is.na(grpHBC)] <- "resting"
+grpHBC <- factor(grpHBC)
+countHBC <- counts[, c(actHBCId, restHBCId)]
+```
+
+# Dimensionality reduction
+
+```{r}
+library(scran)
+library(uwot)
+library(scater)
+logFracs <- log(sweep(countHBC+1e-5, 2, colSums(countHBC), "/"))
+gv <- modelGeneVar(countHBC)
+hvg <- getTopHVGs(gv, n=1000)
+pc10 <- irlba::irlba(logFracs[hvg,], nv=10)
+um10 <- uwot::umap(pc10$v %*% diag(pc10$d))
+
+plot(um10, col=alpha(c("orange", "darkseagreen3")[as.numeric(grpHBC)], .75), pch=16, cex=1/2, bty='l')
+legend("topright", c("activated", "resting"), pch=16, col=c("orange", "darkseagreen3"), bty="n")
+```
+
+# Batch correction with Harmony
+
+```{r}
+library(harmony)
+harmony_embeddings <- HarmonyMatrix(logFracs, meta_data=grpHBC, do_pca=TRUE)
+umHarmony <- uwot::umap(harmony_embeddings)
+
+plot(umHarmony, col=alpha(c("orange", "darkseagreen3")[as.numeric(grpHBC)], .75), pch=16, cex=1/2, bty='l')
+legend("topright", c("activated", "resting"), pch=16, col=c("orange", "darkseagreen3"), bty="n")
+```
+
+# Integration: Processing and dimensionality reduction of each dataset separately
+
+```{r}
+library(Signac)
+library(Seurat)
+library(patchwork)
+library(ArchR)
+set.seed(1234)
+addArchRGenome("mm10")
+
+
+# scATAC-seq importing and preprocessing
+# from 20200610_scATAC_injury_archr_samples_pairwiseHBC_v3.Rmd
+archProj <- loadArchRProject("../data/scATAC/archR_samples_pairwise_v2")
+clHBCMerged <- archProj$clHBCMerged
+plotEmbedding(ArchRProj = archProj, colorBy = "cellColData", 
+              name = "clHBCMerged", embedding = "UMAP_cor")
+archrUmap <- ArchR::getEmbedding(archProj, embedding = "UMAP_cor")
+colnames(archrUmap) <- c("UMAP1", "UMAP2")
+archrUmap$clHbcMerged <- getCellColData(archProj, "clHBCMerged")$clHBCMerged
+archrUmap$treatment <- getCellColData(archProj, "treat")$treat
+peaks <- archProj@peakSet
+names(peaks) <- paste0("peak",1:length(peaks))
+atacPeakMat <- readRDS("../data/scATAC/peakMatArchrHbc_v2.rds")
+rownames(atacPeakMat) <- names(peaks)
+geneActivity <- readRDS("../data/scATAC/geneMatArchrHbc.rds")
+atac <- CreateSeuratObject(counts = atacPeakMat, 
+                           assay = "ATAC", 
+                           project = "10x_ATAC")
+atac[["ACTIVITY"]] <- CreateAssayObject(counts = geneActivity)
+atac$tech <- "atac"
+atac$treatment <- archProj@cellColData$treat
+atac$clHBCMerged <- clHBCMerged
+# process gene activity
+DefaultAssay(atac) <- "ACTIVITY"
+atac <- FindVariableFeatures(atac)
+atac <- NormalizeData(atac)
+atac <- ScaleData(atac)
+# process peak matrix
+DefaultAssay(atac) <- "ATAC"
+# VariableFeatures(atac) <- names(which(Matrix::rowSums(atac) > 50))
+# atac <- RunLSI(atac, n = 30, scale.max = NULL)
+# atac <- RunUMAP(atac, reduction = "lsi", dims = 1:30)
+atac <- RunTFIDF(atac)
+atac <- FindTopFeatures(atac, min.cutoff = 'q0')
+atac <- RunLSI(atac, n = 30)
+atac <- RunUMAP(object = atac, reduction = 'lsi', dims = 2:30)
+
+# scRNA-seq import
+rna <- CreateSeuratObject(counts=countHBC)
+rna$tech <- '10x'
+rna$celltype <- grpHBC
+rna <- FindVariableFeatures(rna, selection.method = "vst", nfeatures = 2000)
+rna <- ScaleData(rna)
+rna <- RunPCA(rna, npcs=20)
+rna <- RunUMAP(rna, dims = 1:20, min_dist=.1)
+
+
+p1 <- DimPlot(atac, reduction = "umap", group.by="treatment", label=TRUE) + 
+  NoLegend() + 
+  ggtitle("scATAC-seq")
+p2 <- DimPlot(rna, group.by = "celltype", label = TRUE, repel = TRUE) + NoLegend() + ggtitle("scRNA-seq")
+p1 + p2
+
+
+# Markers for activated/resting HBC in scRNA-seq
+FeaturePlot(rna, features = "Krtdap")
+FeaturePlot(rna, features = "Krt6a")
+FeaturePlot(rna, features = "Krt5")
+FeaturePlot(rna, features = "Krt14")
+FeaturePlot(rna, features = "Trp63")
+
+# Markers for activated/resting HBC in scATAC-seq
+FeaturePlot(atac, features = "Krtdap") + xlim(c(-5,7))
+FeaturePlot(atac, features = "Krt6a") + xlim(c(-5,7))
+FeaturePlot(atac, features = "Krt5") + xlim(c(-6,6))
+FeaturePlot(atac, features = "Krt14") + xlim(c(-6,6))
+FeaturePlot(atac, features = "Trp63") + xlim(c(-6,6))
+```
+
+# plots for paper
+
+```{r}
+# RNA
+pRNA1 <- DimPlot(rna, group.by = "celltype", label = FALSE, repel = TRUE) + 
+  ggtitle("scRNA-seq: 24h HBC* and rHBC cells") +
+  scale_color_manual(labels = c("Activated", "Regenerated\n(resting)"), 
+                     values = c("steelblue", "salmon")) +
+  labs(color = "Cell state")
+# ggsave("../plots/scRNA24hHBC.png", width=9)
+
+# ATAC
+pATAC1 <- DimPlot(atac, reduction = "umap", group.by="clHBCMerged", label=FALSE) + 
+  ggtitle("scATAC-seq HBC cell states") + 
+  xlim(c(-6, 7))
+pATAC2 <- DimPlot(atac, reduction = "umap", group.by="treatment", label=FALSE) +
+  scale_color_manual(labels = c("Injured", "Uninjured"),
+                     values = c("orange", "darkseagreen3")) +
+  ggtitle("scATAC-seq HBC treatment") + 
+  xlim(c(-6, 7))
+cowplot::plot_grid(pATAC1, pATAC2)
+# ggsave("../plots/ATACClusters_seurat.png", width=10)
+```
+
+
+
+# Data integration
+
+```{r}
+# find anchor features
+transfer.anchors <- FindTransferAnchors(reference = rna, query = atac, 
+                                        features = VariableFeatures(object = rna),
+                                        reference.assay = "RNA", 
+                                        query.assay = "ACTIVITY", 
+                                        reduction = "cca")
+
+# predict ATAC cell type based on RNA labels
+celltype.predictions <- TransferData(anchorset = transfer.anchors, 
+                                     refdata = rna$celltype, 
+                                     weight.reduction = atac[["lsi"]])
+
+# add predicted labels to ATAC
+atac <- AddMetaData(atac, metadata = celltype.predictions)
+hist(atac$prediction.score.max)
+atac$predicted.id <- factor(atac$predicted.id)  # to make the colors match
+
+pat1 <- DimPlot(atac, reduction = "umap", group.by="treatment", label=TRUE) + 
+  NoLegend() + 
+  ggtitle("scATAC-seq truth") +
+  xlim(c(-6,7))
+pat2 <- DimPlot(atac, group.by = "predicted.id", label = TRUE, repel = TRUE) + 
+  ggtitle("scATAC-seq predicted") + 
+  NoLegend() + 
+  scale_colour_hue(drop = FALSE) +
+  xlim(c(-6,7))
+pat3 <- DimPlot(atac, group.by = "clHBCMerged", label = TRUE, repel = TRUE) + 
+  ggtitle("scATAC-seq ArchR clusters") + 
+  NoLegend() + 
+  scale_colour_hue(drop = FALSE) +
+  xlim(c(-6,7))
+prna4 <- DimPlot(rna, group.by = "celltype", label = TRUE, repel = TRUE) + ggtitle("scRNA-seq") + 
+    NoLegend()
+pat1 + pat2 + pat3 + prna4
+
+# prediction in ArchR DR space
+archrUmap$predicted.id <- celltype.predictions$predicted.id
+pat1_2 <- ggplot(archrUmap, aes(x=UMAP1, y=UMAP2, color=treatment)) +
+  geom_point(size = .75) +
+  ggtitle("scATAC-seq treatment") +
+  theme_classic() +
+  scale_color_manual(values = c("orange", "darkseagreen3"))
+pat2_2 <- ggplot(archrUmap, aes(x=UMAP1, y=UMAP2, color=predicted.id)) +
+  geom_point(size = .75) +
+  ggtitle("scATAC-seq predicted") +
+  theme_classic()
+pat3_2 <- ggplot(archrUmap, aes(x=UMAP1, y=UMAP2, color=clHBCMerged)) +
+  geom_point(size = .75) +
+  ggtitle("scATAC-seq clusters") +
+  theme_classic()
+prna1_2 <- DimPlot(rna, group.by = "celltype", label = TRUE, repel = TRUE) + 
+  ggtitle("scRNA-seq") + 
+  NoLegend()
+pat1_2 + pat2_2 + pat3_2 + prna1_2
+```
+
+# Compare predictions with truth and ArchR clusters
+
+```{r}
+library(ggalluvial)
+
+dfCellWide <- data.frame(treatment=atac$treatment,
+                     predicted=atac$predicted.id,
+                     cluster= archProj@cellColData$clHBCMerged)
+
+pAlluv <- ggplot(dfCellWide,
+       aes( axis1 = cluster, axis2 = predicted, axis3=treatment)) +
+  geom_alluvium(aes(fill=treatment), width = 1/12) +
+  scale_x_discrete(limits = c("Cluster", "Predicted", "Treatment"), expand = c(.05, .05)) +
+  geom_stratum(width = 1/12, fill = "white", color = "grey") +
+  geom_label(stat = "stratum", aes(label = after_stat(stratum))) +
+  theme(panel.background = element_rect(fill="white"))
+pAlluv
+```
+
+# Check gene expression of chromatin-responsive genes upon injury
+
+Here, we check the gene expression for genes that were found to be DA in the scATAC-seq data when testing for the injury effect for both the injured vs uninjured cluster and injury vs uninjured cells in the hybrid cluster.
+
+## Chromatin more accessible in injury
+
+```{r}
+chromUpInjury <- read.table("../data/scATAC/sharedUpInjury.txt",
+                            stringsAsFactors = FALSE)[,1]
+chromUpInjury <- chromUpInjury[chromUpInjury %in% rownames(countHBC)]
+
+
+plotByExpr <- function(rna, genes, counts, name="feature", scale=TRUE){
+  genes <- genes[genes %in% rownames(countHBC)]
+  if(scale){
+    scaledCounts <- t(scale(t(counts[genes,]+1e-5)))
+    scaledCounts <- scaledCounts[!is.na(rowVars(scaledCounts)),]
+    yhat <- colSums(scaledCounts)
+  } else {
+    yhat <- colSums(counts[genes,]+1e-5)
+  }
+  rna <- AddMetaData(rna, yhat, col.name = name)
+  FeaturePlot(rna, features = name) + theme(legend.position = "none")
+}
+
+plotByExpr(rna, chromUpInjury, countHBC, "chromUpInjurySum", scale=FALSE)
+plotByExpr(rna, chromUpInjury, countHBC, "chromUpInjurySum_scaled", scale=TRUE)
+```
+
+## Chromatin less accessible in injury
+
+```{r}
+chromDownInjury <- read.table("../data/scATAC/sharedDownInjury.txt",
+                            stringsAsFactors = FALSE)[,1]
+chromDownInjury <- chromDownInjury[chromDownInjury %in% rownames(countHBC)]
+
+plotByExpr(rna, chromDownInjury, countHBC, "chromDownInjurySum", scale=FALSE)
+plotByExpr(rna, chromDownInjury, countHBC, "chromDownjurySum_scaled", scale=TRUE)
+```
+
+# Check gene expression of chromatin-responsive genes in hybrid vs uninjured ATAC-seq clusters
+
+```{r}
+chromHybrid <- read.table("../data/scATAC/sharedHybridGenes.txt",
+                            stringsAsFactors = FALSE)[,1]
+chromHybrid <- chromHybrid[chromHybrid %in% rownames(countHBC)]
+
+plotByExpr(rna, chromHybrid, countHBC, "hybridSum", scale=FALSE)
+plotByExpr(rna, chromHybrid, countHBC, "chybridSum_scaled", scale=TRUE)
+```
+
+## ATAC-seq cluster markers
+
+```{r}
+# atacMarkers <- readRDS("../../../scATAC/data/markerList_atac_ArchR_hbcClusters.rds")
+atacMarkers <- readRDS("../data/scATAC/markerList_atac_ArchR_hbcClusters.rds")
+
+
+pc1 <- plotByExpr(rna, atacMarkers$C1_Inj$name, countHBC, "C1_Inj", scale=TRUE)
+pc2 <- plotByExpr(rna, atacMarkers$C2_Hybrid$name, countHBC, "C2_Hybrid", scale=TRUE)
+pc3 <- plotByExpr(rna, atacMarkers$C3_UI$name, countHBC, "C3_UI", scale=TRUE)
+
+pMarkersATAC <- cowplot::plot_grid(plotlist=list(pc1,pc2,pc3), nrow=1)
+# ggsave("../plots/ATACMarkersOnRNA.png", width=19)
+
+## are the ATAC markers driven by both injured and uninjured cells in hybrid cluster? Yes.
+activityHybridMarkers <- as.matrix(atac[["ACTIVITY"]]@counts)[atacMarkers$C2_Hybrid$name,]
+df <- data.frame(y=colSums(t(scale(t(activityHybridMarkers)))),
+                 state=factor(interaction(atac$clHBCMerged, atac$treatment)))
+ggplot(df, aes(x=state, y=y)) +
+  geom_boxplot() +
+  xlab("Group (cell state x treatment)") +
+  ylab("Scaled activity of hybrid markers") +
+  ggtitle("Cell state expression of hybrid markers") +
+  theme_bw() +
+  theme(axis.text.x = element_text(angle=45, vjust=0.5))
+# ggsave("../plots/atacHybridMarkerCellContribution.png", width=9)
+```
+
+
+# Redo cell label prediction when assigning hybrid labels
+
+For reference, old plot
+
+```{r}
+# Seurat
+pat1 + pat2 + pat3 + prna4
+
+# ArchR DR space
+pat1_2 + pat2_2 + pat3_2 + prna1_2
+```
+
+## Per hybrid cluster separately
+
+```{r}
+ctHybridSub <- as.character(rna$celltype)
+hlpid <- which(rna@reductions$umap@cell.embeddings[,1] > 2 & rna@reductions$umap@cell.embeddings[,2]>-1)
+ctHybridSub[hlpid] <- NA
+hlp2id <- which(rna@reductions$umap@cell.embeddings[,1] > 2 & rna@reductions$umap@cell.embeddings[,2]>-1 & rna@reductions$umap@cell.embeddings[,2]<4)
+ctHybridSub[hlp2id] <- "hybrid1"
+hlp1id <- which(rna@reductions$umap@cell.embeddings[,1] > 2 & rna@reductions$umap@cell.embeddings[,2]>4)
+ctHybridSub[hlp1id] <- "hybrid2"
+rna$ctHybridSub <- ctHybridSub
+
+DimPlot(rna, group.by = "ctHybridSub", label = FALSE, repel = TRUE) +
+  ggtitle("scRNA-seq") 
+
+# predict ATAC cell type based on RNA labels
+celltype.predictions3 <- TransferData(anchorset = transfer.anchors, 
+                                     refdata = rna$ctHybridSub, 
+                                     weight.reduction = atac[["lsi"]])
+
+# add predicted labels to ATAC
+atac$predictedCtHybrid <- celltype.predictions3$predicted.id
+atac$predScore <- celltype.predictions3$prediction.score.max
+atac$predicted.id <- factor(atac$predicted.id)  # to make the colors match
+
+
+# prediction in Seurat RD space
+ppred1 <- DimPlot(atac, reduction = "umap", group.by="treatment", label=FALSE) + 
+  ggtitle("scATAC-seq treatment") +
+  xlim(c(-6, 7))
+ppred2 <- DimPlot(atac, group.by = "predictedCtHybrid", label = FALSE, repel = TRUE) + 
+  ggtitle("scATAC-seq predicted state") + 
+  scale_colour_hue(drop = FALSE) +
+  xlim(c(-6, 7))
+ppred3 <- DimPlot(atac, group.by = "clHBCMerged", label = FALSE, repel = TRUE) + 
+  ggtitle("scATAC-seq cell state") + 
+  scale_colour_hue(drop = FALSE) +
+  xlim(c(-6, 7))
+ppred4 <- DimPlot(rna, group.by = "ctHybridSub", label = FALSE, repel = TRUE) + 
+  ggtitle("scRNA-seq")
+ppred1 + ppred2 + ppred3 + ppred4
+# ggsave("../plots/cellTransferSubHybrid.png", width=10)
+
+## size of cell is prediction prob
+DimPlot(atac, group.by = "predictedCtHybrid", label = TRUE, repel = TRUE, pt.size=celltype.predictions3$prediction.score.max*1.25) + ggtitle("scATAC-seq predicted") + 
+    NoLegend() + scale_colour_hue(drop = FALSE) + xlim(c(-6,6))
+boxplot(celltype.predictions3$prediction.score.max ~ celltype.predictions3$predicted.id,
+        xlab="Predicted state", ylab="Probability")
+
+
+
+# prediction in ArchR DR space
+archrUmap$predicted.id <- celltype.predictions3$predicted.id
+ppred1_2 <- ggplot(archrUmap, aes(x=UMAP1, y=UMAP2, color=treatment)) +
+  geom_point(size = .75) +
+  ggtitle("scATAC-seq treatment") +
+  theme_classic() +
+  scale_color_manual(values = c("orange", "darkseagreen3"))
+ppred2_2 <- ggplot(archrUmap, aes(x=UMAP1, y=UMAP2, color=predicted.id)) +
+  geom_point(size = .5) +
+  ggtitle("scATAC-seq predicted") +
+  theme_classic()
+ppred3_2 <- ggplot(archrUmap, aes(x=UMAP1, y=UMAP2, color=clHBCMerged)) +
+  geom_point(size = .75) +
+  ggtitle("scATAC-seq clusters") +
+  theme_classic()
+ppred4_2 <- DimPlot(rna, group.by = "ctHybridSub", label = FALSE, repel = TRUE, pt.size=.1) +
+  ggtitle("scRNA-seq") +
+  theme(axis.title = element_text(size = 11),
+        axis.text = element_text(size = 9),
+        plot.title = element_text(face = "plain", size=13))
+ppred1_2 + ppred2_2 + ppred3_2 + ppred4_2
+
+
+## size of cell is prediction prob
+ ggplot(archrUmap, aes(x=UMAP1, y=UMAP2, color=predicted.id)) +
+  geom_point(size = celltype.predictions3$prediction.score.max*1.25) +
+  ggtitle("scATAC-seq predicted") +
+  theme_classic()
+
+boxplot(celltype.predictions3$prediction.score.max ~ celltype.predictions3$predicted.id,
+        xlab="Predicted state", ylab="Probability")
+```
+
+
+# Markers for sub-hybrid clusters
+
+```{r}
+## add annotation according to prediction
+predictedAnn <- archProj@cellColData$clHBCMerged
+predictedAnn[predictedAnn == "C3_UI"] <- "resting"
+predictedAnn[predictedAnn == "C1_inj"] <- "activated"
+hybId <- predictedAnn == "C2_hybrid"
+predictedAnn[which(hybId)] <- NA
+predictedAnn[hybId & 
+               !celltype.predictions3$predicted.id == "hybrid1" &
+               !celltype.predictions3$predicted.id == "hybrid2"] <- "hybrid"
+predictedAnn[which(celltype.predictions3$predicted.id == "hybrid1")] <- "hybrid1"
+predictedAnn[which(celltype.predictions3$predicted.id == "hybrid2")] <- "hybrid2"
+table(predictedAnn)
+
+## visualize with Seurat
+atac$predAnn <- predictedAnn
+DimPlot(atac, group.by = "predAnn", label = TRUE, repel = TRUE) + ggtitle("scATAC-seq predicted") + 
+    NoLegend() + scale_colour_hue(drop = FALSE) + xlim(c(-6,7))
+
+## distribution of injured and uninjured cells in each cluster
+df <- data.frame(treatment=atac$treatment,
+                 cluster=atac$predAnn)
+dfTotal <- df %>% 
+  group_by(cluster) %>%
+  mutate(totalCells=n()) %>%
+  group_by(cluster, treatment) %>%
+  summarize(fracCells = n() / unique(totalCells))
+
+ggplot(dfTotal, aes(x=treatment, fill=treatment, y=fracCells)) + 
+    geom_bar(position="dodge", stat="identity") +
+  facet_wrap(.~cluster) +
+  ylab("Fraction of cells")
+
+# saveRDS(celltype.predictions3, file="../data/scATAC/20201105_celltypePredictions3.rds")
+
+
+## are the ATAC markers driven by both injured and uninjured cells in all hybrid cluster? Yes.
+activityHybridMarkers <- as.matrix(atac[["ACTIVITY"]]@counts)[atacMarkers$C2_Hybrid$name,]
+df <- data.frame(y=colSums(t(scale(t(activityHybridMarkers)))),
+                 state=factor(interaction(atac$predAnn, atac$treatment)))
+ggplot(df, aes(x=state, y=y)) +
+  geom_boxplot() +
+  xlab("Group (cell state x treatment)") +
+  ylab("Scaled activity of hybrid markers") +
+  ggtitle("Cell state expression of hybrid markers") +
+  theme_bw() +
+  theme(axis.text.x = element_text(angle=45, vjust=0.5))
+# ggsave("../plots/atacHybridMarkerCellContributionAllHybridClusters.png", width=9)
+
+```
+
+# New peak calling based on sub-clustering of hybrid cells as suggested by RNA
+
+```{r}
+archProj@cellColData$predAnn <- predictedAnn
+
+# pseudobulk for peak calling
+archProj <- addGroupCoverages(ArchRProj = archProj, groupBy = "predAnn", 
+                          minReplicates = 2, maxReplicates = 6,
+                          force = TRUE, 
+                          verbose = FALSE)
+
+# peak calling
+archProj <- addReproduciblePeakSet(
+    ArchRProj = archProj, 
+    groupBy = "predAnn", 
+    pathToMacs2 = "/Users/koenvandenberge/opt/anaconda3/bin/macs2",
+    verbose = FALSE)
+archProj <- addPeakMatrix(archProj)
+
+## get ArchR markers for motif enrichment
+markerPeaks_subHybrid <- getMarkerFeatures(
+    ArchRProj = archProj, 
+    useMatrix = "PeakMatrix", 
+    groupBy = "predAnn",
+    bias = c("TSSEnrichment", "log10(nFrags)"),
+    testMethod = "wilcoxon")
+peakMarkers_subHybrid <- getMarkers(markerPeaks_subHybrid, 
+                                    cutOff = "FDR <= 0.01 & Log2FC >= 1.25", 
+                                    returnGR = TRUE)
+heatmapMarkerPeaks <- plotMarkerHeatmap(
+  seMarker = markerPeaks_subHybrid, 
+  cutOff = "FDR <= 0.01 & Log2FC >= 1.25", 
+  transpose = TRUE
+)
+ComplexHeatmap::draw(heatmapMarkerPeaks, heatmap_legend_side = "bot", annotation_legend_side = "bot")
+
+```
+
+# Color RNA-seq data based on new markers
+
+```{r}
+plotByExpr2 <- function(rna, genes, counts, name="feature", scale=TRUE){
+  genes <- genes[genes %in% rownames(countHBC)]
+  if(scale){
+    scaledCounts <- t(scale(t(counts[genes,]+1e-5)))
+    scaledCounts <- scaledCounts[!is.na(rowVars(scaledCounts)),]
+    yhat <- colSums(scaledCounts)
+  } else {
+    yhat <- colSums(counts[genes,]+1e-5)
+  }
+  rna <- AddMetaData(rna, yhat, col.name = name)
+  # featureplot
+  p1 <- FeaturePlot(rna, features = name) + theme(legend.position = "none")
+  # boxplot
+  df <- data.frame(y=yhat, cluster=rna$ctHybridSub)
+  p2 <- ggplot(df, aes(x=cluster, y=yhat)) +
+    geom_boxplot() +
+    theme_classic()
+  cowplot::plot_grid(p1, p2, nrow=1)
+}
+
+peakSet <- archProj@peakSet
+markersHybrid <- peakMarkers_subHybrid$C2_Hybrid
+markersHybrid1 <- peakMarkers_subHybrid$hybrid1
+markersHybrid2 <- peakMarkers_subHybrid$hybrid2
+
+peaksHybrid <- peakSet[queryHits(findOverlaps(peakSet, markersHybrid, type = "equal"))]
+stopifnot(length(peaksHybrid) == length(markersHybrid))
+
+peaksHybridFunnel <- peakSet[queryHits(findOverlaps(peakSet, markersHybrid1, type = "equal"))]
+stopifnot(length(peaksHybridFunnel) == length(markersHybrid1))
+
+peaksHybridHorn <- peakSet[queryHits(findOverlaps(peakSet, markersHybrid2, type = "equal"))]
+stopifnot(length(peaksHybridHorn) == length(markersHybrid2))
+
+plotByExpr2(rna, 
+           genes=intersect(unique(mcols(peaksHybrid)$nearestGene), rownames(countHBC)), 
+           counts=countHBC, 
+           name="HybridMarkers", 
+           scale=TRUE)
+
+plotByExpr2(rna, 
+           genes=intersect(unique(mcols(peaksHybridFunnel)$nearestGene), rownames(countHBC)), 
+           counts=countHBC, 
+           name="Hybrid1Markers", 
+           scale=TRUE)
+
+plotByExpr2(rna, 
+           genes=intersect(unique(mcols(peaksHybridHorn)$nearestGene), rownames(countHBC)), 
+           counts=countHBC, 
+           name="Hybrid2Markers", 
+           scale=TRUE)
+```
+
+# Motif enrichment for sub-hyrbid clusters
+
+```{r}
+archProj <- addMotifAnnotations(ArchRProj = archProj, 
+                                motifSet = "cisbp", 
+                                name = "Motif",
+                                force=TRUE)
+
+## upregulated motifs 
+motifsUp <- peakAnnoEnrichment(
+    seMarker = markerPeaks_subHybrid,
+    ArchRProj = archProj,
+    peakAnnotation = "Motif",
+    cutOff = "FDR <= 0.05 & Log2FC >= 0.5"
+  )
+# the top 10 TFs are same for all 3 hybrid clusters which is why there's only 10 cols for all 3 clusters.
+heatmapMotifsUp <- plotEnrichHeatmap(motifsUp, transpose = TRUE)
+ComplexHeatmap::draw(heatmapMotifsUp, heatmap_legend_side = "bot", annotation_legend_side = "bot")
+# note that Gm5294 is an ortholog of the FOXL3-OT1 lncRNA and paralog of FOXL1
+
+getTopDf <- function(motifsRes, cl){
+  df <- data.frame(TF = rownames(motifsRes), mlog10Padj = assay(motifsRes)[,cl])
+  df <- df[order(df$mlog10Padj, decreasing = TRUE),]
+  df$rank <- seq_len(nrow(df))
+  return(df)
+}
+
+plotMotifs <- function(motifsRes, cl){
+  df <- getTopDf(motifsRes, cl)
+  ggUp <- ggplot(df, aes(rank, mlog10Padj, color = mlog10Padj)) + 
+    geom_point(size = 1) +
+    ggrepel::geom_label_repel(
+          data = df[rev(seq_len(30)), ], aes(x = rank, y = mlog10Padj, label = TF), 
+          size = 1.5,
+          nudge_x = 2,
+          color = "black"
+    ) + theme_ArchR() + 
+    ylab("-log10(P-adj) Motif Enrichment") + 
+    xlab("Rank Sorted TFs Enriched") +
+    scale_color_gradientn(colors = paletteContinuous(set = "comet"))
+  
+  ggUp
+}
+
+# the upregulated markers for all hybrid clusters are enriched in Fox motifs.
+plotMotifs(motifsUp, "C2_Hybrid") + ggtitle("Hybrid")
+plotMotifs(motifsUp, "hybrid1") + ggtitle("hybrid1")
+plotMotifs(motifsUp, "hybrid1") + ggtitle("hybrid1")
+
+# Fox motifs are not enriched in either resting or activated cell types.
+plotMotifs(motifsUp, "resting") + ggtitle("Resting")
+plotMotifs(motifsUp, "C1_Inj") + ggtitle("Activated")
+
+```
+
+## Smarcc1 motifs
+
+Smarcc1 was recently found to regulate Keratin genes and thereby cellular fate in mammalian embryogenesis: https://www.nature.com/articles/s41586-020-2647-4.
+Here, we find that the markers for the activated cells are most enriched in Smarcc1 motifs.
+To dig a little deeper, we therefore check which of these marker peaks that may be close to Krt genes have Smarcc1 motifs here.
+
+
+```{r}
+#detach("package:matrixStats", unload=TRUE)
+# get the marker peaks for activated cells
+actMarkers <- peakMarkers_subHybrid$C1_Inj
+
+# subset to those that have Smarcc1 motif
+mot <- archProj@peakAnnotation$Motif
+matches <- readRDS(mot$Matches)
+markerHits <- queryHits(findOverlaps(query = SummarizedExperiment::rowRanges(matches), 
+                                     subject = actMarkers, 
+                                     type = "equal"))
+smarcHits <- which(assays(matches, "matches")[[1]][,grep(x=colnames(assays(matches, "matches")[[1]]), pattern="Smarcc1")])
+markerSmarcRanges <- SummarizedExperiment::rowRanges(matches)[intersect(markerHits, smarcHits)]
+
+# check which Krt genes are in there
+krtWithMotif <- sort(unname(grep(x=mcols(markerSmarcRanges)$nearestGene, pattern="Krt", value=TRUE)))
+krtWithMotif
+
+# plot their accessibility and expression
+for(kk in 1:length(krtWithMotif)){
+  gene <- krtWithMotif[kk]
+  if(gene %in% rownames(rna)){
+    prna <- FeaturePlot(rna, features=gene)
+    patac <- FeaturePlot(atac, features=gene) + xlim(c(-6,6))
+    print(cowplot::plot_grid(prna, patac, nrow=1))
+  } else {
+    print(FeaturePlot(atac, features=gene) + xlim(c(-6,6)))
+  }
+}
+
+
+```
+
+
+
+## Check expression of Fox TFs and target genes in scRNA-seq data
+
+Peaks that are more accessible in hybrid cells are upregulated in motifs bound by Fox transcription factors.
+We expect Fox transcription factors to be higher expressed in hybrid clusters.
+Since Fox transcription factors generally are repressors, we could expect the target genes of Fox transcription factors to be lower expressed in the hybrid clusters.
+
+Evidence from the literature:
+ - Foxg1 expression is in horizontal basal cells of OE, Foxg1 -/- mice are born with defects in the OE: https://www.ncbi.nlm.nih.gov/pmc/articles/PMC2878634/
+ - Fox family TF motifs are most enriched in olfactory receptors: https://arxiv.org/pdf/1201.2933.pdf
+ - Foxl1 are markers of microvillous cells: https://www.ncbi.nlm.nih.gov/pmc/articles/PMC2878634/
+ 
+
+```{r}
+# selected Fox TFs as identified with motif enrichment
+# top 10 motifs TFs from hybrid cells:
+selectedFoxTfs <- c("Floxl1", "Foxa1", "Foxb2", "Foxb1", "Foxc1", "Foxc2", "Foxs1", "Foxd1")
+selectedFoxTfs <- intersect(selectedFoxTfs, rownames(countHBC))
+countsFoxSelected <- countHBC[selectedFoxTfs,]
+foxSumSelected <- colSums(countsFoxSelected)
+rna <- AddMetaData(rna, foxSumSelected, col.name = "foxSumSelected")
+pFoxSum <- FeaturePlot(rna, features = "foxSumSelected")
+
+df <- data.frame(cl=rna$ctHybridSub,
+                 foxSum=foxSumSelected)
+pBoxFoxSum <- ggplot(df, aes(x=cl, y=foxSum)) +
+  geom_boxplot() +
+  theme_classic() +
+  ylab("Sum of selected Fox TFs expression")
+
+cowplot::plot_grid(pFoxSum, pBoxFoxSum)
+#ggsave("../plots/foxSumRNA.png", width=8)
+
+## scaled
+scaledCountsFoxSelected <- t(scale(t(countHBC[selectedFoxTfs,]+1e-5)))
+scaledCountsFoxSelected <- scaledCountsFoxSelected[!is.na(rowVars(scaledCountsFoxSelected)),]
+foxSumScaledSelected <- colSums(scaledCountsFoxSelected)
+rna <- AddMetaData(rna, foxSumScaledSelected, col.name = "foxSumSelected_scaled")
+pFoxSumScaled <- FeaturePlot(rna, features = "foxSumSelected_scaled")
+
+df <- data.frame(cl=rna$ctHybridSub,
+                 foxScaled=foxSumScaledSelected)
+pBoxFoxSumScaled <- ggplot(df, aes(x=cl, y=foxScaled)) +
+  geom_boxplot() +
+  theme_classic() +
+  ylab("Sum of selected Fox TFs scaled expression")
+
+
+cowplot::plot_grid(pFoxSumScaled, pBoxFoxSumScaled)
+# ggsave("../plots/foxSumRNAScaled.png", width=8)
+```
+
+
+
+
+# Composite plot
+
+```{r, eval=TRUE, echo=TRUE}
+## DR of RNA 
+pRNA1_fin <- pRNA1 + ggtitle("scRNA-seq data") +
+  theme(legend.title = element_text(size = 12),
+          legend.text = element_text(size = 10),
+        legend.key.size = unit(1/2, "cm"))
+
+
+## DR of RNA with ATAC markers expression highlighted
+pMarkersATAC <- cowplot::plot_grid(plotlist=list(pc1,pc2,pc3), nrow=1)
+pMarkersATAC
+
+## RNA and ATAC cell type transfer
+pCTrans <- cowplot::plot_grid(ppred4_2 + NoLegend(), ppred2_2, nrow=1)
+
+## markers and motifs for subhybrid clusters
+## marker
+heatmapMarkerPeaksMatrix <- plotMarkerHeatmap(
+  seMarker = markerPeaks_subHybrid, 
+  cutOff = "FDR <= 0.01 & Log2FC >= 1.25", 
+  transpose = TRUE,
+  returnMat = TRUE
+)
+pMarker <- Heatmap(heatmapMarkerPeaksMatrix, 
+        cluster_rows = FALSE,
+        cluster_columns = FALSE,
+        col = paletteContinuous(set = "solarExtra", n = 100),
+        show_column_names = FALSE,
+        row_names_gp = gpar(fontsize = 13),
+        heatmap_legend_param = list(title = "Z-score"))
+
+
+## motif
+heatmapMotifsMatrix <- plotEnrichHeatmap(motifsUp, transpose = TRUE, returnMatrix = TRUE)
+colnames(heatmapMotifsMatrix) <- unlist(lapply(strsplit(colnames(heatmapMotifsMatrix), split="_"), "[[", 1))
+
+pMotif <- Heatmap(heatmapMotifsMatrix, 
+        cluster_rows = FALSE,
+        cluster_columns = FALSE,
+        col = paletteContinuous(set = "comet", n = 100),
+        column_names_gp = gpar(fontsize = 11),
+        row_names_gp = gpar(fontsize = 13),
+        heatmap_legend_param = list(title = "-log10\n p-adj."))
+pHeat <- cowplot::plot_grid(grid::grid.grabExpr(ComplexHeatmap::draw(pMarker)),
+                   grid::grid.grabExpr(ComplexHeatmap::draw(pMotif)),
+                   nrow = 2)
+pComp1 <- cowplot::plot_grid(pRNA1_fin, pMarkersATAC, nrow=1, 
+                             rel_widths = c(0.4, 1), labels = c("a", "b"))
+pComp2 <- cowplot::plot_grid(pCTrans, pHeat, ncol = 1, 
+                             rel_heights = c(0.8, 1), labels = c("c", "d"))
+cowplot::plot_grid(pComp1, pComp2, nrow = 2,
+                   rel_widths= c(1/3, 1))
+# ggsave("../plots/integrationComposite.pdf", height=13, width=12)
+# ggsave("../plots/integrationComposite.png", height=13, width=12)
+
+```
+
+
+
+## old plots
+
+```{r, eval=FALSE, echo=FALSE}
+# scATAC-seq for slides v1
+p1 <- DimPlot(atac, reduction = "umap", group.by="treatment", label=FALSE, cols=c("steelblue", "orange")) + NoLegend() + ggtitle("ATAC treatment") + xlim(c(-6,6))
+clPlot <- atac$clHBCMerged
+clPlot[clPlot == "C1_inj"] <- "Activated"
+clPlot[clPlot == "C2_hybrid"] <- "Hybrid"
+clPlot[clPlot == "C3_UI"] <- "Resting"
+atac$clPlot <- clPlot
+p3 <- DimPlot(atac, group.by = "clPlot", label = FALSE, repel = TRUE, label.size=6) + ggtitle("scATAC-seq clusters") + NoLegend() + scale_colour_hue(drop = FALSE) + xlim(c(-6,6))
+p1 + p3
+ggsave("~/tmp/scATAC_dr.png", height=7, width=8.7, dpi=500)
+
+# scATAC-seq for slides v2
+p1 <- DimPlot(atac, reduction = "umap", group.by="treatment", label=FALSE, cols=c("steelblue", "orange")) + NoLegend() + ggtitle("ATAC treatment") + xlim(c(-6,6))
+p3 <- DimPlot(atac, group.by = "predAnn", label = FALSE, repel = TRUE, label.size=6) + ggtitle("scATAC-seq clusters") + NoLegend() + scale_colour_hue(drop = FALSE) + xlim(c(-6,6))
+p1 + p3
+ggsave("~/tmp/scATAC_dr_v2.png", height=7, width=8.7, dpi=500)
+
+# scRNA-seq for slides
+pRNA <- DimPlot(rna, group.by = "celltype", label = TRUE, repel = TRUE, label.size=6) + NoLegend() + ggtitle("scRNA-seq")
+# 3 plots with markers for each of C1-C3
+cowplot::plot_grid(plotlist=list(pRNA,pc1,pc2,pc3), nrow=1)
+ggsave("~/tmp/scRNA_HBC.png", height=7, width=14, dpi=500)
+
+
+# cell label transfer
+p1 <- DimPlot(atac, reduction = "umap", group.by="treatment", label=TRUE, label.size=6) + NoLegend() + ggtitle("scATAC-seq treatment") + xlim(c(-6,6))
+p2 <- DimPlot(atac, group.by = "predictedCtHybrid", label = TRUE, repel = TRUE, label.size=6) + ggtitle("scATAC-seq predicted state") +
+    NoLegend() + scale_colour_hue(drop = FALSE)  + xlim(c(-6,6))
+p3 <- DimPlot(atac, group.by = "clPlot", label = TRUE, repel = TRUE, label.size=6) + ggtitle("scATAC-seq clusters") + 
+    NoLegend() + scale_colour_hue(drop = FALSE)  + xlim(c(-6,6))
+p4 <- DimPlot(rna, group.by = "ctHybrid", label = TRUE, repel = TRUE, label.size=6) + ggtitle("scRNA-seq") + 
+    NoLegend()
+p1 + p2 + p3 + p4
+ggsave("~/tmp/scATAC_labelTransfer.png", height=7, width=8.7, dpi=500)
+
+
+# cell label transfer v2
+p1 <- DimPlot(atac, reduction = "umap", group.by="treatment", label=FALSE, cols=c("steelblue", "orange")) + NoLegend() + ggtitle("ATAC treatment") + xlim(c(-6,6))
+p2 <- DimPlot(atac, group.by = "predictedCtHybrid", label = FALSE, repel = TRUE) + ggtitle("ATAC predicted") + 
+    NoLegend() + scale_colour_hue(drop = FALSE) + xlim(c(-6,6))
+p4 <- DimPlot(rna, group.by = "ctHybridSub", label = FALSE, repel = TRUE) + ggtitle("scRNA-seq clusters") + 
+    NoLegend()
+p1 + p2 + p4
+ggsave("~/tmp/scATAC_labelTransfer_v2.png", height=7, width=15, dpi=450)
+
+# Fox involvement
+fox1 <- FeaturePlot(rna, features = "foxSumSelected_scaled") + ggtitle("Enriched FOX TF expression")
+df <- data.frame(cl=rna$ctHybridSub,
+                 foxScaled=foxSumScaledSelected)
+fox2 <- ggplot(df, aes(x=cl, y=foxScaled)) +
+  geom_boxplot() +
+  theme_classic() +
+  ylab("FOX TF scaled expression")
+cowplot::plot_grid(fox1, fox2, nrow=1)
+ggsave("~/tmp/foxExpression.png", height=7, width=10, dpi=450)
+
+```
+
+# Explore the activated HBC RNA-seq clusters
+
+## Macrophage markers
+
+```{r}
+FeaturePlot(atac, features = "Msr1")
+FeaturePlot(rna, features = "Msr1")
+```
+
+## Cell cycle genes
+
+```{r}
+download.file("https://raw.githubusercontent.com/rufletch/p63-HBC-diff/master/ref/cellCycle40.txt", destfile = "~/tmp/ccGenes40.txt")
+cc40Genes <- read.table("~/tmp/ccGenes40.txt", stringsAsFactors = FALSE)[,1]
+
+countsCC40 <- countHBC[cc40Genes,]+1e-5
+cc40Sum <- colSums(countsCC40)
+rna <- AddMetaData(rna, cc40Sum, col.name = "cc40Sum")
+FeaturePlot(rna, features = "cc40Sum")
+
+## scaled
+scaledCountsCC40 <- t(scale(t(countHBC[cc40Genes,]+1e-5)))
+scaledCountsCC40 <- scaledCountsCC40[!is.na(rowVars(scaledCountsCC40)),]
+cc40Sum <- colSums(scaledCountsCC40)
+rna <- AddMetaData(rna, cc40Sum, col.name = "cc40Sum_scaled")
+FeaturePlot(rna, features = "cc40Sum_scaled")
+
+
+
+download.file("https://raw.githubusercontent.com/rufletch/p63-HBC-diff/master/ref/cell_cycle.txt", destfile = "~/tmp/ccGenes.txt")
+ccGenes <- read.table("~/tmp/ccGenes.txt", stringsAsFactors = FALSE)[,1]
+ccGenes <- ccGenes[ccGenes %in% rownames(countHBC)]
+
+countsCC <- countHBC[ccGenes,]+1e-5
+ccSum <- colSums(countsCC)
+rna <- AddMetaData(rna, ccSum, col.name = "ccSum")
+FeaturePlot(rna, features = "ccSum")
+
+## scaled
+scaledCountsCC <- t(scale(t(countHBC[ccGenes,]+1e-5)))
+scaledCountsCC <- scaledCountsCC[!is.na(rowVars(scaledCountsCC)),]
+ccSum <- colSums(scaledCountsCC)
+rna <- AddMetaData(rna, ccSum, col.name = "ccSum_scaled")
+FeaturePlot(rna, features = "ccSum_scaled")
+```
+
+
+## Wound response genes
+
+Genes obtained from paper on HBC injury, Fig 3D caption: `Krt6a, Krt16, Sprr1a, Sprr2a3, Krtdap, Dmkn, Sbsn, and Hbegf'
+
+```{r}
+wrGenes <- c("Krt6a", "Krt16", "Sprr1a", "Sprr2a3", "Krtdap", "Dmkn", "Sbsn", "Hbegf")
+
+countsWR <- countHBC[wrGenes,]+1e-5
+wrSum <- colSums(countsWR)
+rna <- AddMetaData(rna, wrSum, col.name = "wrSum")
+FeaturePlot(rna, features = "wrSum")
+
+## scaled
+scaledCountsWR <- t(scale(t(countHBC[wrGenes,]+1e-5)))
+scaledCountsWR <- scaledCountsWR[!is.na(rowVars(scaledCountsWR)),]
+wrSum <- colSums(scaledCountsWR)
+rna <- AddMetaData(rna, wrSum, col.name = "wrSum_scaled")
+FeaturePlot(rna, features = "wrSum_scaled")
+```
+
+## Respiratory markers
+
+```{r}
+respGenesRebecca <- c("Gp2",	"Cyp4a12b",	"Kcnj16",	"Tff2",	"Chad", "Acsm1", "Kcne3", "Vtcn1", 	"Kcnj15", "Cldn8",	"Pigr", "Muc5b", "Calml3", "Kng2",	"Cyp2b10")
+
+## note that Cxcl14 and Meg3 are only described for human samples in the Methods.
+respGenesDavid <- c("Foxj1", "Muc5ac", "Cxcl14", "Meg3")
+
+
+## genes used by Boying
+respGenesBoying <- c("Reg3g", "Muc5ac", "Muc5b", "Meg3", "Krt5", "Krt14", "Trp63")
+
+
+FeaturePlot(rna, features = respGenesRebecca[1:9])
+FeaturePlot(rna, features = respGenesRebecca[10:15])
+
+FeaturePlot(rna, features = respGenesDavid)
+
+
+FeaturePlot(rna, features = respGenesBoying) + NoLegend()
+
+```
+

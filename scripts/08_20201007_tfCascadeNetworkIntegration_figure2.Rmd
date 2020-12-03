@@ -1,0 +1,651 @@
+---
+title: "TF cascade gene set enrichment analysis"
+author: "Koen Van den Berge"
+date: "10/7/2020"
+output: 
+  html_document:
+    toc: true
+    toc_float: true
+---
+
+
+
+```{r pkg}
+here::set_here()
+suppressPackageStartupMessages({
+  library(slingshot)
+  library(tradeSeq)
+  library(SingleCellExperiment)
+  library(cowplot)
+  library(rgl)
+  library(clusterExperiment)
+  library(RColorBrewer)
+  library(aggregation)
+  library(ggplot2)
+  library(pheatmap)
+  library(wesanderson)
+  library(UpSetR)
+  library(gridExtra)
+  library(msigdbr)
+  library(fgsea)
+  library(knitr)
+  library(tidyverse)
+})
+```
+
+# Import data
+
+```{r loadData}
+sds <- readRDS("../data/finalTrajectory/sling.rds")
+counts <- readRDS("../data/finalTrajectory/counts_noResp_noMV.rds")
+counts <- round(counts)
+sce <- readRDS("../data/finalTrajectory/sce_tradeSeq20200904.rds")
+load("../data/ALL_TF.Rda")
+timePoint <- readRDS("../data/finalTrajectory/timePoint_noResp_noMV.rds")
+clDatta <- readRDS("../data/finalTrajectory/dattaCl_noResp_noMV.rds")
+# TF cascade
+peakResList <- readRDS("../data/peakRes_thresholded.rds")
+# Adjancency matrices of 2-core
+adjMatrices <- readRDS("../data/adjMatrices_2core_all.rds")
+# tfs
+load("../data/ALL_TF.Rda")
+tf <- intersect(ALL_TF, rownames(sce))
+```
+
+```{r}
+plot3d(reducedDim(sds), aspect = 'iso', col=brewer.pal(9,'Set1')[timePoint], alpha=.6)
+plot3d(sds, add=TRUE, col=c("black"), lwd=4)
+
+plot3d(reducedDim(sds), aspect = 'iso', col=brewer.pal(9,'Set1')[clDatta], alpha=.6)
+plot3d(sds, add=TRUE, col=c("black"), lwd=4)
+```
+
+```{r, echo=FALSE}
+cp <- c('#1B9E77', '#E6AB02',  '#E7298A', '#66A61E', '#BEAED4' ,'#D95F02',   '#A6761D', '#666666',  '#1F78B4') #Rebecca colors
+cl <- factor(colnames(sds@clusterLabels)[apply(sds@clusterLabels,1,which.max)])
+
+colDf <- data.frame(cl=levels(cl),
+                    rcCol=cp, #RKC colors
+                    trCol=brewer.pal(9,'Set1')) #KS colors
+
+anno <- function(lineage, nPoints, sds, dm, cl, lengthThresh=5){
+   cp <- c('#1B9E77', '#E6AB02',  '#E7298A', '#66A61E', '#BEAED4' ,'#D95F02',   '#A6761D', '#666666',  '#1F78B4') #Rebecca colors
+  #cl <- factor(colnames(sds@clusterLabels)[apply(sds@clusterLabels,1,which.max)])
+  pt <- slingPseudotime(sds)[,lineage]
+  #cw <- slingCurveWeights(sds)
+  #linID <- apply(cw,1,which.max)
+  linID <- apply(dm[,paste0("l",1:3)], 1, which.max)
+  pt1 <- pt[linID == lineage]
+  cl1 <- droplevels(cl[linID == lineage])
+  ## divide pseudotime in nPoint
+  #qq <- quantile(pt1, probs = seq(0,1,length=nPoints+1))
+  qq <- seq(0, max(pt1), length.out=nPoints+1)
+  allCols <- c()
+  for(kk in 1:nPoints){
+    id <- which(pt1 > qq[kk] & pt1 < qq[kk+1])
+    if(length(id) < lengthThresh){
+      allCols[kk] <- "white"
+      next
+    }
+    maxCl <- names(sort(table(droplevels(cl1[id])), decreasing=TRUE))[1]
+    col <- which(levels(cl) == maxCl)
+    allCols[kk] <- cp[col]
+  }
+  return(allCols)
+}
+
+plotTfHeatmap <- function(yhat, lineage, sds, cl, peakTimes, k,
+                          nPoints=ncol(yhat), dm = colData(sce)$tradeSeq$dm,
+                          main=""){
+  require(pheatmap)
+  yhatMatScaled <- t(scale(t(yhat)))
+  oo <- order(peakTimes, decreasing=FALSE)
+  annCols <- anno(lineage, nPoints, sds, dm, cl)
+  annCols2 <- as.character(colDf$trCol[match(annCols, colDf$rcCol)])
+  annCols2[is.na(annCols2)] <- "white"
+  dfAnn <- data.frame(cellType=annCols, cellType2=annCols2)
+  rownames(dfAnn) <- colnames(yhatMatScaled)
+  annColors <- list()
+  annColors[[1]] <- as.character(levels(factor(annCols)))
+  names(annColors[[1]]) <- levels(factor(annCols))
+  annColors[[2]] <- as.character(levels(factor(annCols2)))
+  names(annColors[[2]]) <- levels(factor(annCols2))
+  names(annColors) <- c("cellType", "cellType2")
+  # only use 1 color
+  dfAnn <- dfAnn[,2, drop=FALSE]
+  annColors <- annColors[2]
+  
+  pal <- wesanderson::wes_palette("Zissou1", n=12, type="continuous")
+  yhatMatScaledOrdered <- yhatMatScaled[names(peakTimes)[oo],]
+  colnames(yhatMatScaledOrdered) <- rownames(dfAnn) <- as.character(1:ncol(yhatMatScaledOrdered))
+  pheatmap(yhatMatScaledOrdered, cluster_cols=FALSE, cluster_rows=FALSE,
+         border_color=NA, col=pal, main=main, annotation_col=dfAnn, 
+           annotation_colors = annColors, annotation_names_col = FALSE,
+           annotation_legend = FALSE, show_rownames = FALSE,
+         show_colnames=FALSE)#, colors=cols, breaks=breaks)
+  pClust <- pheatmap(yhatMatScaledOrdered, cluster_cols=FALSE, cluster_rows=TRUE,
+         border_color=NA, col=pal, main=paste0(main,": Clustered genes"), annotation_col=dfAnn, 
+           annotation_colors = annColors, annotation_names_col = FALSE,
+           annotation_legend = FALSE, show_rownames = FALSE,
+         show_colnames=FALSE)
+  pClust
+  
+  clusters <- cutree(pClust$tree_row, k = k)
+  # colRow <- c("steelblue", "darkseagreen3", "orange", "salmon", "goldenrod3")
+  # dfAnnRow <- data.frame(clus=colRow[clusters])
+  dfAnnRow <- data.frame(clus=clusters)
+  rownames(dfAnnRow) <- pClust$tree_row$labels
+  
+  pheatmap(yhatMatScaledOrdered, cluster_cols=FALSE, cluster_rows=TRUE,
+         border_color=NA, col=pal, main=paste0(main,": Clustered genes"), annotation_col=dfAnn, 
+           annotation_colors = annColors, annotation_names_col = FALSE,
+           annotation_legend = TRUE, show_rownames = FALSE,
+         show_colnames=FALSE, annotation_row = dfAnnRow)
+  
+  dfAnnRow$label <- clusters
+  return(dfAnnRow)
+}
+
+geneSets <- msigdbr(species = "Mus musculus", category = "C5", subcategory = "BP")
+
+gsea <- function(genes, background, geneSets, n=10, minSize=5, name=NULL){
+  ### filter background to only include genes that we assessed.
+  geneSets <- geneSets[geneSets$gene_symbol %in% background,]
+  m_list <- geneSets %>% split(x = .$gene_symbol, f = .$gs_name)
+  # gene set must have at least minSize genes in background.
+  m_list <- m_list[unlist(lapply(m_list, length)) >= minSize]
+  
+  overlapPval <- unlist(lapply(m_list, function(gs){
+    # genes in community and gene set
+    inBoth <- sum(genes %in% gs)
+    # genes in community and not in gene set
+    inComOnly <- length(genes) - inBoth
+    # genes in background and gene set
+    inGsBack <- sum(background %in% gs)
+    # genes in background and not in gene set
+    outGsBack <- length(background) - inGsBack
+    m <- matrix(c(inBoth, inComOnly,
+           inGsBack, outGsBack),
+           nrow =2, ncol=2, byrow=TRUE,
+           dimnames = list(c("in community", "out community"),
+                           c("in gene set", "out gene set")))
+    fis <- fisher.test(m, alternative = "greater")
+    pval <- fis$p.value
+    return(pval)
+  }))
+  padj <- p.adjust(overlapPval, "fdr")
+  oo <- order(overlapPval, decreasing=FALSE)
+  res <- data.frame(geneSet = names(m_list)[oo[1:n]],
+                    pval = overlapPval[oo[1:n]],
+                    padj = padj[oo[1:n]],
+                    row.names = NULL)
+  kable(res, caption=name, label=name)
+}
+```
+
+# Neuronal lineage
+
+```{r}
+yhat <- peakResList$neur$yhat
+peakTimes <- peakResList$neur$firstPeak
+k <- 4
+clNeur <- plotTfHeatmap(yhat, 
+                        lineage=1, 
+                        sds=sds, 
+                        cl=clDatta, 
+                        peakTimes=peakTimes, 
+                        k=4)
+
+# GSEA
+kabNames <- c("cl1: early, HBC*",
+              "cl2: iOSN / mOSN",
+              "cl3: HBC* / GBC",
+              "cl4: GBC / iOSN")
+kab <- list()
+for(kk in 1:k){
+  genes <- rownames(clNeur[clNeur$label == kk,])
+  kab[[kk]] <- gsea(genes = genes,
+       background = tf,
+       geneSets = geneSets,
+       name = kabNames[kk])
+}
+kab
+
+# Network degree : for TFs peaking in a cell type, is their degree also highest in that cell type?
+relevantNetworks <- c("hbcAct", "GBC", "iOSN", "mOSN")
+degreeList <- list()
+for(kk in 1:k){
+  peakingTF <- rownames(clNeur[clNeur$label == kk,])
+  if(kk == 1){
+    celltype <- "hbcAct"
+  } else if(kk == 2){
+    celltype <- "mOSN"
+  } else if(kk == 3){
+    celltype <- "GBC"
+  } else if (kk == 4){
+    celltype <- "iOSN"
+  }
+  networkTF <- rownames(adjMatrices[[celltype]])
+  curTF <- peakingTF[peakingTF %in% networkTF]
+  degreeMat <- matrix(0, nrow=length(curTF), ncol=4,
+                      dimnames = list(curTF, relevantNetworks))
+  # loop over relevant cell types and fill in degree.
+  for(nn in 1:length(relevantNetworks)){
+    curNet <- adjMatrices[[relevantNetworks[nn]]]
+    tfNet <- curTF[curTF %in% rownames(curNet)]
+    # get degree of relevant TFs, corrected for average degree
+    curDegree <- rowSums(curNet[tfNet,]) / mean(rowSums(curNet))
+    degreeMat[match(names(curDegree), rownames(degreeMat)), nn] <- curDegree
+  }
+  degreeList[[kk]] <- degreeMat
+}
+names(degreeList) <- c("HBC*", "mOSN", "GBC", "iOSN")
+degreeListNeur <- degreeList
+
+rafalib::mypar(mfrow=c(2,2))
+for(nn in 1:4){
+  boxplot(degreeList[[nn]]+1, log="y", 
+          main=paste0("TFs peaking in ", names(degreeList)[nn]),
+          ylim=c(1, 12))
+}
+
+
+```
+
+
+# Sus lineage
+
+```{r}
+yhat <- peakResList$sus$yhat
+peakTimes <- peakResList$sus$firstPeak
+k <- 3
+clSus <- plotTfHeatmap(yhat, 
+                        lineage=2, 
+                        sds=sds, 
+                        cl=clDatta, 
+                        peakTimes=peakTimes, 
+                        k=k)
+
+kabNames <- c("cl1: HBC* / early Sus",
+                   "cl2: mid-late Sus",
+                   "cl3: early and late (double peak?)")
+kab <- list()
+for(kk in 1:k){
+  genes <- rownames(clSus[clSus$label == kk,])
+  kab[[kk]] <- gsea(genes = genes,
+       background = tf,
+       geneSets = geneSets,
+       name = kabNames[kk])
+}
+kab
+
+
+# Network degree : for TFs peaking in a cell type, is their degree also highest in that cell type?
+relevantNetworks <- c("hbcAct", "Sus")
+degreeList <- list()
+for(kk in 1:k){
+  peakingTF <- rownames(clSus[clSus$label == kk,])
+  if(kk == 1){
+    celltype <- "hbcAct"
+  } else if(kk %in% c(2, 3)){
+    celltype <- "Sus"
+  }
+  networkTF <- rownames(adjMatrices[[celltype]])
+  curTF <- peakingTF[peakingTF %in% networkTF]
+  degreeMat <- matrix(0, nrow=length(curTF), ncol=2,
+                      dimnames = list(curTF, relevantNetworks))
+  # loop over relevant cell types and fill in degree.
+  for(nn in 1:length(relevantNetworks)){
+    curNet <- adjMatrices[[relevantNetworks[nn]]]
+    tfNet <- curTF[curTF %in% rownames(curNet)]
+    # get degree of relevant TFs, corrected for average degree
+    curDegree <- rowSums(curNet[tfNet,]) / mean(rowSums(curNet))
+    degreeMat[match(names(curDegree), rownames(degreeMat)), nn] <- curDegree
+  }
+  degreeList[[kk]] <- degreeMat
+}
+names(degreeList) <- c("HBC*", "late Sus", "mid Sus")
+
+rafalib::mypar(mfrow=c(2,2))
+for(nn in 1:3){
+  boxplot(degreeList[[nn]]+1, log="y", 
+          main=paste0("TFs peaking in ", names(degreeList)[nn]),
+          ylim=c(1, 12))
+}
+
+```
+
+
+# rHBC lineage
+
+```{r}
+yhat <- peakResList$rhbc$yhat
+peakTimes <- peakResList$rhbc$firstPeak
+k <- 3
+clHBC <- plotTfHeatmap(yhat, 
+                        lineage=3, 
+                        sds=sds, 
+                        cl=clDatta, 
+                        peakTimes=peakTimes, 
+                        k=k)
+
+kabNames <- c("cl1: early HBC",
+                   "cl2: late rHBC",
+                   "cl3: mid rHBC")
+kab <- list()
+for(kk in 1:k){
+  genes <- rownames(clHBC[clHBC$label == kk,])
+  kab[[kk]] <- gsea(genes = genes,
+       background = tf,
+       geneSets = geneSets,
+       name = kabNames[kk])
+}
+kab
+
+
+# Network degree : for TFs peaking in a cell type, is their degree also highest in that cell type?
+relevantNetworks <- c("hbcAct", "rHBC")
+degreeList <- list()
+for(kk in 1:k){
+  peakingTF <- rownames(clNeur[clNeur$label == kk,])
+  if(kk == 1){
+    celltype <- "hbcAct"
+  } else if(kk %in% c(2,3)){
+    celltype <- "rHBC"
+  }
+  networkTF <- rownames(adjMatrices[[celltype]])
+  curTF <- peakingTF[peakingTF %in% networkTF]
+  degreeMat <- matrix(0, nrow=length(curTF), ncol=length(relevantNetworks),
+                      dimnames = list(curTF, relevantNetworks))
+  # loop over relevant cell types and fill in degree.
+  for(nn in 1:length(relevantNetworks)){
+    curNet <- adjMatrices[[relevantNetworks[nn]]]
+    tfNet <- curTF[curTF %in% rownames(curNet)]
+    # get degree of relevant TFs, corrected for average degree
+    curDegree <- rowSums(curNet[tfNet,]) / mean(rowSums(curNet))
+    degreeMat[match(names(curDegree), rownames(degreeMat)), nn] <- curDegree
+  }
+  degreeList[[kk]] <- degreeMat
+}
+names(degreeList) <- c("HBC*", "mid HBC", "late HBC")
+
+rafalib::mypar(mfrow=c(1,3))
+for(nn in 1:k){
+  boxplot(degreeList[[nn]]+1, log="y", 
+          main=paste0("TFs peaking in ", names(degreeList)[nn]),
+          ylim=c(1, 8))
+}
+
+```
+
+# Composite figure for neuronal
+
+```{r}
+
+linePlot <- function(yhat, peakTimes, lineageId){
+
+  ## get grid
+  nPoints <- 100
+  X <- colData(sce)$tradeSeq$X # linear predictor
+  slingshotColData <- colData(sce)$slingshot
+  pseudotime <- slingshotColData[,grep(x = colnames(slingshotColData),
+                                        pattern = "pseudotime")]
+  dm <- colData(sce)$tradeSeq$dm
+  grid <- tradeSeq:::.getPredictRangeDf(dm = dm, 
+                                       lineageId = lineageId,
+                                       conditionId = NULL,
+                                       nPoints = nPoints)  
+
+  ## scale yhat
+  yhatMatScaled <- t(scale(t(yhat)))
+  
+  pal <- wesanderson::wes_palette("Zissou1", n=length(peakTimes), type="continuous")
+  df <- data.frame(grid = rep(grid[,paste0("t",lineageId)], nrow(yhat)),
+                   gene = rep(rownames(yhat), each = nrow(grid)),
+                   yhat = as.vector(t(yhatMatScaled)),
+                   peakTimes = rep(peakTimes, each=nrow(grid)))
+  
+  df <- df[order(df$peakTimes),]
+  df$col <- rep(pal, each=nrow(grid))
+  
+  pLine <- ggplot(df, aes(x=grid, y=yhat, group=gene, col = col)) +
+    geom_path(aes(x=grid, y=yhat, colour = col), alpha=.6) +
+    scale_colour_identity() +
+    theme(legend.position = "none") +
+    theme_bw() +
+    theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
+          panel.border = element_blank(), axis.line = element_line()) +
+    xlab("Pseudotime") +
+    ylab("Normalized mean expression")
+  
+  return(pLine)
+}
+
+
+plotTfHeatmapCascade <- function(yhat, lineage, sds, cl, peakTimes,
+                          nPoints=ncol(yhat), dm = colData(sce)$tradeSeq$dm,
+                          main=""){
+  require(pheatmap)
+  yhatMatScaled <- t(scale(t(yhat)))
+  oo <- order(peakTimes, decreasing=FALSE)
+  annCols <- anno(lineage, nPoints, sds, dm, cl)
+  annCols2 <- as.character(colDf$trCol[match(annCols, colDf$rcCol)])
+  annCols2[is.na(annCols2)] <- "white"
+  dfAnn <- data.frame(cellType=annCols, cellType2=annCols2)
+  rownames(dfAnn) <- colnames(yhatMatScaled)
+  annColors <- list()
+  annColors[[1]] <- as.character(levels(factor(annCols)))
+  names(annColors[[1]]) <- levels(factor(annCols))
+  annColors[[2]] <- as.character(levels(factor(annCols2)))
+  names(annColors[[2]]) <- levels(factor(annCols2))
+  names(annColors) <- c("cellType", "cellType2")
+  # only use 1 color
+  dfAnn <- dfAnn[,2, drop=FALSE]
+  annColors <- annColors[2]
+  
+  pal <- wesanderson::wes_palette("Zissou1", n=12, type="continuous")
+  yhatMatScaledOrdered <- yhatMatScaled[names(peakTimes)[oo],]
+  colnames(yhatMatScaledOrdered) <- rownames(dfAnn) <- as.character(1:ncol(yhatMatScaledOrdered))
+  pHeat <- pheatmap(yhatMatScaledOrdered, cluster_cols=FALSE, cluster_rows=FALSE,
+         border_color=NA, col=pal, main=main, annotation_col=dfAnn, 
+           annotation_colors = annColors, annotation_names_col = FALSE,
+           annotation_legend = FALSE, show_rownames = FALSE,
+         show_colnames=FALSE)#, colors=cols, breaks=breaks)
+
+  return(pHeat)
+}
+
+
+# yhat = peakResList$neur$yhat
+# lineage = 1
+# sds = sds
+# cl = clDatta
+# peakTimes = peakResList$neur$firstPeak
+# k = 4
+# nPoints=ncol(yhat)
+# dm = colData(sce)$tradeSeq$dm
+# main=""
+
+# plotTfHeatmapClust <- function(yhat, 
+#                                lineage, 
+#                                sds, 
+#                                cl, 
+#                                peakTimes, 
+#                                k,
+#                                nPoints=ncol(yhat), 
+#                                dm = colData(sce)$tradeSeq$dm,
+#                                main=""){
+#   require(pheatmap)
+#   yhatMatScaled <- t(scale(t(yhat)))
+#   oo <- order(peakTimes, decreasing=FALSE)
+#   annCols <- anno(lineage, nPoints, sds, dm, cl)
+#   annCols2 <- as.character(colDf$trCol[match(annCols, colDf$rcCol)])
+#   annCols2[is.na(annCols2)] <- "white"
+#   dfAnn <- data.frame(cellType=annCols, cellType2=annCols2)
+#   rownames(dfAnn) <- colnames(yhatMatScaled)
+#   annColors <- list()
+#   annColors[[1]] <- as.character(levels(factor(annCols)))
+#   names(annColors[[1]]) <- levels(factor(annCols))
+#   annColors[[2]] <- as.character(levels(factor(annCols2)))
+#   names(annColors[[2]]) <- levels(factor(annCols2))
+#   names(annColors) <- c("cellType", "cellType2")
+#   # only use 1 color
+#   dfAnn <- dfAnn[,2, drop=FALSE]
+#   annColors <- annColors[2]
+#   #names(annColors[[1]]) <- c("HBC*", "iOSN", "Sus", "GBC", "mOSN")
+#   
+#   pal <- wesanderson::wes_palette("Zissou1", n=12, type="continuous")
+#   yhatMatScaledOrdered <- yhatMatScaled[names(peakTimes)[oo],]
+#   colnames(yhatMatScaledOrdered) <- rownames(dfAnn) <- as.character(1:ncol(yhatMatScaledOrdered))
+#   pClust <- pheatmap(yhatMatScaledOrdered, cluster_cols=FALSE, cluster_rows=TRUE,
+#          border_color=NA, col=pal, main=paste0(main,": Clustered genes"), annotation_col=dfAnn, 
+#            annotation_colors = annColors, annotation_names_col = FALSE,
+#            annotation_legend = TRUE, show_rownames = FALSE,
+#          show_colnames=FALSE)
+#   pClust
+#   
+#   clusters <- cutree(pClust$tree_row, k = k)
+#   # colRow <- c("steelblue", "darkseagreen3", "orange", "salmon", "goldenrod3")
+#   # dfAnnRow <- data.frame(clus=colRow[clusters])
+#   dfAnnRow <- data.frame(clus=clusters)
+#   rownames(dfAnnRow) <- pClust$tree_row$labels
+#   dfAnnRow$set <- NA
+#   dfAnnRow$set[dfAnnRow$clus == 1] <- "ER stress, RNA biosynthesis"
+#   dfAnnRow$set[dfAnnRow$clus == 2] <- "Cilium org., cell projection, Ca2+ signaling"
+#   dfAnnRow$set[dfAnnRow$clus == 3] <- "Cell cycle, P53 signal transduction"
+#   dfAnnRow$set[dfAnnRow$clus == 4] <- "Cell cycle, DNA recombination, chromatin"
+#   dfAnnRow <- dfAnnRow[,"set", drop=FALSE]
+# 
+#   
+#   pheatmap(yhatMatScaledOrdered, cluster_cols=FALSE, cluster_rows=TRUE,
+#          border_color=NA, col=pal, main=paste0(main,": Clustered genes"), 
+#          annotation_col=dfAnn, annotation_row = dfAnnRow,
+#            annotation_colors = annColors, annotation_names_col = FALSE,
+#            annotation_legend = TRUE, show_rownames = FALSE,
+#           show_colnames=FALSE)
+#   
+#   dfAnnRow$label <- clusters
+#   return(dfAnnRow)
+# }
+
+
+plotTfHeatmapClust2 <- function(yhat, 
+                               lineage, 
+                               sds, 
+                               cl, 
+                               peakTimes, 
+                               k,
+                               nPoints=ncol(yhat), 
+                               dm = colData(sce)$tradeSeq$dm,
+                               main=""){
+  require(pheatmap)
+  yhatMatScaled <- t(scale(t(yhat)))
+  oo <- order(peakTimes, decreasing=FALSE)
+  annCols <- anno(lineage, nPoints, sds, dm, cl, lengthThresh = 2)
+  annCols2 <- as.character(colDf$trCol[match(annCols, colDf$rcCol)])
+  annCols2[is.na(annCols2)] <- "white"
+  dfAnn <- data.frame(cellType=annCols, cellType2=annCols2)
+  rownames(dfAnn) <- colnames(yhatMatScaled)
+  annColors <- list()
+  annColors[[1]] <- as.character(levels(factor(annCols)))
+  names(annColors[[1]]) <- levels(factor(annCols))
+  annColors[[2]] <- as.character(levels(factor(annCols2)))
+  names(annColors[[2]]) <- levels(factor(annCols2))
+  names(annColors) <- c("cellType", "cellType2")
+  # only use 1 color
+  dfAnn <- dfAnn[,2, drop=FALSE]
+  annColors <- annColors[2]
+  names(annColors[[1]]) <- c("HBC*", "iOSN", "Sus", "GBC", "mOSN")
+  dfAnn[,1] <- names(annColors[[1]][match(as.character(dfAnn$cellType2), annColors[[1]])])
+  colnames(dfAnn) <- names(annColors) <- "cellType"
+  
+  
+  pal <- wesanderson::wes_palette("Zissou1", n=12, type="continuous")
+  yhatMatScaledOrdered <- yhatMatScaled[names(peakTimes)[oo],]
+  colnames(yhatMatScaledOrdered) <- rownames(dfAnn) <- as.character(1:ncol(yhatMatScaledOrdered))
+  pClust <- pheatmap(yhatMatScaledOrdered, cluster_cols=FALSE, cluster_rows=TRUE,
+         border_color=NA, col=pal, main=paste0(main,": Clustered genes"), annotation_col=dfAnn, 
+           annotation_colors = annColors, annotation_names_col = FALSE,
+           annotation_legend = TRUE, show_rownames = FALSE,
+         show_colnames=FALSE)
+  pClust
+  
+  clusters <- cutree(pClust$tree_row, k = k)
+  # colRow <- c("steelblue", "darkseagreen3", "orange", "salmon", "goldenrod3")
+  # dfAnnRow <- data.frame(clus=colRow[clusters])
+  dfAnnRow <- data.frame(clus=clusters)
+  rownames(dfAnnRow) <- pClust$tree_row$labels
+  dfAnnRow$set <- NA
+  dfAnnRow$set[dfAnnRow$clus == 1] <- "ER stress, RNA biosynthesis"
+  dfAnnRow$set[dfAnnRow$clus == 2] <- "Cilium org., cell projection, Ca2+ signaling"
+  dfAnnRow$set[dfAnnRow$clus == 3] <- "Cell cycle, P53 signal transduction"
+  dfAnnRow$set[dfAnnRow$clus == 4] <- "Cell cycle, DNA recombination, chromatin"
+  dfAnnRow <- dfAnnRow[,"set", drop=FALSE]
+  annColors$set <- c("darkseagreen3", "salmon", "orange", "steelblue")
+  names(annColors$set) <- unique(dfAnnRow[,1])
+  
+  pClust2 <- pheatmap(yhatMatScaledOrdered, cluster_cols=FALSE, cluster_rows=TRUE,
+         border_color=NA, col=pal, main=paste0(main,": Clustered genes"), 
+         annotation_col=dfAnn, annotation_row = dfAnnRow,
+           annotation_colors = annColors, annotation_names_col = FALSE,
+           annotation_legend = TRUE, show_rownames = FALSE,
+          show_colnames=FALSE, annotation_names_row = FALSE)
+  
+  return(pClust2)
+}
+```
+
+
+```{r}
+## line plot
+pLineNeur <- linePlot(peakResList$neur$yhat, peakResList$neur$firstPeak, lineageId = 1)
+
+## heatmap
+pHeatCasc <- plotTfHeatmapCascade(yhat = peakResList$neur$yhat, 
+              lineage = 1, 
+              sds = sds, 
+              cl = clDatta, 
+              peakTimes = peakResList$neur$firstPeak)
+
+## clustered heatmap
+pHeatClust <- plotTfHeatmapClust2(yhat = peakResList$neur$yhat, 
+              lineage = 1, 
+              sds = sds, 
+              cl = clDatta, 
+              peakTimes = peakResList$neur$firstPeak,
+              k = 4,
+              main="Neuronal")
+
+## connectivity
+degreeLong <- lapply(degreeListNeur, function(x){
+  curDf <- gather(data.frame(x))
+  curDf$gene <- rep(rownames(x), 4)
+  return(curDf)
+})
+for(kk in 1:length(degreeLong)){
+  degreeLong[[kk]]$peakTime <- names(degreeLong)[kk]
+}
+df <- do.call(rbind, degreeLong)
+df$key[df$key == "hbcAct"] <- "HBC*"
+df$key <- factor(df$key, 
+                 levels = c("HBC*", "GBC", "iOSN", "mOSN" ))
+df$peakTime <- factor(df$peakTime, 
+                 levels = c("HBC*", "GBC", "iOSN", "mOSN" ))
+
+pConnect <- ggplot(df, aes(x=key, y=value)) + 
+  geom_boxplot() +
+  facet_wrap(. ~ peakTime) +
+  theme_bw() +
+  xlab("Cell type") +
+  ylab("Connectivity")
+
+
+cowplot::plot_grid(pLineNeur, pHeatCasc[[4]], pConnect, nrow=1)
+
+```
+
+
+
+
+
+

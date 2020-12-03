@@ -1,0 +1,42 @@
+---
+title: "Evaluate required number of knots in HBC regen data"
+author: "Koen Van den Berge"
+date: "4/23/2020"
+output: html_notebook
+---
+
+```{r}
+setwd("/accounts/campus/koenvdberge/Documents/brainStat/hbcRegen/")
+library(tradeSeq)
+library(SingleCellExperiment)
+```
+
+```{r}
+sds <- readRDS("finalTrajectory/sling.rds")
+counts <- readRDS("finalTrajectory/counts_noResp_noMV.rds")
+
+# require at least 2 cpm in 300 cells.
+keep <- rowSums(edgeR::cpm(counts) > 2) >= 300
+table(keep)
+counts <- counts[keep,]
+
+icMat1 <- suppressWarnings(evaluateK(counts,
+									sds = sds,
+									nGenes=500,
+									k=3:10,
+									seed=81,
+									verbose=FALSE,
+									gcv=TRUE))
+saveRDS(icMat1, "icMat1_new.rds")
+```
+
+```{r}
+icMat2 <- suppressWarnings(evaluateK(counts,
+									sds = sds,
+									nGenes=500,
+									k=3:10,
+									seed=8,
+									verbose=FALSE,
+									gcv=TRUE))
+saveRDS(icMat2, "icMat2_new.rds")
+```

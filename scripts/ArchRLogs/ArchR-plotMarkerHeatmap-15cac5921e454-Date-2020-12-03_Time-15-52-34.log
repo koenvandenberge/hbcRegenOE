@@ -1,0 +1,238 @@
+
+           ___      .______        ______  __    __  .______      
+          /   \     |   _  \      /      ||  |  |  | |   _  \     
+         /  ^  \    |  |_)  |    |  ,----'|  |__|  | |  |_)  |    
+        /  /_\  \   |      /     |  |     |   __   | |      /     
+       /  _____  \  |  |\  \\___ |  `----.|  |  |  | |  |\  \\___.
+      /__/     \__\ | _| `._____| \______||__|  |__| | _| `._____|
+    
+Logging With ArchR!
+
+Start Time : 2020-12-03 15:52:34
+
+------- ArchR Info
+
+ArchRThreads = 4
+ArchRGenome = Mm10
+
+------- System Info
+
+Computer OS = unix
+Total Cores = 8
+
+------- Session Info
+
+R version 3.6.2 (2019-12-12)
+Platform: x86_64-apple-darwin15.6.0 (64-bit)
+Running under: macOS Mojave 10.14.5
+
+Matrix products: default
+BLAS:   /System/Library/Frameworks/Accelerate.framework/Versions/A/Frameworks/vecLib.framework/Versions/A/libBLAS.dylib
+LAPACK: /Library/Frameworks/R.framework/Versions/3.6/Resources/lib/libRlapack.dylib
+
+locale:
+[1] en_US.UTF-8/en_US.UTF-8/en_US.UTF-8/C/en_US.UTF-8/en_US.UTF-8
+
+attached base packages:
+ [1] grid      parallel  stats4    stats     graphics  grDevices utils     datasets  methods   base     
+
+other attached packages:
+ [1] nabor_0.5.0                        BSgenome.Mmusculus.UCSC.mm10_1.4.0 BSgenome_1.54.0                   
+ [4] rtracklayer_1.46.0                 Biostrings_2.54.0                  XVector_0.26.0                    
+ [7] ggalluvial_0.12.0                  patchwork_1.0.0                    Seurat_3.1.5                      
+[10] Signac_0.2.5                       harmony_1.0                        Rcpp_1.0.3                        
+[13] scater_1.14.6                      uwot_0.1.5                         scran_1.14.5                      
+[16] forcats_0.4.0                      stringr_1.4.0                      dplyr_0.8.4                       
+[19] purrr_0.3.3                        readr_1.3.1                        tidyr_1.0.2                       
+[22] tibble_2.1.3                       tidyverse_1.3.0                    irlba_2.3.3                       
+[25] gridExtra_2.3                      wesanderson_0.3.6                  pheatmap_1.0.12                   
+[28] RColorBrewer_1.1-2                 clusterExperiment_2.6.1            bigmemory_4.5.36                  
+[31] rgl_0.100.30                       cowplot_1.0.0                      SingleCellExperiment_1.8.0        
+[34] slingshot_1.5.2                    princurve_2.1.4                    edgeR_3.28.0                      
+[37] limma_3.42.1                       UpSetR_1.4.0                       ArchR_0.9.5                       
+[40] magrittr_1.5                       rhdf5_2.30.1                       Matrix_1.2-18                     
+[43] data.table_1.12.8                  SummarizedExperiment_1.16.1        DelayedArray_0.12.2               
+[46] BiocParallel_1.20.1                matrixStats_0.56.0                 Biobase_2.46.0                    
+[49] GenomicRanges_1.38.0               GenomeInfoDb_1.22.0                IRanges_2.20.2                    
+[52] S4Vectors_0.24.3                   BiocGenerics_0.32.0                ggplot2_3.3.2                     
+
+loaded via a namespace (and not attached):
+  [1] pkgmaker_0.31            acepack_1.4.1            bit64_0.9-7              knitr_1.28              
+  [5] rpart_4.1-15             RCurl_1.98-1.1           doParallel_1.0.15        generics_0.0.2          
+  [9] RSQLite_2.2.0            RANN_2.6.1               future_1.16.0            ggfittext_0.9.0         
+ [13] bit_1.1-15.2             phylobase_0.8.6          webshot_0.5.2            xml2_1.3.2              
+ [17] lubridate_1.7.4          httpuv_1.5.2             assertthat_0.2.1         viridis_0.5.1           
+ [21] xfun_0.12                hms_0.5.3                evaluate_0.14            promises_1.1.0          
+ [25] fansi_0.4.1              progress_1.2.2           caTools_1.18.0           dbplyr_1.4.2            
+ [29] readxl_1.3.1             igraph_1.2.4.2           DBI_1.1.0                htmlwidgets_1.5.1       
+ [33] ellipsis_0.3.0           gggenes_0.4.0            RSpectra_0.16-0          crosstalk_1.0.0         
+ [37] backports_1.1.5          annotate_1.64.0          gridBase_0.4-7           locfdr_1.1-8            
+ [41] RcppParallel_4.4.4       vctrs_0.2.2              ROCR_1.0-7               here_0.1                
+ [45] Cairo_1.5-10             withr_2.1.2              packrat_0.5.0            checkmate_2.0.0         
+ [49] sctransform_0.2.1        GenomicAlignments_1.22.1 prettyunits_1.1.1        softImpute_1.4          
+ [53] cluster_2.1.0            ape_5.3                  lazyeval_0.2.2           crayon_1.3.4            
+ [57] genefilter_1.68.0        pkgconfig_2.0.3          labeling_0.3             nlme_3.1-142            
+ [61] vipor_0.4.5              nnet_7.3-12              globals_0.12.5           rafalib_1.0.0           
+ [65] rlang_0.4.4.9000         lifecycle_0.1.0          miniUI_0.1.1.1           registry_0.5-1          
+ [69] bigmemory.sri_0.1.3      modelr_0.1.5             rsvd_1.0.2               cellranger_1.1.0        
+ [73] rprojroot_1.3-2          lmtest_0.9-37            rngtools_1.5             ggseqlogo_0.1           
+ [77] zoo_1.8-7                Rhdf5lib_1.8.0           reprex_0.3.0             base64enc_0.1-3         
+ [81] beeswarm_0.2.3           ggridges_0.5.2           GlobalOptions_0.1.1      png_0.1-7               
+ [85] viridisLite_0.3.0        rjson_0.2.20             bitops_1.0-6             KernSmooth_2.23-16      
+ [89] rncl_0.8.3               blob_1.2.1               DelayedMatrixStats_1.8.0 shape_1.4.4             
+ [93] manipulateWidget_0.10.0  zinbwave_1.11.6          jpeg_0.1-8.1             scales_1.1.0            
+ [97] ica_1.0-2                memoise_1.1.0            plyr_1.8.5               gplots_3.0.1.2          
+[101] howmany_0.3-1            gdata_2.18.0             bibtex_0.4.2.2           zlibbioc_1.32.0         
+[105] compiler_3.6.2           lsei_1.2-0               dqrng_0.2.1              clue_0.3-57             
+[109] fitdistrplus_1.0-14      Rsamtools_2.2.1          cli_2.0.1                ade4_1.7-13             
+[113] listenv_0.8.0            pbapply_1.4-2            htmlTable_1.13.3         Formula_1.2-3           
+[117] MASS_7.3-51.4            tidyselect_1.0.0         stringi_1.4.5            yaml_2.2.1              
+[121] BiocSingular_1.2.1       locfit_1.5-9.1           latticeExtra_0.6-29      ggrepel_0.8.1           
+[125] tools_3.6.2              future.apply_1.4.0       circlize_0.4.8           rstudioapi_0.11         
+[129] uuid_0.1-2               foreach_1.4.7            foreign_0.8-72           RNeXML_2.4.2            
+[133] Rtsne_0.15               farver_2.0.3             digest_0.6.23            FNN_1.1.3               
+[137] shiny_1.4.0              broom_0.5.4              later_1.0.0              RcppAnnoy_0.0.14        
+[141] httr_1.4.1               AnnotationDbi_1.48.0     ComplexHeatmap_2.3.1     npsurv_0.4-0            
+[145] kernlab_0.9-29           colorspace_1.4-1         reticulate_1.14          rvest_0.3.5             
+[149] XML_3.99-0.3             fs_1.3.1                 splines_3.6.2            statmod_1.4.33          
+[153] plotly_4.9.1             xtable_1.8-4             jsonlite_1.6.1           R6_2.4.1                
+[157] Hmisc_4.3-1              pillar_1.4.3             htmltools_0.4.0          mime_0.9                
+[161] NMF_0.21.0               glue_1.3.1               fastmap_1.0.1            BiocNeighbors_1.4.1     
+[165] codetools_0.2-16         tsne_0.1-3               lattice_0.20-38          ggbeeswarm_0.6.0        
+[169] leiden_0.3.4             gtools_3.8.1             survival_3.1-8           rmarkdown_2.1           
+[173] munsell_0.5.0            GetoptLong_0.1.8         GenomeInfoDbData_1.2.2   iterators_1.0.12        
+[177] HDF5Array_1.14.1         haven_2.2.0              reshape2_1.4.3           gtable_0.3.0            
+
+
+------- Log Info
+
+
+2020-12-03 15:52:35 : markerHeatmap Input-Parameters, Class = list
+
+markerHeatmap Input-Parameters$seMarker: length = 189874
+class: SummarizedExperiment 
+dim: 6 5 
+metadata(2): MatchInfo Params
+assays(7): Log2FC Mean ... AUC MeanBGD
+rownames(6): 1 2 ... 5 6
+rowData names(4): seqnames idx start end
+colnames(5): C1_Inj C2_Hybrid hybrid1 hybrid2 resting
+colData names(0):
+
+
+markerHeatmap Input-Parameters$cutOff: length = 1
+[1] "FDR <= 0.01 & Log2FC >= 1.25"
+
+
+markerHeatmap Input-Parameters$log2Norm: length = 1
+[1] TRUE
+
+
+markerHeatmap Input-Parameters$scaleTo: length = 1
+[1] 10000
+
+
+markerHeatmap Input-Parameters$scaleRows: length = 1
+[1] TRUE
+
+
+markerHeatmap Input-Parameters$plotLog2FC: length = 1
+[1] FALSE
+
+
+markerHeatmap Input-Parameters$limits: length = 2
+[1] -2  2
+
+
+markerHeatmap Input-Parameters$grepExclude: length = 0
+NULL
+
+
+markerHeatmap Input-Parameters$pal: length = 0
+NULL
+
+
+markerHeatmap Input-Parameters$binaryClusterRows: length = 1
+[1] TRUE
+
+
+markerHeatmap Input-Parameters$clusterCols: length = 1
+[1] TRUE
+
+
+markerHeatmap Input-Parameters$labelMarkers: length = 0
+NULL
+
+
+markerHeatmap Input-Parameters$nLabel: length = 0
+NULL
+
+
+markerHeatmap Input-Parameters$nPrint: length = 1
+[1] 20
+
+
+markerHeatmap Input-Parameters$labelRows: length = 1
+[1] FALSE
+
+
+markerHeatmap Input-Parameters$returnMatrix: length = 1
+[1] FALSE
+
+
+markerHeatmap Input-Parameters$transpose: length = 1
+[1] TRUE
+
+
+markerHeatmap Input-Parameters$invert: length = 1
+[1] FALSE
+
+
+markerHeatmap Input-Parameters$logFile: length = 1
+[1] "ArchRLogs/ArchR-plotMarkerHeatmap-15cac5921e454-Date-2020-12-03_Time-15-52-34.log"
+
+
+
+2020-12-03 15:52:36 : passMat, Class = matrix
+  C1_Inj C2_Hybrid hybrid1 hybrid2 resting
+1  FALSE     FALSE   FALSE   FALSE   FALSE
+2  FALSE     FALSE   FALSE   FALSE   FALSE
+3  FALSE     FALSE   FALSE   FALSE   FALSE
+4  FALSE     FALSE   FALSE   FALSE   FALSE
+5  FALSE     FALSE   FALSE   FALSE   FALSE
+
+passMat: nRows = 189874, nCols = 5
+
+
+2020-12-03 15:52:36 : mat, Class = matrix
+      C1_Inj  C2_Hybrid    hybrid1     hybrid2    resting
+1 -0.8355698  1.0306651 -0.3604721  1.10639184 -0.9410151
+2 -0.6264886 -0.4067597  0.8064092  1.28943717 -1.0625981
+3  0.1277287  1.1820638 -1.4687546 -0.37688296  0.5358450
+4 -1.0949809  0.7768210  0.7136275  0.69951332 -1.0949809
+5 -0.4835039 -0.3684513 -0.8412028 -0.01639634  1.7095545
+
+mat: nRows = 189874, nCols = 5
+
+
+2020-12-03 15:52:37 : mat-plot, Class = matrix
+                           C1_Inj  C2_Hybrid    hybrid1   hybrid2    resting
+chr12:3719272-3719772   0.2430062  0.1463938 -0.2812501 1.3305851 -1.4387350
+chr12:56779565-56780065 1.1277273 -0.2327864 -0.7748264 0.9564249 -1.0765394
+chr17:56909708-56910208 0.4527193 -0.8139264  1.1094521 0.5263634 -1.2746084
+chr3:82707505-82708005  0.5367429 -0.5180043 -0.9116530 1.4985550 -0.6056405
+chr5:53101975-53102475  0.8109234 -0.1452998 -0.8500068 1.2283652 -1.0439821
+
+mat-plot: nRows = 20644, nCols = 5
+
+
+------- Completed
+
+End Time : 2020-12-03 15:52:37
+Elapsed Time Minutes = 0.0539023677508036
+Elapsed Time Hours = 0.000898471938239204
+
+-------
+
+
+

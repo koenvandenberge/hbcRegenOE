@@ -1,0 +1,255 @@
+---
+title: "Custom analysis of ArchR genescores and accessibility matrix"
+author: "Koen Van den Berge"
+date: "7/15/2020"
+output: 
+  html_document:
+    toc: true
+    toc_float: true
+---
+
+Here, I use the genescore and peak accessibility matrices of `ArchR` to be able to interpret the hybrid cluster and injury effects.
+The peak and gene score matrices used in this file were generated using `ArchR` in the script `20200610_scATAC_injury_archr_samples_pairwiseHBC.Rmd`.
+
+
+
+
+```{r}
+suppressPackageStartupMessages({
+  library(ArchR)
+  library(UpSetR)
+  library(edgeR)
+  library(limma)
+})
+
+projPeaks <- loadArchRProject("../data/scATAC/archR_samples_pairwise_v2")
+
+treat <- projPeaks@cellColData$treat
+clHBCMerged <- projPeaks$clHBCMerged
+```
+
+
+# Total injury effect
+
+Compare uninjured vs injured cluster.
+
+```{r}
+geneMat <- readRDS(file="../data/scATAC/geneMatArchrHbc.rds")
+
+design <- model.matrix(~clHBCMerged)
+L <- matrix(0, nrow=ncol(design), ncol=1,
+            dimnames=list(colnames(design), c("injury_total")))
+L[c("clHBCMergedC3_UI"),1] <- -1
+
+
+d <- DGEList(geneMat)
+logCPM <- cpm(d, log = TRUE, prior.count = .5)
+lmfitCl <- lmFit(logCPM, design)
+lmfitCl <- contrasts.fit(lmfitCl, L)
+lmfitCl <- eBayes(lmfitCl, trend=TRUE)
+tt <- topTable(lmfitCl, coef=1, n=Inf)
+# hist(tt$P.Value)
+deId <- which(tt$adj.P.Val <= 0.01)
+
+ttInjuryTotal <- tt
+```
+
+Top genes of total injury effect.
+
+```{r}
+# top genes downregulated in injury (upregulated in uninjured)
+head(rownames(tt)[order(tt[deId,]$logFC)], 20)
+
+# top genes upregulated in injury (downregulated in uninjured)
+head(rownames(tt)[order(tt[deId,]$logFC, decreasing=TRUE)], 20)
+```
+
+```{r}
+## check which genes are reasonably upregulated in injury
+injuryUpGenes <- rownames(tt)[which(tt$logFC > 0.2 & tt$adj.P.Val < 0.01)]
+# write.table(injuryUpGenes, file="~/tmp/injuryUpGenes.txt",
+#             row.names = FALSE, col.names = FALSE, quote = FALSE)
+
+## check which genes are reasonably downregulated in injury
+injuryDownGenes <- rownames(tt)[which(tt$logFC < -0.2 & tt$adj.P.Val < 0.01)]
+# write.table(injuryDownGenes, file="~/tmp/injuryDownGenes.txt",
+#             row.names = FALSE, col.names = FALSE, quote = FALSE)
+
+length(injuryUpGenes) ; length(injuryDownGenes)
+```
+
+
+# Injury effect within hybrid cluster
+
+```{r}
+clusterTreatment <- factor(paste0(clHBCMerged, "_", as.character(treat)))
+table(clusterTreatment)
+
+design <- model.matrix(~-1+clusterTreatment)
+L <- matrix(0, nrow=ncol(design), ncol=1,
+            dimnames=list(colnames(design), c("injury_hybrid")))
+L[c("clusterTreatmentC2_Hybrid_Inj", "clusterTreatmentC2_Hybrid_UI"),1] <- c(1, -1)
+
+
+d <- DGEList(geneMat)
+logCPM <- cpm(d, log = TRUE, prior.count = .5)
+lmfit <- lmFit(logCPM, design)
+lmfit <- contrasts.fit(lmfit, contrasts=L)
+lmfit <- eBayes(lmfit, trend=TRUE)
+tt <- topTable(lmfit, coef=1, n=Inf)
+# hist(tt$P.Value)
+deId <- which(tt$adj.P.Val <= 0.01)
+
+ttInjuryHybrid <- tt
+```
+
+Top genes of injury effect within hybrid cluster.
+
+```{r}
+# top genes downregulated in injury (upregulated in uninjured)
+head(rownames(tt)[order(tt[deId,]$logFC)], 20)
+
+# top genes upregulated in injury (downregulated in uninjured)
+head(rownames(tt)[order(tt[deId,]$logFC, decreasing=TRUE)], 20)
+```
+
+
+```{r}
+## check which genes are reasonably upregulated in injury
+injuryHybridUpGenes <- rownames(tt)[which(tt$logFC > 0.2 & tt$adj.P.Val < 0.01)]
+# write.table(injuryHybridUpGenes, file="~/tmp/injuryHybridUpGenes.txt",
+#             row.names = FALSE, col.names = FALSE, quote = FALSE)
+
+## check which genes are reasonably downregulated in injury
+injuryHybridDownGenes <- rownames(tt)[which(tt$logFC < -0.2 & tt$adj.P.Val < 0.01)]
+# write.table(injuryHybridDownGenes, file="~/tmp/injuryHybridDownGenes.txt",
+#             row.names = FALSE, col.names = FALSE, quote = FALSE)
+
+length(injuryHybridUpGenes) ; length(injuryHybridDownGenes)
+```
+
+
+Compare injury genes in total injury effect vs hybrid injury effect
+
+```{r}
+library(grid)
+upset(fromList(list(total=injuryUpGenes, hybrid=injuryHybridUpGenes)))
+grid.text("Genes upregulated upon injury",x = 0.65, y=0.95, gp=gpar(fontsize=20))
+
+upset(fromList(list(total=injuryDownGenes, hybrid=injuryHybridDownGenes)))
+grid.text("Genes downregulated upon injury",x = 0.65, y=0.95, gp=gpar(fontsize=20))
+```
+
+Volcano plots with coloring of shared genes in hybrid and total injury effect.
+
+```{r}
+sharedUpInjury <- intersect(injuryUpGenes, injuryHybridUpGenes)
+sharedDownInjury <- intersect(injuryDownGenes, injuryHybridDownGenes)
+
+upRowsTotal <- which(rownames(ttInjuryTotal) %in% sharedUpInjury)
+downRowsTotal <- which(rownames(ttInjuryTotal) %in% sharedDownInjury)
+deRowsTotal <- c(upRowsTotal, downRowsTotal)
+
+cexTotal <- rep(1/3, nrow(ttInjuryTotal))
+cexTotal[deRowsTotal] <- 1
+colTotal <- rep("grey", nrow(ttInjuryTotal))
+colTotal[upRowsTotal] <- "salmon"
+colTotal[downRowsTotal] <- "steelblue"
+
+upRowsHybrid <- which(rownames(ttInjuryHybrid) %in% sharedUpInjury)
+downRowsHybrid <- which(rownames(ttInjuryHybrid) %in% sharedDownInjury)
+deRowsHybrid <- c(upRowsHybrid, downRowsHybrid)
+
+cexHybrid <- rep(1/3, nrow(ttInjuryHybrid))
+cexHybrid[deRowsHybrid] <- 1
+colHybrid <- rep("grey", nrow(ttInjuryHybrid))
+colHybrid[upRowsHybrid] <- "salmon"
+colHybrid[downRowsHybrid] <- "steelblue"
+
+
+rafalib::mypar(mfrow=c(1,2))
+plot(x=ttInjuryTotal$logFC, y=-log10(ttInjuryTotal$P.Value), pch=16, cex=cexTotal, 
+     main="Total injury effect", col=colTotal, xlab="Log2 fold change",
+     ylab = "-log10 p-value")
+legend("topleft", c("upregulated in injury", "downregulated in injury"), pch=16, col=c("salmon", "steelblue"), bty="n")
+plot(x=ttInjuryHybrid$logFC, y=-log10(ttInjuryHybrid$P.Value), pch=16, cex=cexHybrid, 
+     col=colHybrid, main="Hybrid injury effect", xlab="Log2 fold change",
+     ylab = "-log10 p-value")
+legend("topleft", c("upregulated in injury", "downregulated in injury"), pch=16, col=c("salmon", "steelblue"), bty="n")
+
+
+sharedUpInjury
+sharedDownInjury
+
+
+write.table(sharedUpInjury, file="../data/scATAC/sharedUpInjury.txt",
+            row.names = FALSE, col.names = FALSE, quote = FALSE)
+write.table(sharedDownInjury, file="../data/scATAC/sharedDownInjury.txt",
+            row.names = FALSE, col.names = FALSE, quote = FALSE)
+```
+
+Investigate genes uniquely upregulated in injury in the hybrid cluster, versus the total injury effect.
+
+```{r}
+uniqHybridUpInInjury <- injuryHybridUpGenes[!injuryHybridUpGenes %in% injuryUpGenes]
+# write.table(uniqHybridUpInInjury, file="~/tmp/uniqHybridUpInInjury.txt",
+#             row.names = FALSE, col.names = FALSE, quote = FALSE)
+
+uniqHybridDownInInjury <- injuryHybridDownGenes[!injuryHybridDownGenes %in% injuryDownGenes]
+# write.table(uniqHybridDownInInjury, file="~/tmp/uniqHybridDownInInjury.txt",
+#             row.names = FALSE, col.names = FALSE, quote = FALSE)
+```
+
+
+# Conditional on treatment, compare cells in hybrid cluster with cells in its respective cluster.
+
+This analysis attempts to answer two questions:
+
+ - Conditional on uninjured cells, what makes the hybrid cells different from the cluster of uninjured cells?
+ - Conditional on injured cells, what makes the hybrid cells different from the cluster of injured cells?
+ 
+
+```{r}
+clusterTreatment <- factor(paste0(clHBCMerged, "_", as.character(treat)))
+table(clusterTreatment)
+
+design <- model.matrix(~-1+clusterTreatment)
+L <- matrix(0, nrow=ncol(design), ncol=2,
+            dimnames=list(colnames(design), c("injury", "uninjured")))
+L[c("clusterTreatmentC1_Inj_Inj", "clusterTreatmentC2_Hybrid_Inj"),1] <- c(-1, 1)
+L[c("clusterTreatmentC3_UI_UI", "clusterTreatmentC2_Hybrid_UI"),2] <- c(-1, 1)
+
+
+d <- DGEList(geneMat)
+logCPM <- cpm(d, log = TRUE, prior.count = .5)
+lmfit <- lmFit(logCPM, design)
+lmfit <- contrasts.fit(lmfit, contrasts=L)
+lmfit <- eBayes(lmfit, trend=TRUE)
+tt <- topTable(lmfit, coef=1:2, n=Inf)
+```
+
+
+```{r}
+## check which genes are reasonably upregulated in hybrid
+hybridInjuryUpGenes <- rownames(tt)[which(tt$injury > 0.2 & tt$adj.P.Val < 0.01)]
+# write.table(hybridInjuryUpGenes, file="~/tmp/hybridVsCluster_injury.txt",
+#             row.names = FALSE, col.names = FALSE, quote = FALSE)
+
+## check which genes are reasonably downregulated in hybrid
+hybridUninjuredUpGenes <- rownames(tt)[which(tt$uninjured > 0.2 & tt$adj.P.Val < 0.01)]
+# write.table(hybridUninjuredUpGenes, file="~/tmp/hybridVsCluster_uninjured.txt",
+#             row.names = FALSE, col.names = FALSE, quote = FALSE)
+
+length(hybridInjuryUpGenes) ; length(hybridUninjuredUpGenes)
+```
+
+Check overlap of DA genes.
+
+```{r}
+library(UpSetR)
+upset(fromList(list(injury=hybridInjuryUpGenes, uninjured=hybridUninjuredUpGenes)))
+
+sharedHybridGenes <- intersect(hybridInjuryUpGenes, hybridUninjuredUpGenes)
+write.table(sharedHybridGenes, file="../data/scATAC/sharedHybridGenes.txt",
+            row.names = FALSE, col.names = FALSE, quote = FALSE)
+```
