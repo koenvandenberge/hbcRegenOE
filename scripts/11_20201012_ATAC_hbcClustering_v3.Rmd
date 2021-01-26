@@ -118,7 +118,13 @@ plotEmbedding(ArchRProj = archProj, colorBy = "cellColData",
               name = "clHBCMerged", embedding = "UMAP_cor")
 archrUmap <- ArchR::getEmbedding(archProj, embedding = "UMAP_cor")
 colnames(archrUmap) <- c("UMAP1", "UMAP2")
-archrUmap$clHbcMerged <- getCellColData(archProj, "clHBCMerged")$clHBCMerged
+plotEmbedding(ArchRProj = archProj, colorBy = "cellColData", 
+              name = "treat", embedding = "UMAP_cor")
+clHBCMerged <- as.character(getCellColData(archProj, "clHBCMerged")$clHBCMerged)
+clHBCMerged[clHBCMerged == "C1_Inj"] <- "Activated"
+clHBCMerged[clHBCMerged == "C2_Hybrid"] <- "Hybrid"
+clHBCMerged[clHBCMerged == "C3_UI"] <- "Resting"
+archrUmap$clHbcMerged <- factor(clHBCMerged)
 archrUmap$treatment <- getCellColData(archProj, "treat")$treat
 peaks <- archProj@peakSet
 names(peaks) <- paste0("peak",1:length(peaks))
@@ -179,7 +185,7 @@ FeaturePlot(atac, features = "Krt14") + xlim(c(-6,6))
 FeaturePlot(atac, features = "Trp63") + xlim(c(-6,6))
 ```
 
-# plots for paper
+# Seurat reduced dimension plots
 
 ```{r}
 # RNA
@@ -190,7 +196,7 @@ pRNA1 <- DimPlot(rna, group.by = "celltype", label = FALSE, repel = TRUE) +
   labs(color = "Cell state")
 # ggsave("../plots/scRNA24hHBC.png", width=9)
 
-# ATAC
+# ATAC based on Seurat
 pATAC1 <- DimPlot(atac, reduction = "umap", group.by="clHBCMerged", label=FALSE) + 
   ggtitle("scATAC-seq HBC cell states") + 
   xlim(c(-6, 7))
@@ -206,6 +212,26 @@ cowplot::plot_grid(pATAC1, pATAC2)
 
 
 # Data integration
+
+## Joint dimensionality reduction
+
+```{r, eval=FALSE}
+bothModalities <- list(rna, atac)
+for (i in 1:length(bothModalities)) {
+    bothModalities[[i]] <- SCTransform(bothModalities[[i]], verbose = FALSE)
+}
+integrationFeatures <- SelectIntegrationFeatures(object.list = bothModalities, nfeatures = 3000)
+bothModalities <- PrepSCTIntegration(object.list = bothModalities, anchor.features = integrationFeatures, verbose = FALSE)
+integrationAnchors <- FindIntegrationAnchors(object.list = bothModalities, 
+                                             normalization.method = "SCT", 
+                                             anchor.features = pancreas.features, 
+                                             verbose = FALSE)
+integrated <- IntegrateData(anchorset = integrationAnchors, dims = 1:30)
+
+```
+
+
+## Cell type transfer
 
 ```{r}
 # find anchor features
@@ -225,6 +251,11 @@ atac <- AddMetaData(atac, metadata = celltype.predictions)
 hist(atac$prediction.score.max)
 atac$predicted.id <- factor(atac$predicted.id)  # to make the colors match
 
+```
+
+## Data integration plots in Seurat space
+
+```{r}
 pat1 <- DimPlot(atac, reduction = "umap", group.by="treatment", label=TRUE) + 
   NoLegend() + 
   ggtitle("scATAC-seq truth") +
@@ -242,7 +273,11 @@ pat3 <- DimPlot(atac, group.by = "clHBCMerged", label = TRUE, repel = TRUE) +
 prna4 <- DimPlot(rna, group.by = "celltype", label = TRUE, repel = TRUE) + ggtitle("scRNA-seq") + 
     NoLegend()
 pat1 + pat2 + pat3 + prna4
+```
 
+## Data integration plots in ArchR space
+
+```{r}
 # prediction in ArchR DR space
 archrUmap$predicted.id <- celltype.predictions$predicted.id
 pat1_2 <- ggplot(archrUmap, aes(x=UMAP1, y=UMAP2, color=treatment)) +

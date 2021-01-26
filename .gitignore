@@ -2,3 +2,6 @@ data/*
 plots/*
 scripts/tmp
 .Rproj.user/*
+.Rproj.user
+ArchRLogs*
+scripts/ArchRLogs*

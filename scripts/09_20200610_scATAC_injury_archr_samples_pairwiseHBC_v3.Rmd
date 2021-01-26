@@ -422,6 +422,8 @@ saveArchRProject(ArchRProj = projPeaks, outputDirectory = "../data/scATAC/archR_
 
 # Composite plot
 
+## V1
+
 ```{r}
 library(cowplot)
 library(grid)
@@ -449,3 +451,51 @@ cowplot::plot_grid(pCellType + scale_color_manual(values = RColorBrewer::brewer.
 ggsave("../plots/figure3.png", width=12, height=9)
 ```
 
+## V2
+
+```{r}
+library(cowplot)
+library(grid)
+
+# DR of HBCs: treatment
+pinj <- ggplot(umapDimsHBC, aes(x=UMAP1, y=UMAP2, color=treat)) +
+  geom_point(size = 1, alpha=0.4) + 
+  theme_classic() +
+  labs(color = "Treatment") + 
+  scale_color_manual(values = c("orange", "darkseagreen3")) 
+  
+# DR of HBCs: cell state
+clHBCMerged2 <- as.character(clHBCMerged)
+clHBCMerged2[clHBCMerged2 == "C1_Inj"] <- "Activated"
+clHBCMerged2[clHBCMerged2 == "C2_Hybrid"] <- "Hybrid"
+clHBCMerged2[clHBCMerged2 == "C3_UI"] <- "Resting"
+pstate <- ggplot(umapDimsHBC, aes(x=UMAP1, y=UMAP2, color=clHBCMerged2)) +
+  geom_point(size = 1, alpha=0.4) + 
+  theme_classic() +
+  labs(color = "Cell state")
+ 
+
+# Barplot of injured vs uninjured in HBC states
+df <- data.frame(cl=clHBCMerged2,
+                 treatment=proj$treat)
+
+pBar <- ggplot(df, aes(x=treatment, fill=treatment)) + 
+  geom_bar(stat="count") +
+  scale_fill_manual(values = c("orange", "darkseagreen3")) +
+  facet_wrap(.~cl) +
+  theme_classic()
+pBar
+
+# Motif enrichment
+ComplexHeatmap::draw(Heatmap(heatmapMotifsMatrix))
+
+# Composite
+cowplot::plot_grid(pinj,
+                   pstate,
+                   pBar + theme_bw() + ylab("Cell count") + xlab("Treatment"),
+                   grid::grid.grabExpr(ComplexHeatmap::draw(pMotif)),
+                   nrow=2,
+                   ncol=2,
+                   labels=letters[1:4])
+ggsave("../plots/figure3_v2.png", width=12, height=9)
+```
