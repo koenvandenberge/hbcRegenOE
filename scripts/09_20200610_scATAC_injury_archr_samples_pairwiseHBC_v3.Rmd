@@ -98,12 +98,11 @@ proj <- addHarmony(
 set.seed(44)
 proj <- addClusters(input = proj, reducedDims = "Harmony", method="Seurat", resolution=.4, force=TRUE, name="clusters_cor",
   verbose = FALSE)
-proj <- addUMAP(ArchRProj = proj, reducedDims = "Harmony", force=TRUE, name="UMAP_cor",
+proj <- ArchR::addUMAP(ArchRProj = proj, reducedDims = "Harmony", force=TRUE, name="UMAP_cor",
   verbose = FALSE)
 ```
 
 ```{r plots, messages=FALSE, eval=TRUE}
-
 ## plots: batch correction
 p3 <- plotEmbedding(ArchRProj = proj, colorBy = "cellColData", name = "Sample", embedding = "UMAP_cor")
 p4 <- plotEmbedding(ArchRProj = proj, colorBy = "cellColData", name = "clusters_cor", embedding = "UMAP_cor")

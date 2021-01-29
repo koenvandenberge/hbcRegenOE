@@ -120,19 +120,19 @@ archrUmap <- ArchR::getEmbedding(archProj, embedding = "UMAP_cor")
 colnames(archrUmap) <- c("UMAP1", "UMAP2")
 plotEmbedding(ArchRProj = archProj, colorBy = "cellColData", 
               name = "treat", embedding = "UMAP_cor")
-clHBCMerged <- as.character(getCellColData(archProj, "clHBCMerged")$clHBCMerged)
-clHBCMerged[clHBCMerged == "C1_Inj"] <- "Activated"
-clHBCMerged[clHBCMerged == "C2_Hybrid"] <- "Hybrid"
-clHBCMerged[clHBCMerged == "C3_UI"] <- "Resting"
-archrUmap$clHbcMerged <- factor(clHBCMerged)
+clHBCMerged2 <- as.character(getCellColData(archProj, "clHBCMerged")$clHBCMerged)
+clHBCMerged2[clHBCMerged2 == "C1_Inj"] <- "Activated"
+clHBCMerged2[clHBCMerged2 == "C2_Hybrid"] <- "Hybrid"
+clHBCMerged2[clHBCMerged2 == "C3_UI"] <- "Resting"
+archrUmap$clHBCMerged2 <- factor(clHBCMerged2)
 archrUmap$treatment <- getCellColData(archProj, "treat")$treat
 peaks <- archProj@peakSet
 names(peaks) <- paste0("peak",1:length(peaks))
 atacPeakMat <- readRDS("../data/scATAC/peakMatArchrHbc_v2.rds")
 rownames(atacPeakMat) <- names(peaks)
 geneActivity <- readRDS("../data/scATAC/geneMatArchrHbc.rds")
-atac <- CreateSeuratObject(counts = atacPeakMat, 
-                           assay = "ATAC", 
+atac <- Seurat::CreateSeuratObject(counts = atacPeakMat,
+                           assay = "ATAC",
                            project = "10x_ATAC")
 atac[["ACTIVITY"]] <- CreateAssayObject(counts = geneActivity)
 atac$tech <- "atac"
@@ -148,9 +148,13 @@ DefaultAssay(atac) <- "ATAC"
 # VariableFeatures(atac) <- names(which(Matrix::rowSums(atac) > 50))
 # atac <- RunLSI(atac, n = 30, scale.max = NULL)
 # atac <- RunUMAP(atac, reduction = "lsi", dims = 1:30)
-atac <- RunTFIDF(atac)
 atac <- FindTopFeatures(atac, min.cutoff = 'q0')
-atac <- RunLSI(atac, n = 30)
+# Seurat 3
+atac <- RunLSI(atac, n = 30) 
+# Seurat 4
+#atac <- RunTFIDF(atac)
+#atac <- RunSVD(atac, n = 30, reduction.key = "lsi_", reduction.name = "lsi")
+# drop first dim as often correlated with seq depth
 atac <- RunUMAP(object = atac, reduction = 'lsi', dims = 2:30)
 
 # scRNA-seq import
@@ -200,7 +204,7 @@ pRNA1 <- DimPlot(rna, group.by = "celltype", label = FALSE, repel = TRUE) +
 pATAC1 <- DimPlot(atac, reduction = "umap", group.by="clHBCMerged", label=FALSE) + 
   ggtitle("scATAC-seq HBC cell states") + 
   xlim(c(-6, 7))
-pATAC2 <- DimPlot(atac, reduction = "umap", group.by="treatment", label=FALSE) +
+pATAC2 <- DimPlot(atac, reduction = "umap", group.by="treatment", label=FALSE, pt.size = .2) +
   scale_color_manual(labels = c("Injured", "Uninjured"),
                      values = c("orange", "darkseagreen3")) +
   ggtitle("scATAC-seq HBC treatment") + 
@@ -213,22 +217,6 @@ cowplot::plot_grid(pATAC1, pATAC2)
 
 # Data integration
 
-## Joint dimensionality reduction
-
-```{r, eval=FALSE}
-bothModalities <- list(rna, atac)
-for (i in 1:length(bothModalities)) {
-    bothModalities[[i]] <- SCTransform(bothModalities[[i]], verbose = FALSE)
-}
-integrationFeatures <- SelectIntegrationFeatures(object.list = bothModalities, nfeatures = 3000)
-bothModalities <- PrepSCTIntegration(object.list = bothModalities, anchor.features = integrationFeatures, verbose = FALSE)
-integrationAnchors <- FindIntegrationAnchors(object.list = bothModalities, 
-                                             normalization.method = "SCT", 
-                                             anchor.features = pancreas.features, 
-                                             verbose = FALSE)
-integrated <- IntegrateData(anchorset = integrationAnchors, dims = 1:30)
-
-```
 
 
 ## Cell type transfer
@@ -297,6 +285,37 @@ prna1_2 <- DimPlot(rna, group.by = "celltype", label = TRUE, repel = TRUE) +
   ggtitle("scRNA-seq") + 
   NoLegend()
 pat1_2 + pat2_2 + pat3_2 + prna1_2
+```
+
+
+## Joint dimensionality reduction
+
+
+```{r, eval=TRUE}
+genes.use <- VariableFeatures(rna)
+refdata <- GetAssayData(rna, assay = "RNA", slot = "data")[genes.use, ]
+
+# refdata (input) contains a scRNA-seq expression matrix for the scRNA-seq cells.  imputation
+# (output) will contain an imputed scRNA-seq matrix for each of the ATAC cells
+imputation <- TransferData(anchorset = transfer.anchors, 
+                           refdata = refdata, 
+                           weight.reduction = atac[["lsi"]])
+
+# this line adds the imputed data matrix to the pbmc.atac object
+atacJoint <- atac
+atacJoint[["RNA"]] <- imputation
+coembed <- merge(x = rna, y = atacJoint)
+
+# Finally, we run PCA and UMAP on this combined object, to visualize the co-embedding of both
+# datasets
+coembed <- ScaleData(coembed, features = genes.use, do.scale = FALSE)
+coembed <- RunPCA(coembed, features = genes.use, verbose = FALSE)
+coembed <- RunUMAP(coembed, dims = 1:30)
+coembed$celltype <- ifelse(!is.na(coembed$celltype), coembed$celltype, coembed$predicted.id)
+
+p1 <- DimPlot(coembed, group.by = "tech")
+p2 <- DimPlot(coembed, group.by = "celltype", label = TRUE, repel = TRUE)
+p1 + p2
 ```
 
 # Compare predictions with truth and ArchR clusters
@@ -421,6 +440,15 @@ ctHybridSub[hlp2id] <- "hybrid1"
 hlp1id <- which(rna@reductions$umap@cell.embeddings[,1] > 2 & rna@reductions$umap@cell.embeddings[,2]>4)
 ctHybridSub[hlp1id] <- "hybrid2"
 rna$ctHybridSub <- ctHybridSub
+# ctHybridSub <- as.character(rna$celltype)
+# hlpid <- which(rna@reductions$umap@cell.embeddings[,1] > 2 & rna@reductions$umap@cell.embeddings[,2] < 2)
+# ctHybridSub[hlpid] <- NA
+# hlp2id <- which(rna@reductions$umap@cell.embeddings[,1] > 2 & rna@reductions$umap@cell.embeddings[,2] > -1 & rna@reductions$umap@cell.embeddings[,2]<2)
+# ctHybridSub[hlp2id] <- "hybrid1"
+# hlp1id <- which(rna@reductions$umap@cell.embeddings[,1] > 2 & rna@reductions$umap@cell.embeddings[,2] < -4)
+# ctHybridSub[hlp1id] <- "hybrid2"
+# rna$ctHybridSub <- ctHybridSub
+
 
 DimPlot(rna, group.by = "ctHybridSub", label = FALSE, repel = TRUE) +
   ggtitle("scRNA-seq") 
@@ -482,7 +510,7 @@ ppred4_2 <- DimPlot(rna, group.by = "ctHybridSub", label = FALSE, repel = TRUE, 
         axis.text = element_text(size = 9),
         plot.title = element_text(face = "plain", size=13))
 ppred1_2 + ppred2_2 + ppred3_2 + ppred4_2
-
+ggsave("../plots/predictionsRNAATAC_archRSpace.png", width=12, height=9)
 
 ## size of cell is prediction prob
  ggplot(archrUmap, aes(x=UMAP1, y=UMAP2, color=predicted.id)) +
@@ -492,7 +520,75 @@ ppred1_2 + ppred2_2 + ppred3_2 + ppred4_2
 
 boxplot(celltype.predictions3$prediction.score.max ~ celltype.predictions3$predicted.id,
         xlab="Predicted state", ylab="Probability")
+
+## distribution of injured and uninjured cells in each cluster
+df <- data.frame(treatment=atac$treatment,
+                 cluster=atac$predictedCtHybrid)
+dfTotal <- df %>% 
+  group_by(cluster) %>%
+  mutate(totalCells=n()) %>%
+  group_by(cluster, treatment) %>%
+  summarize(fracCells = n() / unique(totalCells))
+
+ggplot(dfTotal, aes(x=treatment, fill=treatment, y=fracCells)) + 
+  geom_bar(position="dodge", stat="identity") +
+  scale_fill_manual(values = c("orange", "darkseagreen3")) +
+  facet_wrap(.~cluster) +
+  ylab("Fraction of cells") +
+  theme_classic()
 ```
+
+## Joint dimensionality reduction
+
+```{r}
+atacJoint <- atac
+DefaultAssay(atacJoint) <- "ATAC"
+VariableFeatures(atacJoint) <- names(which(Matrix::rowSums(atacJoint) > 100))
+atacJoint <- RunLSI(atacJoint, n = 50, scale.max = NULL)
+atacJoint <- RunUMAP(atacJoint, reduction = "lsi", dims = 2:50)
+
+
+genes.use <- VariableFeatures(rna)
+refdata <- GetAssayData(rna, assay = "RNA", slot = "data")[genes.use, ]
+
+# refdata (input) contains a scRNA-seq expression matrix for the scRNA-seq cells.  imputation
+# (output) will contain an imputed scRNA-seq matrix for each of the ATAC cells
+imputation <- TransferData(anchorset = transfer.anchors, 
+                           refdata = refdata, 
+                           weight.reduction = atacJoint[["lsi"]])
+
+# this line adds the imputed data matrix to the pbmc.atac object
+atacJoint[["RNA"]] <- imputation
+coembed <- merge(x = rna, y = atacJoint)
+
+# Finally, we run PCA and UMAP on this combined object, to visualize the co-embedding of both
+# datasets
+coembed <- ScaleData(coembed, features = genes.use, do.scale = FALSE)
+coembed <- RunPCA(coembed, features = genes.use, verbose = FALSE)
+coembed <- RunUMAP(coembed, dims = 1:30)
+
+celltype.predictionsJoint <- TransferData(anchorset = transfer.anchors, 
+                                     refdata = rna$ctHybridSub, 
+                                     weight.reduction = atacJoint[["lsi"]],
+                                     dims=1:50)
+# fill in predicted labels: using joint DR or procedure above is very similar.
+coembed$ctHybridSubPred <- coembed$ctHybridSub
+## based on joint DR
+# coembed@meta.data[rownames(celltype.predictionsJoint), "ctHybridSubPred"] <- celltype.predictionsJoint$predicted.id
+## ones we had before
+coembed@meta.data[rownames(celltype.predictions3), "ctHybridSubPred"] <- celltype.predictions3$predicted.id
+
+
+p1 <- DimPlot(coembed, group.by = "tech") + ggtitle("Modality")
+p2 <- DimPlot(coembed, group.by = "ctHybridSub", label = TRUE, repel = TRUE) + ggtitle("RNA clusters")
+p3 <- DimPlot(coembed, group.by = "clHBCMerged", label = TRUE, repel = TRUE) + ggtitle("ATAC clusters")
+p4 <- DimPlot(coembed, group.by = "ctHybridSubPred", label = TRUE, repel = TRUE) + ggtitle("Transferred clusters")
+p1 + p2 + p3 + p4
+ggsave("../plots/jointDimRed_v1.png", width=10, height=6)
+
+```
+
+
 
 
 # Markers for sub-hybrid clusters
