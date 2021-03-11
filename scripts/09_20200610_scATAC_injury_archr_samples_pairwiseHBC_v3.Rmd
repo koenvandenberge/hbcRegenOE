@@ -377,6 +377,7 @@ motifsUp <- peakAnnoEnrichment(
     peakAnnotation = "Motif",
     cutOff = "FDR <= 0.05 & Log2FC >= 0.5"
   )
+saveRDS(motifsUp, file = "../data/motifsUpregulated_scATAC.rds")
 
 heatmapMotifsUp <- plotEnrichHeatmap(motifsUp, transpose = TRUE)
 pMotif <- ComplexHeatmap::draw(heatmapMotifsUp, heatmap_legend_side = "bot", annotation_legend_side = "bot")
@@ -399,6 +400,14 @@ png("../plots/motifHeatmapHBCStates.png", width=10, height=7, units="in", res=30
 ComplexHeatmap::draw(heatmapMotifsUp, heatmap_legend_side = "bot", annotation_legend_side = "bot")
 dev.off()
 ```
+
+### Ets motifs
+
+```{r}
+etsID <- grep(x=rownames(motifsUp), pattern="Ets")
+assays(motifsUp[etsID,])$mlog10Padj # no enrichment
+```
+
 
 ## Export peak data for custom downstream analysis
 

@@ -588,6 +588,32 @@ ggsave("../plots/jointDimRed_v1.png", width=10, height=6)
 
 ```
 
+## Joint dimensionality reduction using LIGER
+
+```{r}
+# liger basically takes two count matrices as input.
+# we'll use the rounded ACTIVITY count matrix as input for scATAC.
+atacCounts <- round(atac[["ACTIVITY"]]@counts)
+rnaCounts <- round(rna@assays$RNA@counts)
+library(liger)
+# hbcData <- list(atac = atacCounts[rownames(atacCounts) %in% rownames(rnaCounts),], 
+#                 rna = rnaCounts)
+# hbcData <- createLiger(hbcData)
+# # preprocess
+# hbcData <- normalize(hbcData)
+# hbcData <- selectGenes(hbcData, datasets.use = 2)
+# hbcData <- scaleNotCenter(hbcData)
+# scaleNotCenter takes extremely long. Result is therefore saved.
+hbcData <- readRDS("../data/hbcData_liger_afterScaleNotCenter.rds")
+# suggestLambda(hbcData, k=30)
+hbcData <- optimizeALS(hbcData, k=30, lambda = 10)
+hbcData <- quantile_norm(hbcData)
+hbcData <- runUMAP(hbcData, distance='cosine', min_dist=.3)
+clSeurat <- coembed@meta.data$ctHybridSubPred
+names(clSeurat) <- rownames(coembed@meta.data)
+clSeurat <- clSeurat[names(hbcData@clusters)]
+liger::plotByDatasetAndCluster(hbcData, clusters =  clSeurat)
+```
 
 
 
