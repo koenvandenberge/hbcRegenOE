@@ -1,0 +1,44 @@
+---
+title: "HBC motifs ATAC-seq"
+author: "Koen Van den Berge"
+date: "6/17/2021"
+output: html_document
+---
+
+
+```{r}
+suppressPackageStartupMessages({
+  library(ArchR)
+  library(UpSetR)
+  library(edgeR)
+  library(limma)
+})
+
+projPeaks <- loadArchRProject("../data/scATAC/archR_samples_pairwise_v2")
+geneMat <- readRDS(file="../data/scATAC/geneMatArchrHbc.rds")
+
+treat <- projPeaks@cellColData$treat
+clHBCMerged <- projPeaks$clHBCMerged
+```
+
+# DE between injured and uninjured cluster
+
+```{r}
+design <- model.matrix(~clHBCMerged)
+
+d <- DGEList(geneMat)
+logCPM <- cpm(d, log = TRUE, prior.count = .5)
+lmfitCl <- lmFit(logCPM, design)
+lmfitCl <- eBayes(lmfitCl, trend=TRUE)
+tt <- topTable(lmfitCl, coef="clHBCMergedC3_UI", n=Inf)
+deId <- which(tt$adj.P.Val <= 0.05)
+topGenes <- rownames(tt)[deId][order(tt$logFC[deId], decreasing=TRUE)[1:1000]]
+write.table(topGenes, file = "../data/genesTargets/topDEList_hbc_atac.txt", 
+            row.names = FALSE, col.names = FALSE, quote = FALSE)
+```
+
+```{bash, eval=FALSE}
+/Applications/homer/bin/findMotifs.pl /Users/koenvandenberge/Dropbox/research/brainStat/hbcRegenGithub/data/genesTargets/hbcMotifs_atac/topDEList_hbc_atac.txt mouse /Users/koenvandenberge/Dropbox/research/brainStat/hbcRegenGithub/data/genesTargets/hbcMotifs_atac/
+```
+
+

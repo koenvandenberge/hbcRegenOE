@@ -1,0 +1,123 @@
+---
+title: "ATAC-seq accessibility exploration"
+author: "Koen Van den Berge"
+date: "4/1/2021"
+output: 
+  html_document:
+    toc: true
+    toc_float: true
+---
+
+
+```{r}
+library(ArchR)
+archProj <- loadArchRProject("../data/scATAC/archR_subHybridClusters/",
+                 showLogo = FALSE)
+archProj <- addMotifAnnotations(ArchRProj = archProj, 
+                                motifSet = "cisbp", 
+                                name = "Motif",
+                                force=TRUE)
+
+## get ArchR markers for motif enrichment
+markerPeaks_subHybrid <- getMarkerFeatures(
+    ArchRProj = archProj, 
+    useMatrix = "PeakMatrix", 
+    groupBy = "predAnn",
+    bias = c("TSSEnrichment", "log10(nFrags)"),
+    testMethod = "wilcoxon")
+peakMarkers_subHybrid <- getMarkers(markerPeaks_subHybrid, 
+                                    cutOff = "FDR <= 0.01 & Log2FC >= 1.25", 
+                                    returnGR = TRUE)
+heatmapMarkerPeaks <- plotMarkerHeatmap(
+  seMarker = markerPeaks_subHybrid, 
+  cutOff = "FDR <= 0.01 & Log2FC >= 1.25", 
+  transpose = TRUE
+)
+ComplexHeatmap::draw(heatmapMarkerPeaks, heatmap_legend_side = "bot", annotation_legend_side = "bot")
+```
+
+# Check accessibility of Egfr target genes
+
+```{r}
+egfrTargetDf <- read.csv("../data/genesTargets/egfr_targets_unfiltered.csv")
+pCluster <- plotEmbedding(ArchRProj = archProj, 
+                    colorBy = "cellColData", 
+                    name = "predAnn", 
+                    embedding = "UMAP_cor")
+pCluster
+
+allGenes <- unname(unique(mcols(archProj@geneAnnotation$genes)$symbol))
+egfrTargets <- intersect(as.character(egfrTargetDf$target), allGenes)
+
+## get peak count matrix
+ArrowFiles <- getArrowFiles(archProj)
+featureDF <- ArchR:::.getFeatureDF(head(ArrowFiles, 2), "PeakMatrix")
+peakMat <- ArchR:::.getPartialMatrix(ArrowFiles, 
+            featureDF = featureDF, threads = 1, useMatrix = "PeakMatrix", 
+            cellNames = rownames(archProj@cellColData), progress = FALSE)
+
+## for each gene, get the peak closest to TSS
+peakGR <- archProj@peakSet
+tssPeaks <- c()
+for(gg in 1:length(egfrTargets)){
+  curGene <- egfrTargets[gg]
+  curID <- which(mcols(peakGR)$nearestGene == curGene)
+  if(length(curID) > 0 ){
+    curTSSPeak <- curID[which.min(mcols(peakGR)$distToTSS[curID])]
+    tssPeaks[gg] <- curTSSPeak
+  } else {
+    tssPeaks[gg] <- NA
+    next
+  }
+}
+
+egfrTargets <- egfrTargets[!is.na(tssPeaks)]
+tssPeaks <- tssPeaks[!is.na(tssPeaks)]
+egfrTargetPeaks <- peakMat[tssPeaks,]
+# egfrTargetPeakScaledSum <- colSums(t(scale(t(egfrTargetPeaks))))
+egfrTargetPeakScaledSum <- colSums(egfrTargetPeaks)
+
+
+umapEmbedding <- getEmbedding(archProj, embedding="UMAP_cor")
+colnames(umapEmbedding) <- paste0("UMAP",1:2)
+umapEmbedding$egfrTargetScaledSum <- egfrTargetPeakScaledSum
+
+pEgfrTargets <- ggplot(umapEmbedding, aes(x=UMAP1,
+                          y=UMAP2,
+                          col=egfrTargetScaledSum)) +
+  theme_classic() +
+  geom_point() +
+  scale_color_gradientn(colors=wesanderson::wes_palette("Zissou1", n=100, type="continuous"))
+
+pEgfrTargets
+```
+
+# Check accessibility of peaks containining Ets TFBS motif
+
+```{r}
+motifMatches <- readRDS(archProj@peakAnnotation$Motif$Matches)
+etsMotifId <- grep(x=colnames(motifMatches), pattern="Ets")
+etsMotifs <- grep(x=colnames(motifMatches), pattern="Ets", value=TRUE)
+peaksWithEtsMotifs <- which(rowSums(assays(motifMatches[,etsMotifs])$matches) > 0)
+length(peaksWithEtsMotifs)
+
+umapEmbedding$etsMotifPeaks <- colSums(peakMat[peaksWithEtsMotifs,])
+
+pEtsMotifs <- ggplot(umapEmbedding, aes(x=UMAP1,
+                          y=UMAP2,
+                          col=etsMotifPeaks)) +
+  theme_classic() +
+  geom_point() +
+  scale_color_gradientn(colors=wesanderson::wes_palette("Zissou1", n=100, type="continuous"))
+
+pEtsMotifs
+```
+
+# Association between Egfr targets' accessibility and Ets motif peaks' accessibility
+
+```{r}
+plot(umapEmbedding$egfrTargetScaledSum, umapEmbedding$etsMotifPeaks,
+     xlab = "Egfr targets' accessibility",
+     ylab = "Ets-motif-containing peaks' accessibility")
+```
+

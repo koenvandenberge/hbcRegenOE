@@ -457,6 +457,7 @@ DimPlot(rna, group.by = "ctHybridSub", label = FALSE, repel = TRUE) +
 celltype.predictions3 <- TransferData(anchorset = transfer.anchors, 
                                      refdata = rna$ctHybridSub, 
                                      weight.reduction = atac[["lsi"]])
+# saveRDS(celltype.predictions3, file="../data/integration/cellTypePrediction_Seurat3_1_5.rds")
 
 # add predicted labels to ATAC
 atac$predictedCtHybrid <- celltype.predictions3$predicted.id
@@ -706,6 +707,8 @@ heatmapMarkerPeaks <- plotMarkerHeatmap(
 )
 ComplexHeatmap::draw(heatmapMarkerPeaks, heatmap_legend_side = "bot", annotation_legend_side = "bot")
 
+saveArchRProject(archProj,
+                 outputDirectory = "../data/scATAC/archR_subHybridClusters/")
 ```
 
 # Color RNA-seq data based on new markers
@@ -1125,5 +1128,11 @@ FeaturePlot(rna, features = respGenesDavid)
 
 FeaturePlot(rna, features = respGenesBoying) + NoLegend()
 
+```
+
+# Session Info
+
+```{r}
+sessionInfo()
 ```
 

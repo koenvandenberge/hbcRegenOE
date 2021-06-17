@@ -65,7 +65,7 @@ clDatta <- readRDS("../data/finalTrajectory/dattaCl_noResp_noMV.rds")
 
 ```{r}
 plot3d(reducedDim(sds), aspect = 'iso', col=brewer.pal(9,'Set1')[clDatta], alpha=.6)
-plot3d(sds, add=TRUE, col=c("black"), lwd=4)
+plot3d.SlingshotDataSet(sds, add=TRUE, col=c("black"), lwd=4)
 ```
 
 # Gene expression along pseudotime
@@ -80,6 +80,121 @@ plotSmoothers(sce, counts, gene="Hbegf") +
   ggtitle("Hbegf")
 
 plot3d(reducedDim(sds), aspect = 'iso', col=colby(counts["Hbegf",], g=3), alpha=.6)
-plot3d(sds, add=TRUE, col=c("black"), lwd=4)
+plot3d.SlingshotDataSet(sds, add=TRUE, col=c("black"), lwd=4)
+rgl.snapshot('../plots/expressionTrajectory/3dplot_hbegf.png', fmt = 'png')
+```
+
+## Egfr targets
+
+```{r}
+egfrTargetDf <- read.csv("../data/genesTargets/egfr_targets_unfiltered.csv")
+egfrTargets <- egfrTargetDf$target
+egfrTargets <- intersect(egfrTargets, rownames(counts))
+egfrTargetCounts <- counts[egfrTargets,]
+egfrTargetScaledCounts <- t(scale(t(egfrTargetCounts)))
+
+
+plot3d(reducedDim(sds), aspect = 'iso', col=brewer.pal(9,'Set1')[clDatta], alpha=.6)
+plot3d.SlingshotDataSet(sds, add=TRUE, col=c("black"), lwd=4)
+
+plot3d(reducedDim(sds), aspect = 'iso', col=colby(colMeans(egfrTargetScaledCounts), g=10), alpha=.6)
+plot3d.SlingshotDataSet(sds, add=TRUE, col="black", lwd=4)
+rgl.snapshot('../plots/expressionTrajectory/3dplot_egfrTargets.png', fmt = 'png')
+
+# movie3d(
+#   movie="3dOE_egfrTargets", 
+#   spin3d( axis = c(0, 1, 0), rpm = 5),
+#   duration = 20, 
+#   dir = "~/",
+#   type = "gif", 
+#   clean = TRUE
+# )
+
+
+plot3d(reducedDim(sds), aspect = 'iso', col=colby(counts["Egfr",], g=3), alpha=.6)
+plot3d.SlingshotDataSet(sds, add=TRUE, col=c("black"), lwd=4)
+rgl.snapshot('../plots/expressionTrajectory/3dplot_egfr.png', fmt = 'png')
+```
+
+## Hopx
+
+```{r}
+plot3d(reducedDim(sds), aspect = 'iso', col=colby(counts["Hopx",], g=2), alpha=.6)
+plot3d.SlingshotDataSet(sds, add=TRUE, col=c("black"), lwd=4)
+```
+
+## Areg
+
+```{r}
+plot3d(reducedDim(sds), aspect = 'iso', col=colby(counts["Areg",], g=3), alpha=.6)
+plot3d.SlingshotDataSet(sds, add=TRUE, col=c("black"), lwd=4)
+rgl.snapshot('../plots/expressionTrajectory/3dplot_areg.png', fmt = 'png')
+
+sum(counts["Areg",] > 0)
+```
+
+## Hsp70 (Hspa1a)
+
+```{r}
+plot3d(reducedDim(sds), aspect = 'iso', col=colby(counts["Hspa1a",], g=3), alpha=.6)
+plot3d.SlingshotDataSet(sds, add=TRUE, col=c("black"), lwd=4)
+rgl.snapshot('../plots/expressionTrajectory/3dplot_hsp70.png', fmt = 'png')
+```
+
+## Ar
+
+```{r}
+plot3d(reducedDim(sds), aspect = 'iso', col=colby(counts["Ar",], g=2), alpha=.6)
+plot3d.SlingshotDataSet(sds, add=TRUE, col=c("black"), lwd=4)
+rgl.snapshot('../plots/expressionTrajectory/3dplot_ar.png', fmt = 'png')
+
+sum(counts["Ar",] > 0)
+```
+
+## Trp53 / Trp63
+
+```{r}
+plot3d(reducedDim(sds), aspect = 'iso', col=colby(counts["Trp53",], g=3), alpha=.6)
+plot3d.SlingshotDataSet(sds, add=TRUE, col=c("black"), lwd=4)
+rgl.snapshot('../plots/expressionTrajectory/3dplot_trp53.png', fmt = 'png')
+
+
+plot3d(reducedDim(sds), aspect = 'iso', col=colby(counts["Trp63",], g=3), alpha=.6)
+plot3d.SlingshotDataSet(sds, add=TRUE, col=c("black"), lwd=4)
+rgl.snapshot('../plots/expressionTrajectory/3dplot_trp63.png', fmt = 'png')
+
+rafalib::mypar(mfrow=c(1,2))
+plot(x=counts["Trp53",], y=counts["Trp63",],
+     xlab="Trp53 expression", ylab="Trp63 expression")
+smoothScatter(x=counts["Trp53",], y=counts["Trp63",],
+     xlab="Trp53 expression", ylab="Trp63 expression")
+
+```
+
+
+
+
+# Heterogeneity in TF expression
+
+```{r}
+genesToPlot <- c("Hbegf", "Ets1", "Ets2", "Krt5", "Trp63", "Krt6a")
+pList <- list()
+for(gg in 1:length(genesToPlot)){
+  pList[[gg]] <- plotSmoothers(sce, counts, gene=genesToPlot[gg], 
+              plotLineages=FALSE, border=FALSE,
+              pointCol = clDatta) + 
+              ggtitle(genesToPlot[gg]) + ylim(c(0,5)) +
+              theme(legend.position = "none")
+}
+
+p1 <- plotSmoothers(sce, counts, gene=genesToPlot[gg], 
+              plotLineages=FALSE, border=FALSE,
+              pointCol = clDatta) + ggtitle(genesToPlot[gg]) + ylim(c(0,5)) + 
+    guides(color = guide_legend(nrow = 1)) +
+    theme(legend.position = "bottom")
+leg <- cowplot::get_legend(p1)
+pall <- cowplot::plot_grid(plotlist = pList)
+pallLeg <- cowplot::plot_grid(pall, leg, nrow=2, rel_heights = c(0.9, 0.1))
+pallLeg
 ```
 

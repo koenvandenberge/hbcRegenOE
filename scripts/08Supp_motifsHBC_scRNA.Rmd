@@ -1,0 +1,97 @@
+---
+title: "Motifs for DE genes between HBC* and rHBC"
+author: "Koen Van den Berge"
+date: "6/17/2021"
+output: html_document
+---
+
+```{r pkg}
+here::set_here()
+suppressPackageStartupMessages({
+  library(slingshot)
+  library(tradeSeq)
+  library(SingleCellExperiment)
+  library(cowplot)
+  library(rgl)
+  library(clusterExperiment)
+  library(RColorBrewer)
+  library(aggregation)
+  library(ggplot2)
+  library(pheatmap)
+  library(wesanderson)
+  library(UpSetR)
+  library(gridExtra)
+})
+colby <- function(values, g=4){
+  if(is(values, "character")){
+    cols <- as.numeric(as.factor(values))
+    return(cols)
+  }
+  if(is(values, "factor")){
+    ncl <- nlevels(values)
+    if(ncl > 9){
+          colpal <- c(RColorBrewer::brewer.pal(9, 'Set1'), wesanderson::wes_palette("Darjeeling1", n=ncl-9, type="continuous"))
+    } else {
+       colpal <- RColorBrewer::brewer.pal(9, 'Set1')
+    }
+    cols <- colpal[as.numeric(values)]
+    return(cols)
+  }
+  if(is(values, "numeric")){
+    pal <- wesanderson::wes_palette("Zissou1", n=g, type="continuous")
+    gg <- Hmisc::cut2(values, g=g)
+    if(nlevels(gg) < g){
+      nl <- nlevels(gg)
+      if(nl == 2) pal <- pal[c(1,g)]
+    }
+    cols <- pal[gg]
+    return(cols)
+  }
+}
+```
+
+# Import data
+
+```{r loadData}
+sds <- readRDS("../data/finalTrajectory/sling.rds")
+counts <- readRDS("../data/finalTrajectory/counts_noResp_noMV.rds")
+counts <- round(counts)
+sce <- readRDS("../data/finalTrajectory/sce_tradeSeq20200904.rds")
+load("../data/ALL_TF.Rda")
+clDatta <- readRDS("../data/finalTrajectory/dattaCl_noResp_noMV.rds")
+```
+
+# Trajectory
+
+```{r}
+plot3d(reducedDim(sds), aspect = 'iso', col=brewer.pal(9,'Set1')[clDatta], alpha=.6)
+plot3d.SlingshotDataSet(sds, add=TRUE, col=c("black"), lwd=4)
+```
+
+# DE analysis
+
+```{r}
+library(glmGamPoi)
+cl <- droplevels(clDatta)
+cl <- relevel(cl, ref="HBC*")
+design <- model.matrix(~cl)
+
+fit <- glmGamPoi::glm_gp(counts, design)
+res <- glmGamPoi::test_de(fit, contrast = "clHBC")
+```
+
+# Motifs of top DE genes that are higher in HBC* versus rHBC
+
+```{r}
+deGenes <- which(res$adj_pval <= 0.05)
+topGenes <- res$name[deGenes][order(res$lfc[deGenes], decreasing=FALSE)[1:1000]]
+write.table(topGenes, file = "../data/genesTargets/topDEList_hbc.txt", 
+            row.names = FALSE, col.names = FALSE, quote = FALSE)
+```
+
+
+```{bash, eval=FALSE}
+/Applications/homer/bin/findMotifs.pl /Users/koenvandenberge/Dropbox/research/brainStat/hbcRegenGithub/data/genesTargets/hbcMotifs_rna/topDEList_hbc.txt mouse /Users/koenvandenberge/Dropbox/research/brainStat/hbcRegenGithub/data/genesTargets/hbcMotifs_rna/
+```
+
+
