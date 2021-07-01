@@ -198,3 +198,13 @@ pallLeg <- cowplot::plot_grid(pall, leg, nrow=2, rel_heights = c(0.9, 0.1))
 pallLeg
 ```
 
+# Figure 1
+
+```{r}
+labels <- c("Neur", "Sus", "rHBC")
+names(labels) <- as.character(1:3)
+traviz::plotSmoothers(sce, counts, gene="Fkbp15") + 
+  scale_color_viridis_d(labels=labels) + 
+  ggtitle("Fkbp15")
+```
+

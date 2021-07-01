@@ -31,6 +31,11 @@ logCPM <- cpm(d, log = TRUE, prior.count = .5)
 lmfitCl <- lmFit(logCPM, design)
 lmfitCl <- eBayes(lmfitCl, trend=TRUE)
 tt <- topTable(lmfitCl, coef="clHBCMergedC3_UI", n=Inf)
+```
+
+# Genes up in HBC*
+
+```{r}
 deId <- which(tt$adj.P.Val <= 0.05)
 topGenes <- rownames(tt)[deId][order(tt$logFC[deId], decreasing=TRUE)[1:1000]]
 write.table(topGenes, file = "../data/genesTargets/topDEList_hbc_atac.txt", 
@@ -41,4 +46,28 @@ write.table(topGenes, file = "../data/genesTargets/topDEList_hbc_atac.txt",
 /Applications/homer/bin/findMotifs.pl /Users/koenvandenberge/Dropbox/research/brainStat/hbcRegenGithub/data/genesTargets/hbcMotifs_atac/topDEList_hbc_atac.txt mouse /Users/koenvandenberge/Dropbox/research/brainStat/hbcRegenGithub/data/genesTargets/hbcMotifs_atac/
 ```
 
+# Genes down in HBC*
 
+```{r}
+deId <- which(tt$adj.P.Val <= 0.05)
+topGenes <- rownames(tt)[deId][order(tt$logFC[deId], decreasing=FALSE)[1:1000]]
+write.table(topGenes, file = "../data/genesTargets/hbcMotifs_atac_down/topDEList_hbc_atac_down.txt", 
+            row.names = FALSE, col.names = FALSE, quote = FALSE)
+```
+
+```{bash, eval=FALSE}
+/Applications/homer/bin/findMotifs.pl /Users/koenvandenberge/Dropbox/research/brainStat/hbcRegenGithub/data/genesTargets/hbcMotifs_atac_down/topDEList_hbc_atac_down.txt mouse /Users/koenvandenberge/Dropbox/research/brainStat/hbcRegenGithub/data/genesTargets/hbcMotifs_atac_down/
+```
+
+# Generally DE genes
+
+```{r}
+deId <- which(tt$adj.P.Val <= 0.05)
+topGenes <- rownames(tt)[deId][order(abs(tt$logFC[deId]), decreasing=TRUE)[1:1000]]
+write.table(topGenes, file = "../data/genesTargets/hbcMotifs_atac_general/topDEList_hbc_atac_general.txt", 
+            row.names = FALSE, col.names = FALSE, quote = FALSE)
+```
+
+```{bash, eval=FALSE}
+/Applications/homer/bin/findMotifs.pl /Users/koenvandenberge/Dropbox/research/brainStat/hbcRegenGithub/data/genesTargets/hbcMotifs_atac_general/topDEList_hbc_atac_general.txt mouse /Users/koenvandenberge/Dropbox/research/brainStat/hbcRegenGithub/data/genesTargets/hbcMotifs_atac_general/
+```

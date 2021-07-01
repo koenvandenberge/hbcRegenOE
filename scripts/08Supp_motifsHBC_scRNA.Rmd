@@ -94,4 +94,31 @@ write.table(topGenes, file = "../data/genesTargets/topDEList_hbc.txt",
 /Applications/homer/bin/findMotifs.pl /Users/koenvandenberge/Dropbox/research/brainStat/hbcRegenGithub/data/genesTargets/hbcMotifs_rna/topDEList_hbc.txt mouse /Users/koenvandenberge/Dropbox/research/brainStat/hbcRegenGithub/data/genesTargets/hbcMotifs_rna/
 ```
 
+# Motifs of top DE genes that are lower in HBC* versus rHBC
 
+```{r}
+deGenes <- which(res$adj_pval <= 0.05)
+topGenes <- res$name[deGenes][order(res$lfc[deGenes], decreasing=TRUE)[1:1000]]
+write.table(topGenes, file = "../data/genesTargets/hbcMotifs_rna_down/topDEList_hbc_down.txt", 
+            row.names = FALSE, col.names = FALSE, quote = FALSE)
+```
+
+
+```{bash, eval=FALSE}
+/Applications/homer/bin/findMotifs.pl /Users/koenvandenberge/Dropbox/research/brainStat/hbcRegenGithub/data/genesTargets/hbcMotifs_rna_down/topDEList_hbc_down.txt mouse /Users/koenvandenberge/Dropbox/research/brainStat/hbcRegenGithub/data/genesTargets/hbcMotifs_rna_down/
+```
+
+
+# Motifs of top DE genes in general
+
+```{r}
+deGenes <- which(res$adj_pval <= 0.05)
+topGenes <- res$name[deGenes][order(abs(res$lfc[deGenes]), decreasing=TRUE)[1:1000]]
+write.table(topGenes, file = "../data/genesTargets/hbcMotifs_rna_general/topDEList_hbc_overall.txt", 
+            row.names = FALSE, col.names = FALSE, quote = FALSE)
+```
+
+
+```{bash, eval=FALSE}
+/Applications/homer/bin/findMotifs.pl /Users/koenvandenberge/Dropbox/research/brainStat/hbcRegenGithub/data/genesTargets/hbcMotifs_rna_general/topDEList_hbc_overall.txt mouse /Users/koenvandenberge/Dropbox/research/brainStat/hbcRegenGithub/data/genesTargets/hbcMotifs_rna_general/
+```
