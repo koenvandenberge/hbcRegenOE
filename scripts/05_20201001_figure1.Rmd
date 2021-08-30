@@ -12,6 +12,7 @@ output: html_document
 here::set_here()
 suppressPackageStartupMessages({
   library(slingshot)
+  # devtools::install_github("statOmics/tradeSeq@2c8b916cbc1a16289a6d625f39ab67c2b283e959")
   library(tradeSeq)
   library(SingleCellExperiment)
   library(cowplot)
@@ -125,10 +126,10 @@ for(ii in seq_along(slingCurves(sds))){
 ```{r}
 library(ggplot2)
 markers <- c("Krt5", "Krt14",
-             "Sprr1a", "Trp63", #need 2 good HBC* markers here.
+             "Trp63", "Sprr1a", #need 2 good HBC* markers here.
              "Cyp2g1", "Cyp1a2",
              "Ascl1", "Neurod1",
-             "Omp")
+             "Omp") #, "Syt1")
 
 dims <- c(1,3)
 rd <- reducedDims(sds)[,dims]
@@ -141,10 +142,13 @@ for(mm in 1:length(markers)){
                    y=y)
   markerPlotList[[mm]] <- ggplot(df, aes(x=dim1, y=dim2, colour=y)) +
     geom_point(alpha=.3, size=1/2) +
-    scale_color_viridis_c() +
+    scale_color_gradient(low = "gray82", high = "steelblue4") +
     theme_classic() +
     ggtitle(markers[mm]) +
-    theme(legend.position = "none")
+    theme(legend.position = "none") +
+    xlab("UMAP1") +
+    ylab("UMAP2") +
+    coord_fixed()
 }
 
 
@@ -168,6 +172,7 @@ getUpGenes <- function(yhatDf, lineage){
 
 ```{r}
 asTestRes <- associationTest(sce, lineages = TRUE)
+# saveRDS(asTestRes, file = "../data/asTestRes_fig1.rds")
 
 ## check which genes are increasing
 library(tidyverse)
@@ -194,7 +199,7 @@ for(ll in 1:3){
   curres <- get(paste0("asTestRes",lineages[ll],"Increas"))
   plothlp <- list()
   for(kk in 1:4){
-    plothlp[[kk]] <- plotSmoothers(sce, counts, gene=rownames(curres)[curoo[kk]], alpha= 1/5, lwd=3/2) +
+    plothlp[[kk]] <- plotSmoothers(sce, counts, gene=rownames(curres)[curoo[kk]], alpha= 1/5, lwd=3/2, size=.1) +
       ggtitle(rownames(curres)[curoo[kk]]) +
       theme(legend.position = "none")
   }
@@ -214,6 +219,42 @@ pLeg <- plotSmoothers(sce, counts, gene=rownames(curres)[curoo[kk]], alpha= 1/5,
   guides(colour = guide_legend(override.aes = list(alpha = 1, size=1.5)))
 pLeg
 leg <- cowplot::get_legend(pLeg)
+
+
+### in UMAP space
+plotlistUMAP <- list()
+for(ll in 1:3){
+  curoo <- get(paste0("oo",lineages[ll]))
+  curres <- get(paste0("asTestRes",lineages[ll],"Increas"))
+  plothlp <- list()
+  for(kk in 1:4){
+    curGene <- rownames(curres)[curoo[kk]]
+    y <- log1p(counts[curGene,])
+    df <- data.frame(dim1=rd[,1],
+                   dim2=rd[,2],
+                   y=y)
+    plothlp[[kk]] <- ggplot(df, aes(x=dim1, y=dim2, colour=y)) +
+      geom_point(alpha=.3, size=1/2) +
+      scale_color_gradient(low = "gray82", high = "steelblue4") +
+      theme_classic() +
+      ggtitle(curGene) +
+      theme(legend.position = "none") +
+      xlab("UMAP1") +
+      ylab("UMAP2") +
+      coord_fixed()
+  }
+  plotlistUMAP[[ll]] <- plothlp
+}
+pNeurUMAP <- cowplot::plot_grid(plotlist=plotlistUMAP[[1]])
+pSusUMAP <- cowplot::plot_grid(plotlist=plotlistUMAP[[2]])
+pHBCUMAP <- cowplot::plot_grid(plotlist=plotlistUMAP[[3]])
+pNeurUMAP
+pSusUMAP
+pHBCUMAP
+
+cowplot::plot_grid(pNeurUMAP, pSusUMAP, pHBCUMAP,
+                   labels=letters[1:3], nrow=1, ncol=3)
+ggsave("../plots/figure1Markers_umap.png", width=16, height=8)
 ```
 
 # Composite main plot
@@ -245,7 +286,22 @@ geneList <- list("Neuron" = neurGenes,
                  "Sus" = susGenes,
                  "HBC" = hbcGenes)
 
+png("../plots/fig1_upset.png", units="in", width=9, height=6, res=200)
 upset(fromList(geneList), order.by = "freq")
+dev.off()
+
+allGenes <- sort(unique(c(neurGenes, susGenes, hbcGenes)))
+sigMat <- matrix(0, nrow=length(allGenes), ncol=length(lineages),
+                 dimnames = list(allGenes, lineages))
+sigMat[neurGenes, "Neur"] <- 1
+sigMat[susGenes, "Sus"] <- 1
+sigMat[hbcGenes, "HBC"] <- 1
+write.table(sigMat, file="../data/supplementary/significanceMatrix_associationTest_fig1.txt")
 ```
 
+# Session info
+
+```{r}
+sessionInfo()
+```
 
