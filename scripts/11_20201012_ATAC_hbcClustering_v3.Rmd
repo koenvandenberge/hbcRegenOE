@@ -195,29 +195,31 @@ FeaturePlot(atac, features = "Trp63") + xlim(c(-6,6))
 # RNA
 pRNA1 <- DimPlot(rna, group.by = "celltype", label = FALSE, repel = TRUE) + 
   ggtitle("scRNA-seq: 24h HBC* and rHBC cells") +
-  scale_color_manual(labels = c("Activated", "Regenerated\n(resting)"), 
+  scale_color_manual(labels = c("Activated HBC", "Regenerated\n(resting) HBC"), 
                      values = c("steelblue", "salmon")) +
-  labs(color = "Cell state")
+  labs(color = "Cell type") +
+  coord_fixed() +
+  theme(plot.title = element_text(face = "plain"))
 # ggsave("../plots/scRNA24hHBC.png", width=9)
 
 # ATAC based on Seurat
 pATAC1 <- DimPlot(atac, reduction = "umap", group.by="clHBCMerged", label=FALSE) + 
   ggtitle("scATAC-seq HBC cell states") + 
-  xlim(c(-6, 7))
+  xlim(c(-6, 7)) + 
+  coord_fixed()
+
 pATAC2 <- DimPlot(atac, reduction = "umap", group.by="treatment", label=FALSE, pt.size = .2) +
   scale_color_manual(labels = c("Injured", "Uninjured"),
                      values = c("orange", "darkseagreen3")) +
   ggtitle("scATAC-seq HBC treatment") + 
-  xlim(c(-6, 7))
+  xlim(c(-6, 7)) +
+  coord_fixed()
 cowplot::plot_grid(pATAC1, pATAC2)
 # ggsave("../plots/ATACClusters_seurat.png", width=10)
 ```
 
 
-
 # Data integration
-
-
 
 ## Cell type transfer
 
@@ -290,7 +292,6 @@ pat1_2 + pat2_2 + pat3_2 + prna1_2
 
 ## Joint dimensionality reduction
 
-
 ```{r, eval=TRUE}
 genes.use <- VariableFeatures(rna)
 refdata <- GetAssayData(rna, assay = "RNA", slot = "data")[genes.use, ]
@@ -313,8 +314,8 @@ coembed <- RunPCA(coembed, features = genes.use, verbose = FALSE)
 coembed <- RunUMAP(coembed, dims = 1:30)
 coembed$celltype <- ifelse(!is.na(coembed$celltype), coembed$celltype, coembed$predicted.id)
 
-p1 <- DimPlot(coembed, group.by = "tech")
-p2 <- DimPlot(coembed, group.by = "celltype", label = TRUE, repel = TRUE)
+p1 <- DimPlot(coembed, group.by = "tech") + coord_fixed()
+p2 <- DimPlot(coembed, group.by = "celltype", label = TRUE, repel = TRUE) + coord_fixed()
 p1 + p2
 ```
 
@@ -391,8 +392,7 @@ plotByExpr(rna, chromHybrid, countHBC, "chybridSum_scaled", scale=TRUE)
 ## ATAC-seq cluster markers
 
 ```{r}
-# atacMarkers <- readRDS("../../../scATAC/data/markerList_atac_ArchR_hbcClusters.rds")
-atacMarkers <- readRDS("../data/scATAC/markerList_atac_ArchR_hbcClusters.rds")
+atacMarkers <- readRDS("../data/scATAC/markerList_atac_ArchR_hbcClusters_genes.rds")
 
 
 pc1 <- plotByExpr(rna, atacMarkers$C1_Inj$name, countHBC, "C1_Inj", scale=TRUE)
@@ -400,6 +400,7 @@ pc2 <- plotByExpr(rna, atacMarkers$C2_Hybrid$name, countHBC, "C2_Hybrid", scale=
 pc3 <- plotByExpr(rna, atacMarkers$C3_UI$name, countHBC, "C3_UI", scale=TRUE)
 
 pMarkersATAC <- cowplot::plot_grid(plotlist=list(pc1,pc2,pc3), nrow=1)
+pMarkersATAC
 # ggsave("../plots/ATACMarkersOnRNA.png", width=19)
 
 ## are the ATAC markers driven by both injured and uninjured cells in hybrid cluster? Yes.
@@ -511,7 +512,7 @@ ppred4_2 <- DimPlot(rna, group.by = "ctHybridSub", label = FALSE, repel = TRUE, 
         axis.text = element_text(size = 9),
         plot.title = element_text(face = "plain", size=13))
 ppred1_2 + ppred2_2 + ppred3_2 + ppred4_2
-ggsave("../plots/predictionsRNAATAC_archRSpace.png", width=12, height=9)
+# ggsave("../plots/predictionsRNAATAC_archRSpace.png", width=12, height=9)
 
 ## size of cell is prediction prob
  ggplot(archrUmap, aes(x=UMAP1, y=UMAP2, color=predicted.id)) +
@@ -585,37 +586,9 @@ p2 <- DimPlot(coembed, group.by = "ctHybridSub", label = TRUE, repel = TRUE) + g
 p3 <- DimPlot(coembed, group.by = "clHBCMerged", label = TRUE, repel = TRUE) + ggtitle("ATAC clusters")
 p4 <- DimPlot(coembed, group.by = "ctHybridSubPred", label = TRUE, repel = TRUE) + ggtitle("Transferred clusters")
 p1 + p2 + p3 + p4
-ggsave("../plots/jointDimRed_v1.png", width=10, height=6)
+# ggsave("../plots/jointDimRed_v1.png", width=10, height=6)
 
 ```
-
-## Joint dimensionality reduction using LIGER
-
-```{r}
-# liger basically takes two count matrices as input.
-# we'll use the rounded ACTIVITY count matrix as input for scATAC.
-atacCounts <- round(atac[["ACTIVITY"]]@counts)
-rnaCounts <- round(rna@assays$RNA@counts)
-library(liger)
-# hbcData <- list(atac = atacCounts[rownames(atacCounts) %in% rownames(rnaCounts),], 
-#                 rna = rnaCounts)
-# hbcData <- createLiger(hbcData)
-# # preprocess
-# hbcData <- normalize(hbcData)
-# hbcData <- selectGenes(hbcData, datasets.use = 2)
-# hbcData <- scaleNotCenter(hbcData)
-# scaleNotCenter takes extremely long. Result is therefore saved.
-hbcData <- readRDS("../data/hbcData_liger_afterScaleNotCenter.rds")
-# suggestLambda(hbcData, k=30)
-hbcData <- optimizeALS(hbcData, k=30, lambda = 10)
-hbcData <- quantile_norm(hbcData)
-hbcData <- runUMAP(hbcData, distance='cosine', min_dist=.3)
-clSeurat <- coembed@meta.data$ctHybridSubPred
-names(clSeurat) <- rownames(coembed@meta.data)
-clSeurat <- clSeurat[names(hbcData@clusters)]
-liger::plotByDatasetAndCluster(hbcData, clusters =  clSeurat)
-```
-
 
 
 # Markers for sub-hybrid clusters
@@ -711,7 +684,7 @@ saveArchRProject(archProj,
                  outputDirectory = "../data/scATAC/archR_subHybridClusters/")
 ```
 
-# Color RNA-seq data based on new markers
+# Color RNA-seq data based on new scATAC-seq markers on sub-hybrid clusters
 
 ```{r}
 plotByExpr2 <- function(rna, genes, counts, name="feature", scale=TRUE){
@@ -867,8 +840,7 @@ for(kk in 1:length(krtWithMotif)){
 ## Check expression of Fox TFs and target genes in scRNA-seq data
 
 Peaks that are more accessible in hybrid cells are upregulated in motifs bound by Fox transcription factors.
-We expect Fox transcription factors to be higher expressed in hybrid clusters.
-Since Fox transcription factors generally are repressors, we could expect the target genes of Fox transcription factors to be lower expressed in the hybrid clusters.
+We may expect Fox transcription factors to be higher expressed in hybrid clusters.
 
 Evidence from the literature:
  - Foxg1 expression is in horizontal basal cells of OE, Foxg1 -/- mice are born with defects in the OE: https://www.ncbi.nlm.nih.gov/pmc/articles/PMC2878634/
@@ -884,17 +856,22 @@ selectedFoxTfs <- intersect(selectedFoxTfs, rownames(countHBC))
 countsFoxSelected <- countHBC[selectedFoxTfs,]
 foxSumSelected <- colSums(countsFoxSelected)
 rna <- AddMetaData(rna, foxSumSelected, col.name = "foxSumSelected")
-pFoxSum <- FeaturePlot(rna, features = "foxSumSelected")
+pFoxSum <- FeaturePlot(rna, features = "foxSumSelected") +
+  ggtitle("") + coord_fixed()
 
 df <- data.frame(cl=rna$ctHybridSub,
                  foxSum=foxSumSelected)
+df$cl <- as.character(df$cl)
+df$cl[df$cl == "resting"] <- "regenerated"
+df$cl <- as.factor(df$cl)
 pBoxFoxSum <- ggplot(df, aes(x=cl, y=foxSum)) +
   geom_boxplot() +
   theme_classic() +
-  ylab("Sum of selected Fox TFs expression")
+  ylab("Sum of selected Fox TFs normalized expression") +
+  xlab("")
 
-cowplot::plot_grid(pFoxSum, pBoxFoxSum)
-#ggsave("../plots/foxSumRNA.png", width=8)
+cowplot::plot_grid(pFoxSum, pBoxFoxSum, labels=c("a", "b"))
+# ggsave("../plots/foxSumRNA.png", width=8)
 
 ## scaled
 scaledCountsFoxSelected <- t(scale(t(countHBC[selectedFoxTfs,]+1e-5)))
@@ -920,20 +897,47 @@ cowplot::plot_grid(pFoxSumScaled, pBoxFoxSumScaled)
 
 # Composite plot
 
+## Including remaining hybrid cells not transferred to hybrid1/2
+
 ```{r, eval=TRUE, echo=TRUE}
 ## DR of RNA 
-pRNA1_fin <- pRNA1 + ggtitle("scRNA-seq data") +
+pRNA1_fin <- pRNA1 + 
+  ggtitle("scRNA-seq") + 
+  coord_fixed()  +
+  theme(legend.position = "none")
+
+pRNA1_leg <- get_legend(pRNA1 + ggtitle("scRNA-seq") +
   theme(legend.title = element_text(size = 12),
           legend.text = element_text(size = 10),
-        legend.key.size = unit(1/2, "cm"))
+        legend.key.size = unit(1/2, "cm")) +
+  coord_fixed())
 
 
 ## DR of RNA with ATAC markers expression highlighted
-pMarkersATAC <- cowplot::plot_grid(plotlist=list(pc1,pc2,pc3), nrow=1)
+pMarkersATAC <- cowplot::plot_grid(pc1 + coord_fixed() + 
+                                     ggtitle("Injury markers") +
+                                     theme(plot.title=element_text(face="plain")),
+                                   pc2 + coord_fixed()+ 
+                                     ggtitle("Hybrid markers") +
+                                     theme(plot.title=element_text(face="plain")),
+                                    pc3 + coord_fixed() + 
+                                     ggtitle("Uninjured markers") +
+                                     theme(plot.title=element_text(face="plain")), 
+                                   nrow=1, labels = c("a", "b", "c"))
 pMarkersATAC
 
 ## RNA and ATAC cell type transfer
-pCTrans <- cowplot::plot_grid(ppred4_2 + NoLegend(), ppred2_2, nrow=1)
+ppred2_2_leg <- get_legend(ppred2_2 + guides(col=guide_legend("Cell state",
+                                                              override.aes = list(size=2))))
+pCTrans <- cowplot::plot_grid(pRNA1_fin,
+                              pRNA1_leg,
+                              ppred4_2 + NoLegend() + coord_fixed(), 
+                              ppred2_2_leg,
+                              ppred2_2 + NoLegend() + coord_fixed(), 
+                              nrow=1,
+                              labels = c("d", "", "e", "", "f"),
+                              rel_widths = c(1,.2,1,.1,1))
+pCTrans
 
 ## markers and motifs for subhybrid clusters
 ## marker
@@ -955,6 +959,8 @@ pMarker <- Heatmap(heatmapMarkerPeaksMatrix,
 ## motif
 heatmapMotifsMatrix <- plotEnrichHeatmap(motifsUp, transpose = TRUE, returnMatrix = TRUE)
 colnames(heatmapMotifsMatrix) <- unlist(lapply(strsplit(colnames(heatmapMotifsMatrix), split="_"), "[[", 1))
+rownames(heatmapMotifsMatrix) <- c("Hybrid_all", "Hybrid1", "Hybrid2",
+                                   "Injured", "Uninjured")
 
 pMotif <- Heatmap(heatmapMotifsMatrix, 
         cluster_rows = FALSE,
@@ -965,80 +971,115 @@ pMotif <- Heatmap(heatmapMotifsMatrix,
         heatmap_legend_param = list(title = "-log10\n p-adj."))
 pHeat <- cowplot::plot_grid(grid::grid.grabExpr(ComplexHeatmap::draw(pMarker)),
                    grid::grid.grabExpr(ComplexHeatmap::draw(pMotif)),
-                   nrow = 2)
-pComp1 <- cowplot::plot_grid(pRNA1_fin, pMarkersATAC, nrow=1, 
-                             rel_widths = c(0.4, 1), labels = c("a", "b"))
+                   nrow = 2,
+                   labels = c("g", "h"))
+# pComp1 <- cowplot::plot_grid(pRNA1_fin, pMarkersATAC, nrow=1, 
+#                              rel_widths = c(0.4, 1), labels = c("a", "b"))
+pComp1 <- cowplot::plot_grid(pMarkersATAC, nrow=1, 
+                             rel_widths = c(1, 1, 1))
 pComp2 <- cowplot::plot_grid(pCTrans, pHeat, ncol = 1, 
-                             rel_heights = c(0.8, 1), labels = c("c", "d"))
+                             rel_heights = c(0.8, 1))
 cowplot::plot_grid(pComp1, pComp2, nrow = 2,
                    rel_widths= c(1/3, 1))
 # ggsave("../plots/integrationComposite.pdf", height=13, width=12)
-# ggsave("../plots/integrationComposite.png", height=13, width=12)
+ggsave("../plots/integrationComposite_full.png", height=13, width=12)
 
 ```
 
+## Excluding remaining hybrid cells not transferred to hybrid1/2
+
+```{r, eval=TRUE, echo=TRUE}
+## DR of RNA 
+pRNA1_fin <- pRNA1 + 
+  ggtitle("scRNA-seq") + 
+  coord_fixed()  +
+  theme(legend.position = "none")
+
+pRNA1_leg <- get_legend(pRNA1 + ggtitle("scRNA-seq") +
+  theme(legend.title = element_text(size = 12),
+          legend.text = element_text(size = 10),
+        legend.key.size = unit(1/2, "cm")) +
+  coord_fixed())
 
 
-## old plots
+## DR of RNA with ATAC markers expression highlighted
+pMarkersATAC <- cowplot::plot_grid(pc1 + coord_fixed() + 
+                                     ggtitle("Injury markers") +
+                                     theme(plot.title=element_text(face="plain")),
+                                   pc2 + coord_fixed()+ 
+                                     ggtitle("Hybrid markers") +
+                                     theme(plot.title=element_text(face="plain")),
+                                    pc3 + coord_fixed() + 
+                                     ggtitle("Uninjured markers") +
+                                     theme(plot.title=element_text(face="plain")), 
+                                   nrow=1, labels = c("a", "b", "c"))
+pMarkersATAC
 
-```{r, eval=FALSE, echo=FALSE}
-# scATAC-seq for slides v1
-p1 <- DimPlot(atac, reduction = "umap", group.by="treatment", label=FALSE, cols=c("steelblue", "orange")) + NoLegend() + ggtitle("ATAC treatment") + xlim(c(-6,6))
-clPlot <- atac$clHBCMerged
-clPlot[clPlot == "C1_inj"] <- "Activated"
-clPlot[clPlot == "C2_hybrid"] <- "Hybrid"
-clPlot[clPlot == "C3_UI"] <- "Resting"
-atac$clPlot <- clPlot
-p3 <- DimPlot(atac, group.by = "clPlot", label = FALSE, repel = TRUE, label.size=6) + ggtitle("scATAC-seq clusters") + NoLegend() + scale_colour_hue(drop = FALSE) + xlim(c(-6,6))
-p1 + p3
-ggsave("~/tmp/scATAC_dr.png", height=7, width=8.7, dpi=500)
+## RNA and ATAC cell type transfer
+ppred2_2_leg <- get_legend(ppred2_2 + guides(col=guide_legend("Cell state",
+                                                              override.aes = list(size=2))))
+pCTrans <- cowplot::plot_grid(pRNA1_fin,
+                              pRNA1_leg,
+                              ppred4_2 + NoLegend() + coord_fixed(), 
+                              ppred2_2_leg,
+                              ppred2_2 + NoLegend() + coord_fixed(), 
+                              nrow=1,
+                              labels = c("d", "", "e", "", "f"),
+                              rel_widths = c(1,.2,1,.1,1))
+pCTrans
 
-# scATAC-seq for slides v2
-p1 <- DimPlot(atac, reduction = "umap", group.by="treatment", label=FALSE, cols=c("steelblue", "orange")) + NoLegend() + ggtitle("ATAC treatment") + xlim(c(-6,6))
-p3 <- DimPlot(atac, group.by = "predAnn", label = FALSE, repel = TRUE, label.size=6) + ggtitle("scATAC-seq clusters") + NoLegend() + scale_colour_hue(drop = FALSE) + xlim(c(-6,6))
-p1 + p3
-ggsave("~/tmp/scATAC_dr_v2.png", height=7, width=8.7, dpi=500)
-
-# scRNA-seq for slides
-pRNA <- DimPlot(rna, group.by = "celltype", label = TRUE, repel = TRUE, label.size=6) + NoLegend() + ggtitle("scRNA-seq")
-# 3 plots with markers for each of C1-C3
-cowplot::plot_grid(plotlist=list(pRNA,pc1,pc2,pc3), nrow=1)
-ggsave("~/tmp/scRNA_HBC.png", height=7, width=14, dpi=500)
-
-
-# cell label transfer
-p1 <- DimPlot(atac, reduction = "umap", group.by="treatment", label=TRUE, label.size=6) + NoLegend() + ggtitle("scATAC-seq treatment") + xlim(c(-6,6))
-p2 <- DimPlot(atac, group.by = "predictedCtHybrid", label = TRUE, repel = TRUE, label.size=6) + ggtitle("scATAC-seq predicted state") +
-    NoLegend() + scale_colour_hue(drop = FALSE)  + xlim(c(-6,6))
-p3 <- DimPlot(atac, group.by = "clPlot", label = TRUE, repel = TRUE, label.size=6) + ggtitle("scATAC-seq clusters") + 
-    NoLegend() + scale_colour_hue(drop = FALSE)  + xlim(c(-6,6))
-p4 <- DimPlot(rna, group.by = "ctHybrid", label = TRUE, repel = TRUE, label.size=6) + ggtitle("scRNA-seq") + 
-    NoLegend()
-p1 + p2 + p3 + p4
-ggsave("~/tmp/scATAC_labelTransfer.png", height=7, width=8.7, dpi=500)
+## markers and motifs for subhybrid clusters
+## marker
+heatmapMarkerPeaksMatrix <- plotMarkerHeatmap(
+  seMarker = markerPeaks_subHybrid[,-2], 
+  cutOff = "FDR <= 0.01 & Log2FC >= 1.25", 
+  transpose = TRUE,
+  returnMat = TRUE
+)
+rownames(heatmapMarkerPeaksMatrix) <- c("Injured", "Uninjured", "Hybrid1", "Hybrid2")
+pMarker <- Heatmap(heatmapMarkerPeaksMatrix, 
+        cluster_rows = FALSE,
+        cluster_columns = FALSE,
+        col = paletteContinuous(set = "solarExtra", n = 100),
+        show_column_names = FALSE,
+        row_names_gp = gpar(fontsize = 13),
+        heatmap_legend_param = list(title = "Z-score"))
 
 
-# cell label transfer v2
-p1 <- DimPlot(atac, reduction = "umap", group.by="treatment", label=FALSE, cols=c("steelblue", "orange")) + NoLegend() + ggtitle("ATAC treatment") + xlim(c(-6,6))
-p2 <- DimPlot(atac, group.by = "predictedCtHybrid", label = FALSE, repel = TRUE) + ggtitle("ATAC predicted") + 
-    NoLegend() + scale_colour_hue(drop = FALSE) + xlim(c(-6,6))
-p4 <- DimPlot(rna, group.by = "ctHybridSub", label = FALSE, repel = TRUE) + ggtitle("scRNA-seq clusters") + 
-    NoLegend()
-p1 + p2 + p4
-ggsave("~/tmp/scATAC_labelTransfer_v2.png", height=7, width=15, dpi=450)
+## motif
+heatmapMotifsMatrix <- plotEnrichHeatmap(motifsUp[,-2], transpose = TRUE, returnMatrix = TRUE)
+colnames(heatmapMotifsMatrix) <- unlist(lapply(strsplit(colnames(heatmapMotifsMatrix), split="_"), "[[", 1))
+rownames(heatmapMotifsMatrix) <- c("Hybrid1", "Hybrid2",
+                                   "Injured", "Uninjured")
+# same order
+heatmapMotifsMatrix <- heatmapMotifsMatrix[rownames(heatmapMarkerPeaksMatrix), ]
+heatmapMotifsMatrix <- heatmapMotifsMatrix[,c(16:35,1:15)]
 
-# Fox involvement
-fox1 <- FeaturePlot(rna, features = "foxSumSelected_scaled") + ggtitle("Enriched FOX TF expression")
-df <- data.frame(cl=rna$ctHybridSub,
-                 foxScaled=foxSumScaledSelected)
-fox2 <- ggplot(df, aes(x=cl, y=foxScaled)) +
-  geom_boxplot() +
-  theme_classic() +
-  ylab("FOX TF scaled expression")
-cowplot::plot_grid(fox1, fox2, nrow=1)
-ggsave("~/tmp/foxExpression.png", height=7, width=10, dpi=450)
+pMotif <- Heatmap(heatmapMotifsMatrix[!rownames(heatmapMotifsMatrix) %in% "Hybrid_all",], 
+        cluster_rows = FALSE,
+        cluster_columns = FALSE,
+        col = paletteContinuous(set = "comet", n = 100),
+        column_names_gp = gpar(fontsize = 11),
+        row_names_gp = gpar(fontsize = 13),
+        heatmap_legend_param = list(title = "-log10\n p-adj."))
+pHeat <- cowplot::plot_grid(NULL, grid::grid.grabExpr(ComplexHeatmap::draw(pMarker)),
+                   NULL,grid::grid.grabExpr(ComplexHeatmap::draw(pMotif)),
+                   nrow = 2,
+                   labels = c("g", "", "h",""),
+                   rel_widths = c(0.05, 1, 0.05, 1))
+# pComp1 <- cowplot::plot_grid(pRNA1_fin, pMarkersATAC, nrow=1, 
+#                              rel_widths = c(0.4, 1), labels = c("a", "b"))
+pComp1 <- cowplot::plot_grid(pMarkersATAC, nrow=1, 
+                             rel_widths = c(1, 1, 1))
+pComp2 <- cowplot::plot_grid(pCTrans, pHeat, ncol = 1, 
+                             rel_heights = c(0.8, 1))
+cowplot::plot_grid(pComp1, pComp2, nrow = 2,
+                   rel_widths= c(1/3, 1))
+# ggsave("../plots/integrationComposite.pdf", height=13, width=12)
+ggsave("../plots/integrationComposite.png", height=13, width=12)
 
 ```
+
 
 # Explore the activated HBC RNA-seq clusters
 

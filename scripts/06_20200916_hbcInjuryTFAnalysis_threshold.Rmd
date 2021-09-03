@@ -252,7 +252,8 @@ orderPeakGenesThresh <- function(grid1, derivatives, tf, lineage, sce, cl,
                            main=NULL, ablines=NULL, plotHist=TRUE,
                            plotLines = TRUE, plotHeatmap = TRUE, 
                            threshold = 0.025, clusteredHeatmap=TRUE,
-                           show_rownames = TRUE, show_colnames=FALSE){
+                           show_rownames = TRUE, show_colnames=FALSE,
+                           returnOnlyHeatmap = FALSE){
   
   # grid1 is the grid on which the derivatives have been calculated
   # derivatives is a list of first derivatives and their SD
@@ -376,28 +377,37 @@ orderPeakGenesThresh <- function(grid1, derivatives, tf, lineage, sce, cl,
     pal <- wesanderson::wes_palette("Zissou1", n=12, type="continuous")
     yhatMatScaledOrdered <- yhatMatScaled[names(firstPeak)[oo],]
     colnames(yhatMatScaledOrdered) <- rownames(dfAnn) <- as.character(1:ncol(yhatMatScaledOrdered))
-    pheatmap(yhatMatScaledOrdered, cluster_cols=FALSE, cluster_rows=FALSE,
-           border_color=NA, col=pal, main=main, annotation_col=dfAnn, 
+    ph <- pheatmap(yhatMatScaledOrdered, cluster_cols=FALSE, cluster_rows=FALSE,
+           border_color=NA, col=pal, main=main, annotation_col=dfAnn[,2,drop=FALSE], 
              annotation_colors = annColors, annotation_names_col = FALSE,
              annotation_legend = FALSE, show_rownames = show_rownames,
            show_colnames = show_colnames)#, colors=cols, breaks=breaks)
+    ph
     if(clusteredHeatmap){
-      pheatmap(yhatMatScaledOrdered, cluster_cols=FALSE, cluster_rows=TRUE,
-           border_color=NA, col=pal, main=paste0(main,": Clustered genes"), annotation_col=dfAnn, 
+      ph <- pheatmap(yhatMatScaledOrdered, cluster_cols=FALSE, cluster_rows=TRUE,
+           border_color=NA, col=pal, main=paste0(main,": Clustered genes"),
+           annotation_col=dfAnn[,2,drop=FALSE], 
              annotation_colors = annColors, annotation_names_col = FALSE,
              annotation_legend = FALSE, show_rownames = show_rownames,
            show_colnames = show_colnames)
+      ph
     }
-  }
-
-  return(list(firstPeak=firstPeak, standExpr=yhatMatScaled,
+   }
+  
+  if(returnOnlyHeatmap){
+    return(ph)
+  } else {
+    return(list(firstPeak=firstPeak, standExpr=yhatMatScaled,
               yhat=yhatMat,
               pvalNoThresh=pvalNoThresh, pvalThresh=pvalThresh,
               maxTestStats = maxTestsThresh))
+  }
+  
 }
 
 heatmapScaledAcrossAllLineages <- function(models, genes, sds, nPoints, outFile, g=20,
-                                           cl, width=40, height=20){
+                                           cl, showRowNames=TRUE, width=40, height=20,
+                                           showLegend = TRUE){
   ### scaled across all lineages
   yhat <- tradeSeq::predictSmooth(models=models, gene=genes, nPoints=nPoints, tidy=FALSE)
   yhat_stand <- t(scale(t(log(yhat))))
@@ -425,9 +435,10 @@ heatmapScaledAcrossAllLineages <- function(models, genes, sds, nPoints, outFile,
 
     ph <- pheatmap(yhatList[[ii]], cluster_cols=FALSE, cluster_rows=FALSE,
              border_color=NA, main=titles[ii], breaks=breaks, color=pal,
-             show_colnames = FALSE, annotation_col=dfAnn, 
+             show_colnames = FALSE, annotation_col=dfAnn[,2,drop=FALSE], 
              annotation_colors = annColors, annotation_names_col = FALSE,
-             annotation_legend = FALSE)
+             annotation_legend = FALSE, show_rownames = showRowNames,
+             legend = showLegend)
     plotList[[ii]] <- ph[[4]]
   }
   pp <- cowplot::plot_grid(plotlist=plotList, nrow=1)
@@ -503,6 +514,8 @@ peakResList <- list(neur=neurRes,
                     sus=susRes, 
                     rhbc=rhbcRes)
 
+lapply(peakList, length)
+
 # saveRDS(peakList, file="../data/peakList_thresholded.rds")
 # saveRDS(peakResList, file="../data/peakRes_thresholded.rds")
 
@@ -555,6 +568,29 @@ dev.off()
 
 ```
 
+### All cascades next to each other
+
+```{r}
+phNeur <- orderPeakGenesThresh(grid=grid1, derivatives=derAllTF, tf=tf, lineage=1, sce=sce,
+                            cl=clDatta, main="Neuronal", plotHist=FALSE, plotLines=FALSE,
+                            plotHeatmap = TRUE, threshold = 0.1, clusteredHeatmap = FALSE,
+                            show_rownames=FALSE, returnOnlyHeatmap = TRUE)
+
+phSus <- orderPeakGenesThresh(grid=grid2, derivatives=derAllTF, tf=tf, lineage=2, sce=sce,
+                            cl=clDatta, main="Sustentacular", plotHist=FALSE, plotLines=FALSE,
+                            plotHeatmap = TRUE, threshold = 0.1, clusteredHeatmap = FALSE,
+                            show_rownames=FALSE, returnOnlyHeatmap = TRUE)
+
+phHBC <- orderPeakGenesThresh(grid=grid3, derivatives=derAllTF, tf=tf, lineage=3, sce=sce,
+                            cl=clDatta, main="rHBC", plotHist=FALSE, plotLines=FALSE,
+                            plotHeatmap = TRUE, threshold = 0.1, clusteredHeatmap = FALSE,
+                            show_rownames=FALSE, returnOnlyHeatmap = TRUE)
+
+cowplot::plot_grid(phNeur[[4]], phSus[[4]], phHBC[[4]],
+                   nrow=1, ncol=3)
+ggsave("../plots/fig2_allCascades.png")
+```
+
 
 ## Identify shared and unique lineage TFs
 
@@ -605,7 +641,7 @@ write.table(rhbcUniqTFs, file="../data/rhbcUniqTf_threshold.txt", row.names=FALS
 ### TFs shared across all lineages
 
 ```{r}
-### scaled across all lineages
+### scaled across all lineages: big heatmap for interpretation
 heatmapScaledAcrossAllLineages(models=sce,
                               genes=sharedTF,
                               nPoints=100,
@@ -613,11 +649,24 @@ heatmapScaledAcrossAllLineages(models=sce,
                               cl=clDatta,
                               height=40,
                               outFile="../plots/peakAnalysis_Thresholded/shared/sharedTF_bigHeatmap_scaledAcrossAllLineages.pdf")
+
+
+### scaled across all lineages: small heatmap for paper
+heatmapScaledAcrossAllLineages(models=sce,
+                              genes=sharedTF,
+                              nPoints=100,
+                              sds=sds,
+                              cl=clDatta,
+                              height=7,
+                              width=7,
+                              showRowNames = FALSE,
+                              showLegend = FALSE,
+                              outFile="../plots/peakAnalysis_Thresholded/shared/sharedTF_scaledAcrossAllLineages.pdf")
 ```
 
 ### Unique TFs for each lineage
 
-Note that we do not identify any uniquely peaking TFs for the SUS lineage.
+Tall heatmaps for interpretation as well as smaller heatmaps for paper.
 
 ```{r, echo=FALSE, eval=TRUE}
 # neuronal: scaled across all lineages
@@ -629,6 +678,27 @@ heatmapScaledAcrossAllLineages(models=sce,
                               height=40,
                               outFile="../plots/peakAnalysis_Thresholded/neuronal/neurUniqTF_heatmapScaledAcrossAllLineages.pdf")
 
+heatmapScaledAcrossAllLineages(models=sce,
+                              genes=neurUniqTFs,
+                              nPoints=100,
+                              sds=sds,
+                              cl=clDatta,
+                              height=7,
+                              width=7,
+                              showRowNames = FALSE,
+                              showLegend = FALSE,
+                              outFile="../plots/peakAnalysis_Thresholded/neuronal/neurUniqTF_heatmapScaledAcrossAllLineages_paper.png")
+heatmapScaledAcrossAllLineages(models=sce,
+                              genes=neurUniqTFs,
+                              nPoints=100,
+                              sds=sds,
+                              cl=clDatta,
+                              height=7,
+                              width=7,
+                              showRowNames = FALSE,
+                              showLegend = FALSE,
+                              outFile="../plots/peakAnalysis_Thresholded/neuronal/neurUniqTF_heatmapScaledAcrossAllLineages_paper.pdf")
+
 # sus
 heatmapScaledAcrossAllLineages(models=sce,
                               genes=susUniqTFs,
@@ -636,6 +706,27 @@ heatmapScaledAcrossAllLineages(models=sce,
                               sds=sds,
                               cl=clDatta,
                               outFile="../plots/peakAnalysis_Thresholded/sus/susUniqTF_heatmapScaledAcrossAllLineages_threshold.pdf")
+heatmapScaledAcrossAllLineages(models=sce,
+                              genes=susUniqTFs,
+                              nPoints=100,
+                              sds=sds,
+                              cl=clDatta,
+                              height=7,
+                              width=7,
+                              showRowNames = FALSE,
+                              showLegend = FALSE,
+                              outFile="../plots/peakAnalysis_Thresholded/sus/susUniqTF_heatmapScaledAcrossAllLineages_paper.png")
+heatmapScaledAcrossAllLineages(models=sce,
+                              genes=susUniqTFs,
+                              nPoints=100,
+                              sds=sds,
+                              cl=clDatta,
+                              height=7,
+                              width=7,
+                              showRowNames = FALSE,
+                              showLegend = FALSE,
+                              outFile="../plots/peakAnalysis_Thresholded/sus/susUniqTF_heatmapScaledAcrossAllLineages_paper.pdf")
+
 
 # rhbc
 heatmapScaledAcrossAllLineages(models=sce,
@@ -644,6 +735,27 @@ heatmapScaledAcrossAllLineages(models=sce,
                               sds=sds,
                               cl=clDatta,
                               outFile="../plots/peakAnalysis_Thresholded/rhbc/rhbcUniqTF_heatmapScaledAcrossAllLineages.pdf")
+
+heatmapScaledAcrossAllLineages(models=sce,
+                              genes=rhbcUniqTFs,
+                              nPoints=100,
+                              sds=sds,
+                              cl=clDatta,
+                              height=7,
+                              width=7,
+                              showRowNames = FALSE,
+                              showLegend = FALSE,
+                              outFile="../plots/peakAnalysis_Thresholded/rhbc/rhbcUniqTF_heatmapScaledAcrossAllLineages_paper.png")
+heatmapScaledAcrossAllLineages(models=sce,
+                              genes=rhbcUniqTFs,
+                              nPoints=100,
+                              sds=sds,
+                              cl=clDatta,
+                              height=7,
+                              width=7,
+                              showRowNames = FALSE,
+                              showLegend = FALSE,
+                              outFile="../plots/peakAnalysis_Thresholded/rhbc/rhbcUniqTF_heatmapScaledAcrossAllLineages_paper.pdf")
 ```
 
 

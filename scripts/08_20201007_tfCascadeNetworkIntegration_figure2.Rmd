@@ -576,10 +576,14 @@ plotTfHeatmapClust2 <- function(yhat,
   dfAnnRow <- data.frame(clus=clusters)
   rownames(dfAnnRow) <- pClust$tree_row$labels
   dfAnnRow$set <- NA
-  dfAnnRow$set[dfAnnRow$clus == 1] <- "ER stress, RNA biosynthesis"
-  dfAnnRow$set[dfAnnRow$clus == 2] <- "Cilium org., cell projection, Ca2+ signaling"
-  dfAnnRow$set[dfAnnRow$clus == 3] <- "Cell cycle, P53 signal transduction"
-  dfAnnRow$set[dfAnnRow$clus == 4] <- "Cell cycle, DNA recombination, chromatin"
+  # dfAnnRow$set[dfAnnRow$clus == 1] <- "ER stress, RNA biosynthesis"
+  # dfAnnRow$set[dfAnnRow$clus == 2] <- "Cilium org., cell projection, Ca2+ signaling"
+  # dfAnnRow$set[dfAnnRow$clus == 3] <- "Cell cycle, P53 signal transduction"
+  # dfAnnRow$set[dfAnnRow$clus == 4] <- "Cell cycle, DNA recombination, chromatin"
+  dfAnnRow$set[dfAnnRow$clus == 1] <- "Stress"
+  dfAnnRow$set[dfAnnRow$clus == 2] <- "Dendrite proj."
+  dfAnnRow$set[dfAnnRow$clus == 3] <- "Cell cycle"
+  dfAnnRow$set[dfAnnRow$clus == 4] <- "Neuron diff."
   dfAnnRow <- dfAnnRow[,"set", drop=FALSE]
   annColors$set <- c("darkseagreen3", "salmon", "orange", "steelblue")
   names(annColors$set) <- unique(dfAnnRow[,1])
@@ -642,10 +646,19 @@ pConnect <- ggplot(df, aes(x=key, y=value)) +
 
 cowplot::plot_grid(pLineNeur, pHeatCasc[[4]], pConnect, nrow=1)
 
+
+cowplot::plot_grid(pHeatClust[[4]], pConnect, nrow=1, labels=letters[1:2])
+ggsave("../plots/peakAnalysis_Thresholded/clusteredHeatmapConnectivity.pdf",
+       width=10, height=6)
+ggsave("../plots/peakAnalysis_Thresholded/clusteredHeatmapConnectivity.png",
+       width=10, height=6)
 ```
 
+# Session info
 
-
+```{r}
+sessionInfo()
+```
 
 
 
