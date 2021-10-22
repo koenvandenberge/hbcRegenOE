@@ -1,0 +1,100 @@
+---
+title: "Integrate TF cascade with TF motifs"
+author: "Koen Van den Berge"
+date: "10/22/2021"
+output: html_document
+---
+
+# HBC TF peaking times
+
+```{r}
+peakRes <- readRDS("../data/peakRes_thresholded.rds")
+peakResHBC <- peakRes$rhbc
+```
+
+# Activated HBC TF motifs
+
+```{r}
+library(ArchR)
+archProj <- loadArchRProject("../data/scATAC/archR_subHybridClusters/",
+                 showLogo = FALSE)
+plotEmbedding(ArchRProj = archProj, colorBy = "cellColData", 
+              name = "predAnn", embedding = "UMAP_cor")
+
+markerPeaks_subHybrid <- getMarkerFeatures(
+    ArchRProj = archProj, 
+    useMatrix = "PeakMatrix", 
+    groupBy = "predAnn",
+    bias = c("TSSEnrichment", "log10(nFrags)"),
+    testMethod = "wilcoxon")
+
+archProj <- addMotifAnnotations(ArchRProj = archProj, 
+                                motifSet = "cisbp", 
+                                name = "Motif",
+                                force=TRUE)
+# upregulated motifs 
+motifsUp <- peakAnnoEnrichment(
+    seMarker = markerPeaks_subHybrid,
+    ArchRProj = archProj,
+    peakAnnotation = "Motif",
+    cutOff = "FDR <= 0.05 & Log2FC >= 0.5"
+  )
+
+# the top 10 TFs are same for all 3 hybrid clusters which is why there's only 10 cols for all 3 clusters.
+heatmapMotifsUp <- plotEnrichHeatmap(motifsUp, transpose = TRUE)
+ComplexHeatmap::draw(heatmapMotifsUp, heatmap_legend_side = "bot", annotation_legend_side = "bot")
+# note that Gm5294 is an ortholog of the FOXL3-OT1 lncRNA and paralog of FOXL1
+
+getTopDf <- function(motifsRes, cl){
+  df <- data.frame(TF = rownames(motifsRes), mlog10Padj = assay(motifsRes)[,cl])
+  df <- df[order(df$mlog10Padj, decreasing = TRUE),]
+  df$rank <- seq_len(nrow(df))
+  return(df)
+}
+
+plotMotifs <- function(motifsRes, cl){
+  df <- getTopDf(motifsRes, cl)
+  ggUp <- ggplot(df, aes(rank, mlog10Padj, color = mlog10Padj)) + 
+    geom_point(size = 1) +
+    ggrepel::geom_label_repel(
+          data = df[rev(seq_len(30)), ], aes(x = rank, y = mlog10Padj, label = TF), 
+          size = 1.5,
+          nudge_x = 2,
+          color = "black"
+    ) + theme_ArchR() + 
+    ylab("-log10(P-adj) Motif Enrichment") + 
+    xlab("Rank Sorted TFs Enriched") +
+    scale_color_gradientn(colors = paletteContinuous(set = "comet"))
+  
+  ggUp
+}
+
+# the upregulated markers for all hybrid clusters are enriched in Fox motifs.
+plotMotifs(motifsUp, "C2_Hybrid") + ggtitle("Hybrid")
+plotMotifs(motifsUp, "hybrid1") + ggtitle("hybrid1")
+plotMotifs(motifsUp, "hybrid1") + ggtitle("hybrid1")
+
+# Fox motifs are not enriched in either resting or activated cell types.
+plotMotifs(motifsUp, "resting") + ggtitle("Resting")
+plotMotifs(motifsUp, "C1_Inj") + ggtitle("Activated")
+
+```
+
+No correlation between peaking times and motif enrichment.
+
+```{r}
+significanceActivated <- assays(motifsUp)$mlog10p[,"C1_Inj"]
+cleanNames <- unlist(lapply(strsplit(rownames(motifsUp), split="_"), "[[", 1))
+names(significanceActivated) <- cleanNames
+
+head(peakResHBC$firstPeak)
+mean(names(peakResHBC$firstPeak) %in% names(significanceActivated))
+
+sharedTF <- names(peakResHBC$firstPeak)[names(peakResHBC$firstPeak) %in% names(significanceActivated)]
+
+plot(x=peakResHBC$firstPeak[sharedTF],
+     y=significanceActivated[sharedTF]+.1, log="y",
+     xlab = "Peaking time",
+     ylab = "Significance of motif enrichment (-log10 p-value)")
+```
+

@@ -516,8 +516,8 @@ peakResList <- list(neur=neurRes,
 
 lapply(peakList, length)
 
-# saveRDS(peakList, file="../data/peakList_thresholded.rds")
-# saveRDS(peakResList, file="../data/peakRes_thresholded.rds")
+saveRDS(peakList, file="../data/peakList_thresholded.rds")
+saveRDS(peakResList, file="../data/peakRes_thresholded.rds")
 
 ``` 
 
