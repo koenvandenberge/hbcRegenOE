@@ -636,6 +636,31 @@ write.table(susUniqTFs, file="../data/susUniqTf_threshold.txt", row.names=FALSE,
 write.table(rhbcUniqTFs, file="../data/rhbcUniqTf_threshold.txt", row.names=FALSE, col.names=FALSE, quote=FALSE)
 ```
 
+### Alternative approach to identify shared TFs
+
+```{r}
+fisherX <- function(pval){
+  stat <- -2 * sum(log(pval))
+  return(stat)
+}
+
+## shared TFs
+# aggregate p-values using Sidak method for each lineage
+aggStats <- cbind(apply(neurRes$pvalThresh, 1, fisherX),
+                  apply(rhbcRes$pvalThresh, 1, fisherX),
+                  apply(susRes$pvalThresh, 1, fisherX))
+xThreshold <- 300
+# FDR correction for each lineage across all TFs
+barplot(table(rowSums(aggStats > xThreshold)), xlab="Number of lineages in which a TF significantly peaks.")
+sharedTF2 <- rownames(aggStats)[which(rowSums(aggStats > xThreshold) == 3)]
+length(sharedTF2) # 72
+mean(sharedTF %in% sharedTF2) # 75%
+mean(sharedTF2 %in% sharedTF) # 68%
+# Difference is that the multiple testing correction is more stringent if
+# few TFs in that lineage have low signal while Fisher X threshold
+# is agnostic to this.
+```
+
 ## Heatmaps of shared and unique transcription factors
 
 ### TFs shared across all lineages

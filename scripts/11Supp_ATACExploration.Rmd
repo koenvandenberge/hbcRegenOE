@@ -13,12 +13,14 @@ output:
 library(ArchR)
 archProj <- loadArchRProject("../data/scATAC/archR_subHybridClusters/",
                  showLogo = FALSE)
+plotEmbedding(ArchRProj = archProj, colorBy = "cellColData", 
+              name = "predAnn", embedding = "UMAP_cor")
 archProj <- addMotifAnnotations(ArchRProj = archProj, 
                                 motifSet = "cisbp", 
                                 name = "Motif",
                                 force=TRUE)
 
-## get ArchR markers for motif enrichment
+## get ArchR peak markers for motif enrichment
 markerPeaks_subHybrid <- getMarkerFeatures(
     ArchRProj = archProj, 
     useMatrix = "PeakMatrix", 
@@ -121,3 +123,121 @@ plot(umapEmbedding$egfrTargetScaledSum, umapEmbedding$etsMotifPeaks,
      ylab = "Ets-motif-containing peaks' accessibility")
 ```
 
+# Gene markers for (sub)hybrid clusters
+
+```{r}
+plotEmbedding(ArchRProj = archProj, colorBy = "cellColData", 
+              name = "predAnn", embedding = "UMAP_cor")
+```
+
+
+```{r}
+## get ArchR gene markers for motif enrichment
+markerGenes_subHybrid <- getMarkerFeatures(
+    ArchRProj = archProj, 
+    useMatrix = "GeneScoreMatrix", 
+    groupBy = "predAnn",
+    bias = c("TSSEnrichment", "log10(nFrags)"),
+    testMethod = "wilcoxon")
+geneMarkers_subHybrid <- getMarkers(markerGenes_subHybrid, 
+                                    cutOff = "FDR <= 0.01 & Log2FC >= 1.25")
+
+write.csv(geneMarkers_subHybrid$C2_Hybrid, file="../data/scATAC/markerGenesHybrid.csv")
+write.csv(geneMarkers_subHybrid$hybrid1, file="../data/scATAC/markerGenesHybrid1.csv")
+write.csv(geneMarkers_subHybrid$hybrid2, file="../data/scATAC/markerGenesHybrid2.csv")
+write.csv(geneMarkers_subHybrid$C1_Inj, file="../data/scATAC/markerGenesInjured.csv")
+write.csv(geneMarkers_subHybrid$resting, file="../data/scATAC/markerGenesResting.csv")
+```
+
+# Marker genes for hybrid1
+
+```{r}
+markerGenesHybrid1 <- geneMarkers_subHybrid$hybrid1$name[1:18]
+p <- plotEmbedding(
+    ArchRProj = archProj, 
+    colorBy = "GeneScoreMatrix", 
+    name = markerGenesHybrid1, 
+    embedding = "UMAP_cor",
+    quantCut = c(0.01, 0.95),
+    size=1/3,
+    plotAs="points"
+)
+# clean
+p2Hybrid1 <- lapply(p, function(x){
+    x + guides(color = FALSE, fill = FALSE) + 
+    theme_ArchR(baseSize = 6.5) +
+    theme(plot.margin = unit(c(0, 0, 0, 0), "cm")) +
+    theme(
+        axis.text.x=element_blank(), 
+        axis.ticks.x=element_blank(), 
+        axis.text.y=element_blank(), 
+        axis.ticks.y=element_blank()
+    )
+})
+cowplot::plot_grid(plotlist=p2Hybrid1[1:9])
+cowplot::plot_grid(plotlist=p2Hybrid1[10:18])
+
+```
+
+
+
+# Marker genes for hybrid2
+
+```{r}
+markerGenesHybrid2 <- geneMarkers_subHybrid$hybrid2$name[1:18]
+p <- plotEmbedding(
+    ArchRProj = archProj, 
+    colorBy = "GeneScoreMatrix", 
+    name = markerGenesHybrid2, 
+    embedding = "UMAP_cor",
+    quantCut = c(0.01, 0.95),
+    size=1/3,
+    plotAs="points"
+)
+# clean
+p2Hybrid2 <- lapply(p, function(x){
+    x + guides(color = FALSE, fill = FALSE) + 
+    theme_ArchR(baseSize = 6.5) +
+    theme(plot.margin = unit(c(0, 0, 0, 0), "cm")) +
+    theme(
+        axis.text.x=element_blank(), 
+        axis.ticks.x=element_blank(), 
+        axis.text.y=element_blank(), 
+        axis.ticks.y=element_blank()
+    )
+})
+cowplot::plot_grid(plotlist=p2Hybrid2[1:9])
+cowplot::plot_grid(plotlist=p2Hybrid2[10:18])
+
+```
+
+
+# Marker genes for other hybrid cells
+
+```{r}
+markerGenesHybrid <- geneMarkers_subHybrid$C2_Hybrid$name[1:18]
+p <- plotEmbedding(
+    ArchRProj = archProj, 
+    colorBy = "GeneScoreMatrix", 
+    name = markerGenesHybrid, 
+    embedding = "UMAP_cor",
+    quantCut = c(0.01, 0.95),
+    size=1/3,
+    plotAs="points"
+)
+# clean
+p2Hybrid <- lapply(p, function(x){
+    x + guides(color = FALSE, fill = FALSE) + 
+    theme_ArchR(baseSize = 6.5) +
+    theme(plot.margin = unit(c(0, 0, 0, 0), "cm")) +
+    theme(
+        axis.text.x=element_blank(), 
+        axis.ticks.x=element_blank(), 
+        axis.text.y=element_blank(), 
+        axis.ticks.y=element_blank()
+    )
+})
+cowplot::plot_grid(plotlist=p2Hybrid[1:9])
+cowplot::plot_grid(plotlist=p2Hybrid[10:18])
+
+```
