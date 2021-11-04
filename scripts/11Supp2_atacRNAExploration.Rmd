@@ -1,0 +1,262 @@
+---
+title: "ATAC and RNA exploration"
+author: "Koen Van den Berge"
+date: "7/22/2020"
+output: 
+  html_document:
+    toc: true
+    toc_float: true
+---
+
+
+```{r pkg}
+here::set_here()
+suppressPackageStartupMessages({
+  library(slingshot)
+  library(SingleCellExperiment)
+  library(cowplot)
+  library(rgl)
+  library(clusterExperiment)
+  library(RColorBrewer)
+  library(ggplot2)
+  library(pheatmap)
+  library(wesanderson)
+  library(gridExtra)
+  library(irlba)
+  library(tidyverse)
+})
+```
+
+# Import data
+
+```{r loadData}
+sds <- readRDS("../data/finalTrajectory/sling.rds")
+counts <- readRDS("../data/finalTrajectory/counts_noResp_noMV.rds")
+# counts <- round(counts)
+sce <- readRDS("../data/finalTrajectory/sce_tradeSeq20200904.rds")
+load("../data/ALL_TF.Rda")
+clDatta <- readRDS("../data/finalTrajectory/dattaCl_noResp_noMV.rds")
+timePoint <- readRDS("../data/finalTrajectory/timePoint_noResp_noMV.rds")
+```
+
+# Select activated and renewed HBC clusters
+
+I will select 
+
+ - activated HBCs as cells sampled in the 24h timepoint that are in the starting cluster
+ - renewed ('resting') HBCs as cells sampled in the 14D timepoint that are in the HBC cluster
+
+```{r}
+cols <- c("#E41A1C", "#377EB8", "#4DAF4A", "#984EA3", "#FF7F00", "#FFFF33", "#A65628", "#F781BF", "#999999")
+view3d( theta = 10, phi = 10)
+# Datta labels
+plot3d(reducedDim(sds), aspect = 'iso', col=cols[clDatta], alpha=.6, xlab="UMAP1", ylab="UMAP2", zlab="UMAP3", box=FALSE, top=TRUE)
+plot3d(sds, add=TRUE, lwd=3, col="black")
+
+# timepoints
+plot3d(reducedDim(sds), aspect = 'iso', col=cols[timePoint], alpha=.6, xlab="UMAP1", ylab="UMAP2", zlab="UMAP3", box=FALSE, top=TRUE)
+plot3d(sds, add=TRUE, lwd=3, col="black")
+
+# cluster labels used for TI
+clSds <- apply(slingClusterLabels(sds), 1, which.max)
+plot3d(reducedDim(sds), aspect = 'iso', col=cols[clSds], alpha=.6, xlab="UMAP1", ylab="UMAP2", zlab="UMAP3", box=FALSE, top=TRUE)
+plot3d(sds, add=TRUE, lwd=3, col="black")
+
+
+actHBCId <- which(clSds == 8 & timePoint == "24HPI")
+restHBCId <- which(clDatta == "HBC" & timePoint == "14DPI")
+grpHBC <- rep(NA, length(c(actHBCId, restHBCId)))
+grpHBC[1:length(actHBCId)] <- "activated"
+grpHBC[is.na(grpHBC)] <- "resting"
+grpHBC <- factor(grpHBC)
+countHBC <- counts[, c(actHBCId, restHBCId)]
+```
+
+# Dimensionality reduction
+
+```{r}
+library(scran)
+library(uwot)
+library(scater)
+logFracs <- log(sweep(countHBC+1e-5, 2, colSums(countHBC), "/"))
+gv <- modelGeneVar(countHBC)
+hvg <- getTopHVGs(gv, n=1000)
+pc10 <- irlba::irlba(logFracs[hvg,], nv=10)
+um10 <- uwot::umap(pc10$v %*% diag(pc10$d))
+
+plot(um10, col=alpha(c("orange", "darkseagreen3")[as.numeric(grpHBC)], .75), pch=16, cex=1/2, bty='l')
+legend("topright", c("activated", "resting"), pch=16, col=c("orange", "darkseagreen3"), bty="n")
+```
+
+# Batch correction with Harmony
+
+```{r}
+library(harmony)
+harmony_embeddings <- HarmonyMatrix(logFracs, meta_data=grpHBC, do_pca=TRUE)
+umHarmony <- uwot::umap(harmony_embeddings)
+
+plot(umHarmony, col=alpha(c("orange", "darkseagreen3")[as.numeric(grpHBC)], .75), pch=16, cex=1/2, bty='l')
+legend("topright", c("activated", "resting"), pch=16, col=c("orange", "darkseagreen3"), bty="n")
+```
+
+# Integration: Processing and dimensionality reduction of each dataset separately
+
+```{r}
+library(Signac)
+library(Seurat)
+library(patchwork)
+library(ArchR)
+set.seed(1234)
+addArchRGenome("mm10")
+
+
+# scATAC-seq importing and preprocessing
+# from 20200610_scATAC_injury_archr_samples_pairwiseHBC_v3.Rmd
+archProj <- loadArchRProject("../data/scATAC/archR_samples_pairwise_v2")
+clHBCMerged <- archProj$clHBCMerged
+plotEmbedding(ArchRProj = archProj, colorBy = "cellColData", 
+              name = "clHBCMerged", embedding = "UMAP_cor")
+archrUmap <- ArchR::getEmbedding(archProj, embedding = "UMAP_cor")
+colnames(archrUmap) <- c("UMAP1", "UMAP2")
+plotEmbedding(ArchRProj = archProj, colorBy = "cellColData", 
+              name = "treat", embedding = "UMAP_cor")
+clHBCMerged2 <- as.character(getCellColData(archProj, "clHBCMerged")$clHBCMerged)
+clHBCMerged2[clHBCMerged2 == "C1_Inj"] <- "Activated"
+clHBCMerged2[clHBCMerged2 == "C2_Hybrid"] <- "Hybrid"
+clHBCMerged2[clHBCMerged2 == "C3_UI"] <- "Resting"
+archrUmap$clHBCMerged2 <- factor(clHBCMerged2)
+archrUmap$treatment <- getCellColData(archProj, "treat")$treat
+peaks <- archProj@peakSet
+names(peaks) <- paste0("peak",1:length(peaks))
+atacPeakMat <- readRDS("../data/scATAC/peakMatArchrHbc_v2.rds")
+rownames(atacPeakMat) <- names(peaks)
+geneActivity <- readRDS("../data/scATAC/geneMatArchrHbc.rds")
+atac <- Seurat::CreateSeuratObject(counts = atacPeakMat,
+                           assay = "ATAC",
+                           project = "10x_ATAC")
+atac[["ACTIVITY"]] <- CreateAssayObject(counts = geneActivity)
+atac$tech <- "atac"
+atac$treatment <- archProj@cellColData$treat
+atac$clHBCMerged <- clHBCMerged
+# process gene activity
+DefaultAssay(atac) <- "ACTIVITY"
+atac <- FindVariableFeatures(atac)
+atac <- NormalizeData(atac)
+atac <- ScaleData(atac)
+# process peak matrix
+DefaultAssay(atac) <- "ATAC"
+# VariableFeatures(atac) <- names(which(Matrix::rowSums(atac) > 50))
+# atac <- RunLSI(atac, n = 30, scale.max = NULL)
+# atac <- RunUMAP(atac, reduction = "lsi", dims = 1:30)
+atac <- FindTopFeatures(atac, min.cutoff = 'q0')
+# Seurat 3
+atac <- RunLSI(atac, n = 30) 
+# Seurat 4
+#atac <- RunTFIDF(atac)
+#atac <- RunSVD(atac, n = 30, reduction.key = "lsi_", reduction.name = "lsi")
+# drop first dim as often correlated with seq depth
+atac <- RunUMAP(object = atac, reduction = 'lsi', dims = 2:30)
+
+# scRNA-seq import
+rna <- CreateSeuratObject(counts=countHBC)
+rna$tech <- '10x'
+rna$celltype <- grpHBC
+rna <- FindVariableFeatures(rna, selection.method = "vst", nfeatures = 2000)
+rna <- ScaleData(rna)
+rna <- RunPCA(rna, npcs=20)
+rna <- RunUMAP(rna, dims = 1:20, min_dist=.1)
+
+
+p1 <- DimPlot(atac, reduction = "umap", group.by="treatment", label=TRUE) + 
+  NoLegend() + 
+  ggtitle("scATAC-seq")
+p2 <- DimPlot(rna, group.by = "celltype", label = TRUE, repel = TRUE) + NoLegend() + ggtitle("scRNA-seq")
+p1 + p2
+
+
+# Markers for activated/resting HBC in scRNA-seq
+FeaturePlot(rna, features = "Krtdap")
+FeaturePlot(rna, features = "Krt6a")
+FeaturePlot(rna, features = "Krt5")
+FeaturePlot(rna, features = "Krt14")
+FeaturePlot(rna, features = "Trp63")
+
+# Markers for activated/resting HBC in scATAC-seq
+FeaturePlot(atac, features = "Krtdap") + xlim(c(-5,7))
+FeaturePlot(atac, features = "Krt6a") + xlim(c(-5,7))
+FeaturePlot(atac, features = "Krt5") + xlim(c(-6,6))
+FeaturePlot(atac, features = "Krt14") + xlim(c(-6,6))
+FeaturePlot(atac, features = "Trp63") + xlim(c(-6,6))
+```
+
+# Assign sub-hybrid labels to RNA-seq
+
+```{r}
+ctHybridSub <- as.character(rna$celltype)
+hlpid <- which(rna@reductions$umap@cell.embeddings[,1] > 2 & rna@reductions$umap@cell.embeddings[,2]>-1)
+ctHybridSub[hlpid] <- NA
+hlp2id <- which(rna@reductions$umap@cell.embeddings[,1] > 2 & rna@reductions$umap@cell.embeddings[,2]>-1 & rna@reductions$umap@cell.embeddings[,2]<4)
+ctHybridSub[hlp2id] <- "hybrid1"
+hlp1id <- which(rna@reductions$umap@cell.embeddings[,1] > 2 & rna@reductions$umap@cell.embeddings[,2]>4)
+ctHybridSub[hlp1id] <- "hybrid2"
+rna$ctHybridSub <- ctHybridSub
+
+
+DimPlot(rna, group.by = "ctHybridSub", label = FALSE, repel = TRUE) +
+  ggtitle("scRNA-seq") 
+
+table(ctHybridSub)
+```
+
+## Explore hybrid1 markers from ATAC
+
+```{r}
+
+expressionBoxplot <- function(rna, gene){
+  counts <- as.vector(rna@assays$RNA[gene,])
+  df <- data.frame(counts=log1p(counts),
+                   celltype=rna$ctHybridSub)
+  ggplot(df, aes(x=celltype, y=counts)) +
+    geom_boxplot() +
+    xlab("Cell state") +
+    ylab("Log(Expression + 1)") +
+    theme_bw() +
+    theme(axis.text.x = element_text(angle=45, vjust=0.5)) +
+    ggtitle(gene)
+}
+```
+
+
+```{r}
+hybrid1Markers <- c("Muc5b", "Sult1c1")
+
+FeaturePlot(rna, features = "Muc5b")
+expressionBoxplot(rna, "Muc5b")
+
+FeaturePlot(rna, features = "Sult1c1")
+expressionBoxplot(rna, "Sult1c1")
+
+```
+
+
+## Explore hybrid2 markers from ATAC
+
+Note that Pax7 seems to fuse with a FOX TF.. https://www.genecards.org/cgi-bin/carddisp.pl?gene=PAX7
+
+```{r}
+hybrid2Markers <- c("Pax3", "Pax7", "Pax9", "Dmrt2", "2610016A17Rik")
+
+FeaturePlot(rna, features = "Pax3")
+expressionBoxplot(rna, "Pax3")
+
+FeaturePlot(rna, features = "Pax7")
+expressionBoxplot(rna, "Pax7")
+
+FeaturePlot(rna, features = "Pax9")
+expressionBoxplot(rna, "Pax9")
+
+FeaturePlot(rna, features = "Dmrt2")
+expressionBoxplot(rna, "Dmrt2")
+
+```
+

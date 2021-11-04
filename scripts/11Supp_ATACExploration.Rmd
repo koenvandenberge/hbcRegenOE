@@ -179,6 +179,23 @@ cowplot::plot_grid(plotlist=p2Hybrid1[10:18])
 
 ```
 
+## Injured/uninjured contribution of marker genes
+
+```{r}
+geneScoreMat <- ArchR::getMatrixFromProject(archProj,
+                            useMatrix = "GeneScoreMatrix")
+geneScoreMatHybrid1 <- geneScoreMat[,colData(geneScoreMat)$predAnn == "hybrid1"]
+
+table(geneScoreMatHybrid1$treat)
+
+rafalib::mypar(mfrow=c(3,3))
+for(gg in 1:length(markerGenesHybrid1)){
+  boxplot(log1p(assays(geneScoreMatHybrid1)$GeneScoreMatrix[which(rowData(geneScoreMatHybrid1)$name == markerGenesHybrid1[gg]),]) ~ geneScoreMatHybrid1$treat,
+        xlab = "Treatment", ylab = "Log Gene activity score + 1",
+        main = markerGenesHybrid1[gg])
+}
+```
+
 
 
 # Marker genes for hybrid2
@@ -211,6 +228,21 @@ cowplot::plot_grid(plotlist=p2Hybrid2[10:18])
 
 ```
 
+## Injured/uninjured contribution of marker genes
+
+```{r}
+geneScoreMatHybrid2 <- geneScoreMat[,colData(geneScoreMat)$predAnn == "hybrid2"]
+
+table(geneScoreMatHybrid2$treat)
+
+rafalib::mypar(mfrow=c(3,3))
+for(gg in 1:length(markerGenesHybrid2)){
+  boxplot(log1p(assays(geneScoreMatHybrid2)$GeneScoreMatrix[which(rowData(geneScoreMatHybrid2)$name == markerGenesHybrid2[gg]),]) ~ geneScoreMatHybrid2$treat,
+        xlab = "Treatment", ylab = "Log Gene activity score + 1",
+        main = markerGenesHybrid2[gg])
+}
+
+```
 
 # Marker genes for other hybrid cells
 
@@ -241,3 +273,35 @@ cowplot::plot_grid(plotlist=p2Hybrid[1:9])
 cowplot::plot_grid(plotlist=p2Hybrid[10:18])
 
 ```
+
+
+# Accesssibility of key lineage-specific genes from other cell types / lineages
+
+```{r}
+# John suggested Kit1, but there's only Kit and Kitl
+# 
+markerGenesLineageSpecific <- c("Sox2", "Ascl1", "Kit", "Neurog1", "Neurod1")
+p <- plotEmbedding(
+    ArchRProj = archProj, 
+    colorBy = "GeneScoreMatrix", 
+    name = markerGenesLineageSpecific, 
+    embedding = "UMAP_cor",
+    quantCut = c(0.01, 0.95),
+    size=1/3,
+    plotAs="points"
+)
+# clean
+p2LineageSpecific <- lapply(p, function(x){
+    x + guides(color = FALSE, fill = FALSE) + 
+    theme_ArchR(baseSize = 6.5) +
+    theme(plot.margin = unit(c(0, 0, 0, 0), "cm")) +
+    theme(
+        axis.text.x=element_blank(), 
+        axis.ticks.x=element_blank(), 
+        axis.text.y=element_blank(), 
+        axis.ticks.y=element_blank()
+    )
+})
+cowplot::plot_grid(plotlist=p2LineageSpecific)
+```
+

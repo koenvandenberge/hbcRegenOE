@@ -59,11 +59,16 @@ counts <- round(counts)
 sce <- readRDS("../data/finalTrajectory/sce_tradeSeq20200904.rds")
 load("../data/ALL_TF.Rda")
 clDatta <- readRDS("../data/finalTrajectory/dattaCl_noResp_noMV.rds")
+timePoint <- readRDS("../data/finalTrajectory/timePoint_noResp_noMV.rds")
 ```
 
 # Trajectory
 
 ```{r}
+plot3d(reducedDim(sds), aspect = 'iso', col=brewer.pal(9,'Set1')[timePoint], alpha=.6)
+plot3d.SlingshotDataSet(sds, add=TRUE, col=c("black"), lwd=4)
+
+
 plot3d(reducedDim(sds), aspect = 'iso', col=brewer.pal(9,'Set1')[clDatta], alpha=.6)
 plot3d.SlingshotDataSet(sds, add=TRUE, col=c("black"), lwd=4)
 ```
@@ -171,8 +176,50 @@ smoothScatter(x=counts["Trp53",], y=counts["Trp63",],
 
 ```
 
+## ATAC hybrid markers
 
+### Hybrid1
 
+```{r}
+hybrid1Markers <- c("Muc5b", "Sult1c1")
+
+## Muc5b
+plot3d(reducedDim(sds), aspect = 'iso', col=colby(counts["Muc5b",], g=3), alpha=.6)
+plot3d.SlingshotDataSet(sds, add=TRUE, col=c("black"), lwd=4)
+
+##Sult1c1
+plot3d(reducedDim(sds), aspect = 'iso', col=colby(counts["Sult1c1",], g=3), alpha=.6)
+plot3d.SlingshotDataSet(sds, add=TRUE, col=c("black"), lwd=4)
+
+plot3d(reducedDim(sds), aspect = 'iso', col=colby(counts["Irx5",], g=3), alpha=.6)
+plot3d.SlingshotDataSet(sds, add=TRUE, col=c("black"), lwd=4)
+```
+
+### Hybrid2
+
+```{r}
+hybrid2Markers <- c("Pax3", "Pax7", "Pax9", "Dmrt2", "2610016A17Rik")
+
+## Pax3
+plot3d(reducedDim(sds), aspect = 'iso', col=colby(counts["Pax3",], g=3), alpha=.6)
+plot3d.SlingshotDataSet(sds, add=TRUE, col=c("black"), lwd=4)
+
+## Pax7
+plot3d(reducedDim(sds), aspect = 'iso', col=colby(counts["Pax7",], g=3), alpha=.6)
+plot3d.SlingshotDataSet(sds, add=TRUE, col=c("black"), lwd=4)
+
+## Pax9
+plot3d(reducedDim(sds), aspect = 'iso', col=colby(counts["Pax9",], g=3), alpha=.6)
+plot3d.SlingshotDataSet(sds, add=TRUE, col=c("black"), lwd=4)
+
+## Dmrt2
+plot3d(reducedDim(sds), aspect = 'iso', col=colby(counts["Dmrt2",], g=3), alpha=.6)
+plot3d.SlingshotDataSet(sds, add=TRUE, col=c("black"), lwd=4)
+
+## 2610016A17Rik
+plot3d(reducedDim(sds), aspect = 'iso', col=colby(counts["2610016A17Rik",], g=3), alpha=.6)
+plot3d.SlingshotDataSet(sds, add=TRUE, col=c("black"), lwd=4)
+```
 
 # Heterogeneity in TF expression
 
