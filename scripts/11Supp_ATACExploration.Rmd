@@ -177,6 +177,39 @@ p2Hybrid1 <- lapply(p, function(x){
 cowplot::plot_grid(plotlist=p2Hybrid1[1:9])
 cowplot::plot_grid(plotlist=p2Hybrid1[10:18])
 
+p2Hybrid1
+
+## make plots manually
+umapEmbedding <- getEmbedding(archProj, embedding="UMAP_cor")
+colnames(umapEmbedding) <- paste0("UMAP",1:2)
+featureDF <- ArchR:::.getFeatureDF(head(ArrowFiles, 2), "GeneScoreMatrix")
+featureDFHybrid1 <- featureDF[which(featureDF$name %in% markerGenesHybrid1),]
+geneActMatHybrid1 <- ArchR:::.getPartialMatrix(ArrowFiles, 
+            featureDF = featureDFHybrid1, threads = 1, useMatrix = "GeneScoreMatrix", 
+            cellNames = rownames(archProj@cellColData), progress = FALSE)
+customAlpha <- function(y){
+  alpha1 <- pmin(as.numeric(factor(dayjob::colby(y, g=3)))-.8, 1)
+  return(alpha1)
+}
+
+plistIkHybrid1 <- list()
+for(gg in 1:length(markerGenesHybrid1)){
+  curDF <- umapEmbedding
+  curDF$markerGene <- log1p(geneActMatHybrid1[gg,])
+  curP <- ggplot(curDF, aes(x=UMAP1,
+                            y=UMAP2,
+                            col=markerGene)) +
+    theme_classic() +
+    ggtitle(markerGenesHybrid1[gg]) +
+    geom_point(alpha=pmin(1,(log1p(curDF$markerGene) / max(log1p(curDF$markerGene))) + 0.05)
+               , pch=16) +
+    scale_color_gradientn(colors=wesanderson::wes_palette("Zissou1", n=100, type="continuous"), breaks=c(0, quantile(curDF$markerGene, probs=seq(0.05, 0.95, length=98)) , max(curDF$markerGene))) +
+    theme(legend.position = "none")
+  plistIkHybrid1[[gg]] <- curP
+}
+cowplot::plot_grid(plotlist=plistIkHybrid1[1:9])
+cowplot::plot_grid(plotlist=plistIkHybrid1[10:18])
+
 ```
 
 ## Injured/uninjured contribution of marker genes
@@ -225,6 +258,39 @@ p2Hybrid2 <- lapply(p, function(x){
 })
 cowplot::plot_grid(plotlist=p2Hybrid2[1:9])
 cowplot::plot_grid(plotlist=p2Hybrid2[10:18])
+
+p2Hybrid2
+
+## make plots manually
+umapEmbedding <- getEmbedding(archProj, embedding="UMAP_cor")
+colnames(umapEmbedding) <- paste0("UMAP",1:2)
+featureDF <- ArchR:::.getFeatureDF(head(ArrowFiles, 2), "GeneScoreMatrix")
+featureDFHybrid2 <- featureDF[which(featureDF$name %in% markerGenesHybrid2),]
+geneActMatHybrid2 <- ArchR:::.getPartialMatrix(ArrowFiles, 
+            featureDF = featureDFHybrid2, threads = 1, useMatrix = "GeneScoreMatrix", 
+            cellNames = rownames(archProj@cellColData), progress = FALSE)
+customAlpha <- function(y){
+  alpha1 <- pmin(as.numeric(factor(dayjob::colby(y, g=3)))-.8, 1)
+  return(alpha1)
+}
+
+plistIkHybrid2 <- list()
+for(gg in 1:length(markerGenesHybrid2)){
+  curDF <- umapEmbedding
+  curDF$markerGene <- log1p(geneActMatHybrid2[gg,])
+  curP <- ggplot(curDF, aes(x=UMAP1,
+                            y=UMAP2,
+                            col=markerGene)) +
+    theme_classic() +
+    ggtitle(markerGenesHybrid2[gg]) +
+    geom_point(alpha=pmin(1,(log1p(curDF$markerGene) / max(log1p(curDF$markerGene))) + 0.05)
+               , pch=16) +
+    scale_color_gradientn(colors=wesanderson::wes_palette("Zissou1", n=100, type="continuous"), breaks=c(0, quantile(curDF$markerGene, probs=seq(0.05, 0.95, length=98)) , max(curDF$markerGene))) +
+    theme(legend.position = "none")
+  plistIkHybrid2[[gg]] <- curP
+}
+cowplot::plot_grid(plotlist=plistIkHybrid2[1:9])
+cowplot::plot_grid(plotlist=plistIkHybrid2[10:18])
 
 ```
 
