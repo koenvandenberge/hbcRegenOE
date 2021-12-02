@@ -269,3 +269,11 @@ traviz::plotSmoothers(sce, counts, gene="Fkbp15") +
   ggtitle("Fkbp15")
 ```
 
+# Check independent expression of relevant genes
+
+```{r}
+hbcActId <- clDatta == "HBC*"
+plot(x=counts["Sult1c1",hbcActId],
+     y=counts["Muc5b",hbcActId])
+```
+

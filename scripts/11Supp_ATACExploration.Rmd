@@ -20,6 +20,17 @@ archProj <- addMotifAnnotations(ArchRProj = archProj,
                                 name = "Motif",
                                 force=TRUE)
 
+umapEmbedding <- getEmbedding(archProj, embedding="UMAP_cor")
+colnames(umapEmbedding) <- paste0("UMAP",1:2)
+umapEmbedding$cellState <- archProj$predAnn
+umapEmbedding$cellState[umapEmbedding$cellState == "C1_Inj"] <- "injured"
+umapEmbedding$cellState[umapEmbedding$cellState == "C2_Hybrid"] <- "Hybrid"
+umapEmbedding$cellState <- factor(umapEmbedding$cellState)
+ggplot(umapEmbedding, aes(x=UMAP1, y=UMAP2, col=cellState)) +
+  geom_point(size=1/2) +
+  theme_classic() 
+ggsave("../plots/hbcCellState.png")
+
 ## get ArchR peak markers for motif enrichment
 markerPeaks_subHybrid <- getMarkerFeatures(
     ArchRProj = archProj, 
