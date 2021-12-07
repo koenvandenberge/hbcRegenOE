@@ -189,6 +189,68 @@ FeaturePlot(atac, features = "Krt14") + xlim(c(-6,6))
 FeaturePlot(atac, features = "Trp63") + xlim(c(-6,6))
 ```
 
+
+# Explore respiratory markers
+
+```{r}
+
+expressionBoxplot <- function(rna, gene){
+  counts <- as.vector(rna@assays$RNA[gene,])
+  df <- data.frame(counts=log1p(counts),
+                   celltype=rna$ctHybridSub)
+  ggplot(df, aes(x=celltype, y=counts)) +
+    geom_boxplot() +
+    xlab("Cell state") +
+    ylab("Log(Expression + 1)") +
+    theme_bw() +
+    theme(axis.text.x = element_text(angle=45, vjust=0.5)) +
+    ggtitle(gene)
+}
+```
+
+```{r}
+# Reg3g: respiratory marker
+FeaturePlot(rna, features = "Reg3g")
+expressionBoxplot(rna, "Reg3g")
+plotEmbedding(
+    ArchRProj = archProj, 
+    colorBy = "GeneScoreMatrix", 
+    name = "Reg3g", 
+    embedding = "UMAP_cor",
+    quantCut = c(0.01, 0.95),
+    size=1/3,
+    plotAs="points")
+
+# FOXJ1: respiratory ciliated marker
+FeaturePlot(rna, features = "Foxj1")
+expressionBoxplot(rna, "Foxj1")
+plotEmbedding(
+    ArchRProj = archProj, 
+    colorBy = "GeneScoreMatrix", 
+    name = "Foxj1", 
+    embedding = "UMAP_cor",
+    quantCut = c(0.01, 0.95),
+    size=1/3,
+    plotAs="points")
+
+# Muc5ac: respiratory secretory marker
+FeaturePlot(rna, features = "Muc5ac")
+expressionBoxplot(rna, "Muc5ac")
+plotEmbedding(
+    ArchRProj = archProj, 
+    colorBy = "GeneScoreMatrix", 
+    name = "Muc5ac", 
+    embedding = "UMAP_cor",
+    quantCut = c(0.01, 0.95),
+    size=1/3,
+    plotAs="points")
+
+
+```
+
+
+
+
 # Assign sub-hybrid labels to RNA-seq
 
 ```{r}
@@ -208,23 +270,10 @@ DimPlot(rna, group.by = "ctHybridSub", label = FALSE, repel = TRUE) +
 table(ctHybridSub)
 ```
 
+
 ## Explore hybrid1 markers from ATAC
 
-```{r}
 
-expressionBoxplot <- function(rna, gene){
-  counts <- as.vector(rna@assays$RNA[gene,])
-  df <- data.frame(counts=log1p(counts),
-                   celltype=rna$ctHybridSub)
-  ggplot(df, aes(x=celltype, y=counts)) +
-    geom_boxplot() +
-    xlab("Cell state") +
-    ylab("Log(Expression + 1)") +
-    theme_bw() +
-    theme(axis.text.x = element_text(angle=45, vjust=0.5)) +
-    ggtitle(gene)
-}
-```
 
 
 ```{r}
