@@ -1,0 +1,263 @@
+---
+title: "Integrate aging scRNA-seq data with lineage-traced scRNA-seq data"
+author: "Koen Van den Berge"
+date: "12/7/2021"
+output: 
+  html_document:
+    toc: true
+    toc_float: true
+---
+
+
+```{r pkg}
+#here::set_here()
+suppressPackageStartupMessages({
+  library(slingshot)
+  library(SingleCellExperiment)
+  library(cowplot)
+  library(rgl)
+  library(clusterExperiment)
+  library(RColorBrewer)
+  library(ggplot2)
+  library(pheatmap)
+  library(wesanderson)
+  library(gridExtra)
+  library(irlba)
+  library(tidyverse)
+  library(Signac)
+  library(Seurat)
+  library(patchwork)
+})
+```
+
+# Import lineage-traced data
+
+```{r loadData}
+sds <- readRDS("../data/finalTrajectory/sling.rds")
+counts <- readRDS("../data/finalTrajectory/counts_noResp_noMV.rds")
+# counts <- round(counts)
+sce <- readRDS("../data/finalTrajectory/sce_tradeSeq20200904.rds")
+load("../data/ALL_TF.Rda")
+clDatta <- readRDS("../data/finalTrajectory/dattaCl_noResp_noMV.rds")
+timePoint <- readRDS("../data/finalTrajectory/timePoint_noResp_noMV.rds")
+```
+
+
+## Select activated and renewed HBC clusters
+
+I will select 
+
+ - activated HBCs as cells sampled in the 24h timepoint that are in the starting cluster
+ - renewed ('resting') HBCs as cells sampled in the 14D timepoint that are in the HBC cluster
+
+```{r}
+cols <- c("#E41A1C", "#377EB8", "#4DAF4A", "#984EA3", "#FF7F00", "#FFFF33", "#A65628", "#F781BF", "#999999")
+view3d( theta = 10, phi = 10)
+# Datta labels
+plot3d(reducedDim(sds), aspect = 'iso', col=cols[clDatta], alpha=.6, xlab="UMAP1", ylab="UMAP2", zlab="UMAP3", box=FALSE, top=TRUE)
+plot3d(sds, add=TRUE, lwd=3, col="black")
+
+# timepoints
+plot3d(reducedDim(sds), aspect = 'iso', col=cols[timePoint], alpha=.6, xlab="UMAP1", ylab="UMAP2", zlab="UMAP3", box=FALSE, top=TRUE)
+plot3d(sds, add=TRUE, lwd=3, col="black")
+
+# cluster labels used for TI
+clSds <- apply(slingClusterLabels(sds), 1, which.max)
+plot3d(reducedDim(sds), aspect = 'iso', col=cols[clSds], alpha=.6, xlab="UMAP1", ylab="UMAP2", zlab="UMAP3", box=FALSE, top=TRUE)
+plot3d(sds, add=TRUE, lwd=3, col="black")
+
+
+actHBCId <- which(clSds == 8 & timePoint == "24HPI")
+restHBCId <- which(clDatta == "HBC" & timePoint == "14DPI")
+grpHBC <- rep(NA, length(c(actHBCId, restHBCId)))
+grpHBC[1:length(actHBCId)] <- "activated"
+grpHBC[is.na(grpHBC)] <- "resting"
+grpHBC <- factor(grpHBC)
+countHBC <- counts[, c(actHBCId, restHBCId)]
+```
+
+
+
+# Processing and dimensionality reduction of each dataset separately
+
+In the plots below, the left-hand panel corresponds to (scone-normalized) counts. The right panel corresponds to log-transformed and scaled (to a sequencing depth of 10K) counts.
+
+```{r}
+set.seed(1234)
+
+# scRNA-seq import of lineage-traced data
+rna <- CreateSeuratObject(counts=countHBC)
+rna$tech <- '10x'
+rna$celltype <- grpHBC
+rna <- FindVariableFeatures(rna, selection.method = "vst", nfeatures = 2000)
+rna <- ScaleData(rna)
+rna <- RunPCA(rna, npcs=20)
+rna <- RunUMAP(rna, dims = 1:20, min_dist=.1)
+
+DimPlot(rna, reduction = "umap", group.by="celltype", label=TRUE) + 
+  NoLegend() +
+  ggtitle("Lineage-traced data")
+# Markers for activated/resting HBC in scRNA-seq
+rnaNorm = NormalizeData(rna, normalization.method = "LogNormalize")
+plot_grid(FeaturePlot(rna, features = "Krtdap"),
+          FeaturePlot(rnaNorm, features = "Krtdap"))
+plot_grid(FeaturePlot(rna, features = "Krt6a"),
+          FeaturePlot(rnaNorm, features = "Krt6a"))
+plot_grid(FeaturePlot(rna, features = "Krt5"),
+          FeaturePlot(rnaNorm, features = "Krt5"))
+plot_grid(FeaturePlot(rna, features = "Krt14"),
+          FeaturePlot(rnaNorm, features = "Krt14"))
+plot_grid(FeaturePlot(rna, features = "Trp63"),
+          FeaturePlot(rnaNorm, features = "Trp63"))
+plot_grid(FeaturePlot(rna, features = "Reg3g"), #respirartory (Brann)
+          FeaturePlot(rnaNorm, features = "Reg3g"))
+plot_grid(FeaturePlot(rna, features = "Foxj1"), #resp ciliated (Brann)
+          FeaturePlot(rnaNorm, features = "Foxj1"))
+plot_grid(FeaturePlot(rna, features = "Muc5ac"), #resp secretory (Brann)
+          FeaturePlot(rnaNorm, features = "Muc5ac")) 
+plot_grid(FeaturePlot(rna, features = "Muc5b"), #respiratory (Boying)
+          FeaturePlot(rnaNorm, features = "Muc5b"))
+plot_grid(FeaturePlot(rna, features = "Cbr2"), #resp basal cell (Boying)
+          FeaturePlot(rnaNorm, features = "Cbr2"))
+plot_grid(FeaturePlot(rna, features = "Sult1c1"), #resp basal and resp epithelial (Boying)
+          FeaturePlot(rnaNorm, features = "Sult1c1"))
+
+# scRNA-seq import of whole OE data
+# Import whole OE data
+sceWOE <- readRDS("../data/wholeOE/sceWOE.rds")
+# scRNA-seq import of lineage-traced data
+rnaWOE <- CreateSeuratObject(counts=as.matrix(assays(sceWOE)$counts))
+rnaWOE$tech <- '10x'
+rnaWOE$celltype <- colData(sceWOE)$seurat_annotated
+rnaWOE <- FindVariableFeatures(rnaWOE, selection.method = "vst", nfeatures = 2000)
+rnaWOE <- ScaleData(rnaWOE)
+rnaWOE <- RunPCA(rnaWOE, npcs=20)
+rnaWOE <- RunUMAP(rnaWOE, dims = 1:20, min_dist=.1)
+
+DimPlot(rnaWOE, reduction = "umap", group.by="celltype", label=TRUE) + 
+  NoLegend() +
+  ggtitle("Whole OE data")
+rnaWOENorm = NormalizeData(rnaWOE, normalization.method = "LogNormalize")
+plot_grid(FeaturePlot(rnaWOE, features = "Krtdap"),
+          FeaturePlot(rnaWOENorm, features = "Krtdap"))
+plot_grid(FeaturePlot(rnaWOE, features = "Krt6a"),
+          FeaturePlot(rnaWOENorm, features = "Krt6a"))
+plot_grid(FeaturePlot(rnaWOE, features = "Krt5"),
+          FeaturePlot(rnaWOENorm, features = "Krt5"))
+plot_grid(FeaturePlot(rnaWOE, features = "Krt14"),
+          FeaturePlot(rnaWOENorm, features = "Krt14"))
+plot_grid(FeaturePlot(rnaWOE, features = "Trp63"),
+          FeaturePlot(rnaWOENorm, features = "Trp63"))
+plot_grid(FeaturePlot(rnaWOE, features = "Reg3g"), #respirartory (Brann)
+          FeaturePlot(rnaWOENorm, features = "Reg3g"))
+plot_grid(FeaturePlot(rnaWOE, features = "Foxj1"), #resp ciliated (Brann)
+          FeaturePlot(rnaWOENorm, features = "Foxj1"))
+plot_grid(FeaturePlot(rnaWOE, features = "Muc5ac"), #resp secretory (Brann)
+          FeaturePlot(rnaWOENorm, features = "Muc5ac")) 
+plot_grid(FeaturePlot(rnaWOE, features = "Muc5b"), #respiratory (Boying)
+          FeaturePlot(rnaWOENorm, features = "Muc5b"))
+plot_grid(FeaturePlot(rnaWOE, features = "Cbr2"), #resp basal cell (Boying)
+          FeaturePlot(rnaWOENorm, features = "Cbr2"))
+plot_grid(FeaturePlot(rnaWOE, features = "Sult1c1"), #resp basal and resp epithelial (Boying)
+          FeaturePlot(rnaWOENorm, features = "Sult1c1"))
+```
+
+
+# Assign sub-hybrid labels to lineage-traced scRNA-seq data
+
+```{r}
+ctHybridSub <- as.character(rna$celltype)
+hlpid <- which(rna@reductions$umap@cell.embeddings[,1] > 2 & rna@reductions$umap@cell.embeddings[,2]>-1)
+ctHybridSub[hlpid] <- NA
+hlp2id <- which(rna@reductions$umap@cell.embeddings[,1] > 2 & rna@reductions$umap@cell.embeddings[,2]>-1 & rna@reductions$umap@cell.embeddings[,2]<4)
+ctHybridSub[hlp2id] <- "hybrid1"
+hlp1id <- which(rna@reductions$umap@cell.embeddings[,1] > 2 & rna@reductions$umap@cell.embeddings[,2]>4)
+ctHybridSub[hlp1id] <- "hybrid2"
+rna$ctHybridSub <- ctHybridSub
+
+DimPlot(rna, group.by = "celltype", label = FALSE, repel = TRUE) +
+  ggtitle("Lineage-traced scRNA-seq data") 
+DimPlot(rna, group.by = "ctHybridSub", label = FALSE, repel = TRUE) +
+  ggtitle("Lineage-traced scRNA-seq data") 
+
+table(ctHybridSub)
+```
+
+# Marker genes and overview of gene expression per cell state
+
+```{r}
+# Marker genes for hybrid clusters
+ctHybrid <- rna$ctHybridSub
+ctHybrid[ctHybrid == "hybrid1" | ctHybrid == "hybrid2"] <- "hybrid"
+Idents(rnaNorm) <- ctHybrid
+rnaNormMarkers <- FindAllMarkers(rnaNorm, only.pos = TRUE, min.pct = 0.25, logfc.threshold = 0.25)
+rnaNormMarkers %>%
+    group_by(cluster) %>%
+    top_n(n = 10, wt = avg_logFC) -> top10rnaNorm
+DoHeatmap(rnaNorm, features = top10rnaNorm$gene) + NoLegend()
+
+# Marker genes for subhybrid clusters
+Idents(rnaNorm) <- rna$ctHybridSub
+rnaNormMarkers <- FindAllMarkers(rnaNorm, only.pos = TRUE, min.pct = 0.25, logfc.threshold = 0.25)
+rnaNormMarkers %>%
+    group_by(cluster) %>%
+    top_n(n = 10, wt = avg_logFC) -> top10rnaNorm
+DoHeatmap(rnaNorm, features = top10rnaNorm$gene) + NoLegend()
+
+```
+
+# Integrate data
+
+We will transfer the whole OE labels to the lineage-traced scRNA-seq data.
+This will allow us to check:
+ - Whether regenerated HBCs are close to resting
+ - Whether RNA hybrid cells are similar to respiratory cells (we hope not)
+
+```{r}
+rna$origin <- "linTrace"
+rnaWOE$origin <- "WOE"
+seurlist <- list("linrna"=rna,
+                 "woerna"=rnaWOE)
+features <- SelectIntegrationFeatures(object.list = seurlist)
+anchors <- FindIntegrationAnchors(object.list = seurlist, 
+                                  anchor.features = features)
+integrated <- IntegrateData(anchorset = anchors)
+```
+
+## Analyze integrated dataset
+
+```{r}
+DefaultAssay(integrated) <- "integrated"
+
+# Run the standard workflow for visualization and clustering
+integrated <- ScaleData(integrated, verbose = FALSE)
+integrated <- RunPCA(integrated, npcs = 30, verbose = FALSE)
+integrated <- RunUMAP(integrated, reduction = "pca", dims = 1:30)
+# integrated <- FindNeighbors(integrated, reduction = "pca", dims = 1:30)
+# integrated <- FindClusters(integrated, resolution = 0.5)
+# Visualization
+DimPlot(integrated, reduction = "umap", group.by = "origin") + ggtitle("Integrated data")
+DimPlot(integrated, reduction = "umap", group.by = "celltype") + ggtitle("Integrated data: cell type")
+DimPlot(integrated, reduction = "umap", group.by = "ctHybridSub") + ggtitle("Integrated data: cell state of linage-traced scRNA-seq")
+
+FeaturePlot(integrated, features = "Krtdap")
+FeaturePlot(integrated, features = "Krt6a")
+FeaturePlot(integrated, features = "Krt5")
+FeaturePlot(integrated, features = "Krt14")
+FeaturePlot(integrated, features = "Trp63")
+FeaturePlot(integrated, features="Reg3g") #resp (Brann)
+FeaturePlot(integrated, features="Foxj1") #resp ciliated (Brann)
+FeaturePlot(integrated, features="Muc5ac") #resp secretory (Brann)
+FeaturePlot(integrated, features="Cbr2") #resp basal cell (Boying)
+FeaturePlot(integrated, features="Sult1c1") #resp basal and resp epithelial (Boying)
+
+```
+
+
+# Session info
+
+```{r}
+sessionInfo()
+```
+
+
