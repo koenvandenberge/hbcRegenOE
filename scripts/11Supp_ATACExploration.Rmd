@@ -357,7 +357,6 @@ cowplot::plot_grid(plotlist=p2Hybrid[10:18])
 # Accesssibility of key lineage-specific genes from other cell types / lineages
 
 ```{r}
-# John suggested Kit1, but there's only Kit and Kitl
 # 
 markerGenesLineageSpecific <- c("Sox2", "Ascl1", "Kit", "Neurog1", "Neurod1")
 p <- plotEmbedding(
@@ -384,3 +383,96 @@ p2LineageSpecific <- lapply(p, function(x){
 cowplot::plot_grid(plotlist=p2LineageSpecific)
 ```
 
+# Accessibility of hybrid markes identified using RNA-seq
+
+```{r}
+# marker genes identified in lineage-traced scRNA-seq when combining hybrid1/hybrid2
+markerHybridAll <- c("Ly6a", "Adh7", "Mgp", "Selenbp1", "Sftpd", "Sult1d1",
+                     "Cyp2f2", "Reg3g", "Krt15", "Bpifa1")
+markerHyrbid1 <- c("Sult1d1", "Serpina3n", "Pglyrp1", "Adh7", "Gsta3", "Prdx6",
+                   "Reg3g", "Lcn2", "Bpifa1", "Ltf")
+markerHyrbid2 <- c("Adh1", "Mgp", "Ly6a", "Ly6d", "Sftpd", "Selenbp1",
+                   "Krt15", "Aldh3a1", "Cyp2f2")
+```
+
+## Markers for all hybrid cells
+
+```{r}
+pMarkerHybridAll <- plotEmbedding(
+    ArchRProj = archProj, 
+    colorBy = "GeneScoreMatrix", 
+    name = markerHybridAll[1:9], 
+    embedding = "UMAP_cor",
+    quantCut = c(0.01, 0.95),
+    size=1/3,
+    plotAs="points"
+)
+# clean
+p2MarkerHybridAll <- lapply(pMarkerHybridAll, function(x){
+    x + guides(color = FALSE, fill = FALSE) + 
+    theme_ArchR(baseSize = 6.5) +
+    theme(plot.margin = unit(c(0, 0, 0, 0), "cm")) +
+    theme(
+        axis.text.x=element_blank(), 
+        axis.ticks.x=element_blank(), 
+        axis.text.y=element_blank(), 
+        axis.ticks.y=element_blank()
+    )
+})
+cowplot::plot_grid(plotlist=p2MarkerHybridAll)
+```
+
+
+## Markers for hybrid1 cells
+
+```{r}
+pMarkerHybrid1 <- plotEmbedding(
+    ArchRProj = archProj, 
+    colorBy = "GeneScoreMatrix", 
+    name = markerHyrbid1[1:9], 
+    embedding = "UMAP_cor",
+    quantCut = c(0.01, 0.95),
+    size=1/3,
+    plotAs="points"
+)
+# clean
+p2MarkerHybrid1 <- lapply(pMarkerHybrid1, function(x){
+    x + guides(color = FALSE, fill = FALSE) + 
+    theme_ArchR(baseSize = 6.5) +
+    theme(plot.margin = unit(c(0, 0, 0, 0), "cm")) +
+    theme(
+        axis.text.x=element_blank(), 
+        axis.ticks.x=element_blank(), 
+        axis.text.y=element_blank(), 
+        axis.ticks.y=element_blank()
+    )
+})
+cowplot::plot_grid(plotlist=p2MarkerHybrid1)
+```
+
+## Markers for hybrid2 cells
+
+```{r}
+pMarkerHybrid2 <- plotEmbedding(
+    ArchRProj = archProj, 
+    colorBy = "GeneScoreMatrix", 
+    name = markerHyrbid2[1:9], 
+    embedding = "UMAP_cor",
+    quantCut = c(0.01, 0.95),
+    size=1/3,
+    plotAs="points"
+)
+# clean
+p2MarkerHybrid2 <- lapply(pMarkerHybrid2, function(x){
+    x + guides(color = FALSE, fill = FALSE) + 
+    theme_ArchR(baseSize = 6.5) +
+    theme(plot.margin = unit(c(0, 0, 0, 0), "cm")) +
+    theme(
+        axis.text.x=element_blank(), 
+        axis.ticks.x=element_blank(), 
+        axis.text.y=element_blank(), 
+        axis.ticks.y=element_blank()
+    )
+})
+cowplot::plot_grid(plotlist=p2MarkerHybrid2)
+```
