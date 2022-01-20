@@ -70,6 +70,7 @@ grpHBC[1:length(actHBCId)] <- "activated"
 grpHBC[is.na(grpHBC)] <- "resting"
 grpHBC <- factor(grpHBC)
 countHBC <- counts[, c(actHBCId, restHBCId)]
+dim(countHBC)
 ```
 
 # Dimensionality reduction
