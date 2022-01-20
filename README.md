@@ -23,7 +23,9 @@ Below is a brief summary of what each of the scripts do.
  - `11Supp3_integratescRNAseq`: Integration of lineage-traced with whole OE data. Shows a similarity between regenerated HBCs from lineage-traced data to truly resting cells from whole OE data. Identification of marker genes of hybrid clusters and activated/resting HBCs using scRNA-seq data.
  - `12_211022_integrateCascadeMotifs`: Supplementary script on linking the results of TF cascade to motif enrichment.
 
-## Supplementary Data
+## Data
+
+All data can be found in the following DropBox folder: https://www.dropbox.com/sh/qqaz99r64f9odvr/AABXsRGoeKbkaOOst9nORlVna?dl=0
 
 
 ## Software versions
