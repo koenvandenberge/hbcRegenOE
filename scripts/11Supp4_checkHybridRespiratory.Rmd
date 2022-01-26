@@ -1,0 +1,70 @@
+---
+title: "Contamination check"
+author: "Koen Van den Berge"
+date: "1/21/2022"
+output: html_document
+---
+
+```{r}
+library(Seurat)
+library(SingleCellExperiment)
+```
+
+
+
+```{r}
+# scRNA-seq import of whole OE data
+# Import whole OE data
+sceWOE <- readRDS("../data/wholeOE/sceWOE.rds")
+# scRNA-seq import of lineage-traced data
+rnaWOE <- CreateSeuratObject(counts=as.matrix(assays(sceWOE)$counts))
+rnaWOE$tech <- '10x'
+rnaWOE$celltype <- colData(sceWOE)$seurat_annotated
+rnaWOE <- FindVariableFeatures(rnaWOE, selection.method = "vst", nfeatures = 2000)
+rnaWOE <- ScaleData(rnaWOE)
+rnaWOE <- RunPCA(rnaWOE, npcs=20)
+rnaWOE <- RunUMAP(rnaWOE, dims = 1:20, min_dist=.1)
+
+DimPlot(rnaWOE, reduction = "umap", group.by="celltype", label=TRUE) + 
+  NoLegend() +
+  ggtitle("Whole OE data")
+
+rnaWOENorm = NormalizeData(rnaWOE, normalization.method = "LogNormalize")
+plot_grid(FeaturePlot(rnaWOE, features = "Krtdap"),
+          FeaturePlot(rnaWOENorm, features = "Krtdap"))
+plot_grid(FeaturePlot(rnaWOE, features = "Krt6a"),
+          FeaturePlot(rnaWOENorm, features = "Krt6a"))
+plot_grid(FeaturePlot(rnaWOE, features = "Krt5"),
+          FeaturePlot(rnaWOENorm, features = "Krt5"))
+plot_grid(FeaturePlot(rnaWOE, features = "Krt14"),
+          FeaturePlot(rnaWOENorm, features = "Krt14"))
+plot_grid(FeaturePlot(rnaWOE, features = "Trp63"),
+          FeaturePlot(rnaWOENorm, features = "Trp63"))
+plot_grid(FeaturePlot(rnaWOE, features = "Reg3g"), #respirartory (Brann)
+          FeaturePlot(rnaWOENorm, features = "Reg3g"))
+plot_grid(FeaturePlot(rnaWOE, features = "Foxj1"), #resp ciliated (Brann)
+          FeaturePlot(rnaWOENorm, features = "Foxj1"))
+plot_grid(FeaturePlot(rnaWOE, features = "Muc5ac"), #resp secretory (Brann)
+          FeaturePlot(rnaWOENorm, features = "Muc5ac")) 
+plot_grid(FeaturePlot(rnaWOE, features = "Muc5b"), #respiratory (Boying)
+          FeaturePlot(rnaWOENorm, features = "Muc5b"))
+plot_grid(FeaturePlot(rnaWOE, features = "Cbr2"), #resp basal cell (Boying)
+          FeaturePlot(rnaWOENorm, features = "Cbr2"))
+plot_grid(FeaturePlot(rnaWOE, features = "Sult1c1"), #resp basal and resp epithelial (Boying)
+          FeaturePlot(rnaWOENorm, features = "Sult1c1"))
+```
+
+## Finding markers for entire respiratory basal cell cluster
+
+## Finding markers for 'confident' respiratory basal cells
+
+```{r}
+DimPlot(rnaWOE, reduction = "umap", group.by="celltype", label=TRUE) + 
+  NoLegend() +
+  ggtitle("Whole OE data")
+
+set.seed(44)
+rnaWOE <- FindClusters(rnaWOE)
+```
+
+

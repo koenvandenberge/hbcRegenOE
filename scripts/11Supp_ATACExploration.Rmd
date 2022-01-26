@@ -15,6 +15,25 @@ archProj <- loadArchRProject("../data/scATAC/archR_subHybridClusters/",
                  showLogo = FALSE)
 plotEmbedding(ArchRProj = archProj, colorBy = "cellColData", 
               name = "predAnn", embedding = "UMAP_cor")
+
+geneScoreMat <- ArchR::getMatrixFromProject(archProj, useMatrix="GeneScoreMatrix")
+geneScoreMat # SummarizedExperiment: the 'assays' slot contains the scores.
+rowData(geneScoreMat) # information on the rows (genes)
+# basic plot
+plot(x = assays(geneScoreMat)$GeneScoreMatrix[which(rowData(geneScoreMat)$name == "Fos"),],
+     y = assays(geneScoreMat)$GeneScoreMatrix[which(rowData(geneScoreMat)$name == "Junb"),])
+# a little nicer with cell type labels and on log scale
+df <- data.frame(fosAcc=assays(geneScoreMat)$GeneScoreMatrix[which(rowData(geneScoreMat)$name == "Fos"),],
+                 junbAcc=assays(geneScoreMat)$GeneScoreMatrix[which(rowData(geneScoreMat)$name == "Junb"),],
+                 ct = archProj$predAnn)
+ggplot(df, aes(x=log1p(fosAcc), y=log1p(junbAcc), col=ct)) +
+  geom_point(size=.1) +
+  theme_classic()
+```
+
+
+
+```{r}
 archProj <- addMotifAnnotations(ArchRProj = archProj, 
                                 motifSet = "cisbp", 
                                 name = "Motif",
