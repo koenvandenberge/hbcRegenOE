@@ -160,6 +160,16 @@ plot_grid(FeaturePlot(rnaWOE, features = "Cbr2"), #resp basal cell (Boying)
           FeaturePlot(rnaWOENorm, features = "Cbr2"))
 plot_grid(FeaturePlot(rnaWOE, features = "Sult1c1"), #resp basal and resp epithelial (Boying)
           FeaturePlot(rnaWOENorm, features = "Sult1c1"))
+
+## select Krt5 negative respiratory basal cells for Divya
+Seurat::Assays(rnaWOE)
+seurCount <- Seurat::GetAssay(rnaWOE, "RNA")
+krt5Count <- seurCount["Krt5",]
+krt5NegRBC <- rnaWOE$celltype == "Respiratory basal cell" & krt5Count == 0
+rnaWOE$krt5NegRBC <- krt5NegRBC[1,]
+DimPlot(rnaWOE, group.by = "krt5NegRBC")
+cellsToRemove <- Seurat::Cells(rnaWOE)[which(krt5NegRBC[1,])]
+saveRDS(cellsToRemove, file="../data/cellsToRemove_respBC_ForDivya.rds")
 ```
 
 
