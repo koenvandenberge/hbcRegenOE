@@ -466,67 +466,6 @@ plotTfHeatmapCascade <- function(yhat, lineage, sds, cl, peakTimes,
 # dm = colData(sce)$tradeSeq$dm
 # main=""
 
-# plotTfHeatmapClust <- function(yhat, 
-#                                lineage, 
-#                                sds, 
-#                                cl, 
-#                                peakTimes, 
-#                                k,
-#                                nPoints=ncol(yhat), 
-#                                dm = colData(sce)$tradeSeq$dm,
-#                                main=""){
-#   require(pheatmap)
-#   yhatMatScaled <- t(scale(t(yhat)))
-#   oo <- order(peakTimes, decreasing=FALSE)
-#   annCols <- anno(lineage, nPoints, sds, dm, cl)
-#   annCols2 <- as.character(colDf$trCol[match(annCols, colDf$rcCol)])
-#   annCols2[is.na(annCols2)] <- "white"
-#   dfAnn <- data.frame(cellType=annCols, cellType2=annCols2)
-#   rownames(dfAnn) <- colnames(yhatMatScaled)
-#   annColors <- list()
-#   annColors[[1]] <- as.character(levels(factor(annCols)))
-#   names(annColors[[1]]) <- levels(factor(annCols))
-#   annColors[[2]] <- as.character(levels(factor(annCols2)))
-#   names(annColors[[2]]) <- levels(factor(annCols2))
-#   names(annColors) <- c("cellType", "cellType2")
-#   # only use 1 color
-#   dfAnn <- dfAnn[,2, drop=FALSE]
-#   annColors <- annColors[2]
-#   #names(annColors[[1]]) <- c("HBC*", "iOSN", "Sus", "GBC", "mOSN")
-#   
-#   pal <- wesanderson::wes_palette("Zissou1", n=12, type="continuous")
-#   yhatMatScaledOrdered <- yhatMatScaled[names(peakTimes)[oo],]
-#   colnames(yhatMatScaledOrdered) <- rownames(dfAnn) <- as.character(1:ncol(yhatMatScaledOrdered))
-#   pClust <- pheatmap(yhatMatScaledOrdered, cluster_cols=FALSE, cluster_rows=TRUE,
-#          border_color=NA, col=pal, main=paste0(main,": Clustered genes"), annotation_col=dfAnn, 
-#            annotation_colors = annColors, annotation_names_col = FALSE,
-#            annotation_legend = TRUE, show_rownames = FALSE,
-#          show_colnames=FALSE)
-#   pClust
-#   
-#   clusters <- cutree(pClust$tree_row, k = k)
-#   # colRow <- c("steelblue", "darkseagreen3", "orange", "salmon", "goldenrod3")
-#   # dfAnnRow <- data.frame(clus=colRow[clusters])
-#   dfAnnRow <- data.frame(clus=clusters)
-#   rownames(dfAnnRow) <- pClust$tree_row$labels
-#   dfAnnRow$set <- NA
-#   dfAnnRow$set[dfAnnRow$clus == 1] <- "ER stress, RNA biosynthesis"
-#   dfAnnRow$set[dfAnnRow$clus == 2] <- "Cilium org., cell projection, Ca2+ signaling"
-#   dfAnnRow$set[dfAnnRow$clus == 3] <- "Cell cycle, P53 signal transduction"
-#   dfAnnRow$set[dfAnnRow$clus == 4] <- "Cell cycle, DNA recombination, chromatin"
-#   dfAnnRow <- dfAnnRow[,"set", drop=FALSE]
-# 
-#   
-#   pheatmap(yhatMatScaledOrdered, cluster_cols=FALSE, cluster_rows=TRUE,
-#          border_color=NA, col=pal, main=paste0(main,": Clustered genes"), 
-#          annotation_col=dfAnn, annotation_row = dfAnnRow,
-#            annotation_colors = annColors, annotation_names_col = FALSE,
-#            annotation_legend = TRUE, show_rownames = FALSE,
-#           show_colnames=FALSE)
-#   
-#   dfAnnRow$label <- clusters
-#   return(dfAnnRow)
-# }
 
 
 plotTfHeatmapClust2 <- function(yhat, 
@@ -571,15 +510,11 @@ plotTfHeatmapClust2 <- function(yhat,
   pClust
   
   clusters <- cutree(pClust$tree_row, k = k)
-  # colRow <- c("steelblue", "darkseagreen3", "orange", "salmon", "goldenrod3")
-  # dfAnnRow <- data.frame(clus=colRow[clusters])
+
   dfAnnRow <- data.frame(clus=clusters)
   rownames(dfAnnRow) <- pClust$tree_row$labels
   dfAnnRow$set <- NA
-  # dfAnnRow$set[dfAnnRow$clus == 1] <- "ER stress, RNA biosynthesis"
-  # dfAnnRow$set[dfAnnRow$clus == 2] <- "Cilium org., cell projection, Ca2+ signaling"
-  # dfAnnRow$set[dfAnnRow$clus == 3] <- "Cell cycle, P53 signal transduction"
-  # dfAnnRow$set[dfAnnRow$clus == 4] <- "Cell cycle, DNA recombination, chromatin"
+
   dfAnnRow$set[dfAnnRow$clus == 1] <- "Stress"
   dfAnnRow$set[dfAnnRow$clus == 2] <- "Dendrite proj."
   dfAnnRow$set[dfAnnRow$clus == 3] <- "Cell cycle"

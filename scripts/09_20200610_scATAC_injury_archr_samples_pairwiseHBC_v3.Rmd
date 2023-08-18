@@ -136,31 +136,6 @@ for(mm in 1:length(markers)){
 cowplot::plot_grid(plotlist=pMarkers)
 # ggsave("../plots/scatacSupp/markers.png", width=12, height=12)
 
-## plots for paper
-# umapCor <- getEmbedding(proj, embedding="UMAP_cor")
-# geneScores <- ArchR::getMatrixFromProject(proj, useMatrix = "GeneScoreMatrix")
-# markerPlotList <- list()
-# for(mm in 1:length(markers)){
-#   y <- log1p(assays(geneScores, "GeneScoreMatrix")[[1]][which(toupper(rowData(geneScores)$name) == markers[mm]),])
-#   df <- data.frame(dim1=umapCor[,1],
-#                    dim2=umapCor[,2],
-#                    y=y)
-#   markerPlotList[[mm]] <- ggplot(df, aes(x=dim1, y=dim2, colour=y)) +
-#     geom_point(alpha=.8, size=1/10) +
-#     #scale_color_gradient(low = "gray82", high = "steelblue4") +
-#     scale_color_gradientn(colors = ArchR::paletteContinuous(),
-#                           values = c(0,quantile(rescale(y), probs = seq(0.5, 0.975, length=254)), 1)) +
-#     theme_classic() +
-#     ggtitle(markers[mm]) +
-#     theme(legend.position = "none") +
-#     xlab("UMAP1") +
-#     ylab("UMAP2") +
-#     coord_fixed()
-# }
-# 
-# cowplot::plot_grid(plotlist=markerPlotList)
-#   
-
 # HBC: 3,4,5,6,7,9
 # Neur: 1,2
 # Sus: 8
@@ -230,6 +205,37 @@ pCellType <- ggplot(umapDims, aes(x=UMAP1, y=UMAP2, color=clMerged)) +
 pCellType
 # ggsave("../plots/scatac_fig4_cellType_supp.png", height=5)
 ```
+
+
+# Shared TFs
+
+```{r}
+sharedTF <- c("Arid5a", "Arntl2", "Cbx4", "Ccnt2", "Creb3l2", "Ebf2",
+              "Gatad1", "Hmga1", "Hmga2", "Nfat5", "Nr4a2", "Pbxip1",
+              "Pdlim4", "Srebf1", "Taf10", "Tcea1", "Tet2", "Uncx",
+              "Zfp560")
+
+pSharedTF <- plotEmbedding(ArchRProj = proj, 
+                          colorBy = "GeneScoreMatrix", 
+                          name = sharedTF, 
+                          embedding = "UMAP_cor",
+                          size = 1/2,
+                          baseSize = 8,
+                          plotAs = "points")
+pSharedTF
+for(mm in 1:length(sharedTF)){
+  curp <- pSharedTF[[mm]]
+  pSharedTF[[mm]] <- curp + 
+    theme(legend.position = "none") +
+    ggtitle(markers[mm]) +
+    xlab("UMAP1") +
+    ylab("UMAP2")
+}
+
+cowplot::plot_grid(plotlist=pSharedTF)
+```
+
+
 
 
 # Preliminary HBC analysis without integration

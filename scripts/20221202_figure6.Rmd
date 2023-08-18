@@ -1,0 +1,238 @@
+---
+title: "OE Regeneration Main - Figure 6"
+author: "Divya Kunda"
+date: '12/2/2022'
+output: html_document
+---
+
+```{r pkg}
+#load packages
+suppressPackageStartupMessages({
+  library(SingleCellExperiment)
+  library(ggplot2)
+  library(parallel)
+  library(ArchR)
+  library(plyr)
+  library(ggbreak)
+})
+```
+
+# Import data
+
+```{r loadData}
+archProj <- loadArchRProject("../data/scATAC/archR_subHybridClusters/", showLogo = FALSE)
+sds <- readRDS("../data/finalTrajectory/sling.rds")
+counts <- readRDS("../data/finalTrajectory/counts_noResp_noMV.rds")
+counts <- round(counts)
+sce <- readRDS("../data/finalTrajectory/sce_tradeSeq20200904.rds")
+load("../data/ALL_TF.Rda")
+clDatta <- readRDS("../data/finalTrajectory/dattaCl_noResp_noMV.rds")
+timePoint <- readRDS("../data/finalTrajectory/timePoint_noResp_noMV.rds")
+```
+
+# scATAC-seq analysis of injury response genes
+Genes obtained from Tiffany's bulk ATAC-seq analysis in Figure 4c,d
+
+```{r}
+woundGenes <- c("Icam1", "Krt5", "Krt6a", "Ecm1", "Sprr1a", "Emp1")
+
+pWoundAcc <- plotEmbedding(
+  ArchRProj = archProj, 
+  colorBy = "GeneScoreMatrix", 
+  name = woundGenes, 
+  embedding = "UMAP_cor",
+  quantCut = c(0.01, 0.95),
+  linewidth=1,
+  plotAs="points"
+)
+
+#clean
+p2WoundAcc <- lapply(pWoundAcc, function(x){
+    x + guides(color = FALSE, fill = FALSE) + 
+    theme_ArchR(baselinewidth = 6.5) +
+    theme(plot.margin = unit(c(0, 0, 0, 0), "cm")) +
+    theme(
+        axis.text.x=element_blank(), 
+        axis.ticks.x=element_blank(), 
+        axis.text.y=element_blank(), 
+        axis.ticks.y=element_blank()
+    )
+})
+
+pWoundAcc
+```
+
+## Density plots of gene activity scores
+
+```{r}
+geneScoreMat <- ArchR::getMatrixFromProject(archProj, useMatrix="GeneScoreMatrix")
+
+dfWound <- data.frame(
+  Icam1Acc = assays(geneScoreMat)$GeneScoreMatrix[which(rowData(geneScoreMat)$name == "Icam1"),],
+  Krt5Acc = assays(geneScoreMat)$GeneScoreMatrix[which(rowData(geneScoreMat)$name == "Krt5"),],
+  Krt6aAcc = assays(geneScoreMat)$GeneScoreMatrix[which(rowData(geneScoreMat)$name == "Krt6a"),],
+  Ecm1Acc = assays(geneScoreMat)$GeneScoreMatrix[which(rowData(geneScoreMat)$name == "Ecm1"),],
+  Sprr1aAcc = assays(geneScoreMat)$GeneScoreMatrix[which(rowData(geneScoreMat)$name == "Sprr1a"),],
+  Emp1Acc = assays(geneScoreMat)$GeneScoreMatrix[which(rowData(geneScoreMat)$name == "Emp1"),],
+  ct = geneScoreMat@colData$clHBCMerged)
+```
+
+### Icam1
+
+```{r}
+phi <- ddply(dfWound, "ct", summarise, ct.median = median(log1p(Icam1Acc)))
+mu <- ddply(dfWound, "ct", summarise, ct.mean = mean(log1p(Icam1Acc)))
+
+densIcam1 <- ggplot(dfWound, aes(x = log1p(Icam1Acc), col = ct, fill = ct)) +
+  ggtitle('gene activity') +
+  theme_classic() +
+  theme(legend.position = 'none',
+        axis.line = element_line(linewidth = .5), 
+        axis.ticks = element_line(linewidth = .5), 
+        axis.text = element_text(size = 12)) +
+  geom_density(alpha=0, linewidth = .75) +
+  geom_vline(data = phi, aes(xintercept = ct.median, color = ct), linetype = "dashed", linewidth = .75) +
+  scale_y_break(c(.8, 1), scales = 0.5)
+
+densIcam1
+phi
+mu
+```
+
+### Krt5
+
+```{r}
+phi <- ddply(dfWound, "ct", summarise, ct.median = median(log1p(Krt5Acc)))
+mu <- ddply(dfWound, "ct", summarise, ct.mean = mean(log1p(Krt5Acc)))
+
+densKrt5 <- ggplot(dfWound, aes(x = log1p(Krt5Acc), col = ct, fill = ct)) +
+  ggtitle('gene activity') +
+  theme_classic() +
+  theme(legend.position = 'none',
+        axis.line = element_line(linewidth = .5), 
+        axis.ticks = element_line(linewidth = .5), 
+        axis.text = element_text(size = 12)) +
+  geom_density(alpha=0, linewidth = .75) +
+  geom_vline(data = phi, aes(xintercept = ct.median, color = ct), linetype = "dashed", linewidth = .75) +
+  scale_y_break(c(.8, 1), scales = 0.5)
+
+densKrt5
+phi
+mu
+```
+
+### Krt6a
+
+```{r}
+phi <- ddply(dfWound, "ct", summarise, ct.median = median(log1p(Krt6aAcc)))
+mu <- ddply(dfWound, "ct", summarise, ct.mean = mean(log1p(Krt6aAcc)))
+
+densKrt6a <- ggplot(dfWound, aes(x = log1p(Krt6aAcc), col = ct, fill = ct)) +
+  ggtitle('gene activity') +
+  theme_classic() +
+  theme(legend.position = 'none',
+        axis.line = element_line(linewidth = .5), 
+        axis.ticks = element_line(linewidth = .5), 
+        axis.text = element_text(size = 12)) +
+  geom_density(alpha=0, linewidth = .75) +
+  geom_vline(data = phi, aes(xintercept = ct.median, color = ct), linetype = "dashed", linewidth = .75) +
+  scale_y_break(c(.8, 1), scales = 0.5)
+
+densKrt6a
+phi
+mu
+```
+
+### Ecm1
+
+```{r}
+phi <- ddply(dfWound, "ct", summarise, ct.median = median(log1p(Ecm1Acc)))
+mu <- ddply(dfWound, "ct", summarise, ct.mean = mean(log1p(Ecm1Acc)))
+
+densEcm1 <- ggplot(dfWound, aes(x = log1p(Ecm1Acc), col = ct, fill = ct)) +
+  ggtitle('gene activity') +
+  theme_classic() +
+  theme(legend.position = 'none',
+        axis.line = element_line(linewidth = .5), 
+        axis.ticks = element_line(linewidth = .5), 
+        axis.text = element_text(size = 12)) +
+  geom_density(alpha=0, linewidth = .75) +
+  geom_vline(data = phi, aes(xintercept = ct.median, color = ct), linetype = "dashed", linewidth = .75) +
+  scale_y_break(c(.8, 1), scales = 0.5)
+
+densEcm1
+phi
+mu
+```
+
+### Sprr1a
+
+```{r}
+phi <- ddply(dfWound, "ct", summarise, ct.median = median(log1p(Sprr1aAcc)))
+mu <- ddply(dfWound, "ct", summarise, ct.mean = mean(log1p(Sprr1aAcc)))
+
+densSprr1a <- ggplot(dfWound, aes(x = log1p(Sprr1aAcc), col = ct, fill = ct)) +
+  ggtitle('gene activity') +
+  theme_classic() +
+  theme(legend.position = 'none',
+        axis.line = element_line(linewidth = .5), 
+        axis.ticks = element_line(linewidth = .5), 
+        axis.text = element_text(size = 12)) +
+  geom_density(alpha=0, linewidth = .75) +
+  geom_vline(data = phi, aes(xintercept = ct.median, color = ct), linetype = "dashed", linewidth = .75) +
+  scale_y_break(c(.8, 1), scales = 0.5)
+
+densSprr1a
+phi
+mu
+```
+
+### Emp1
+
+```{r}
+phi <- ddply(dfWound, "ct", summarise, ct.median = median(log1p(Emp1Acc)))
+mu <- ddply(dfWound, "ct", summarise, ct.mean = mean(log1p(Emp1Acc)))
+
+densEmp1 <- ggplot(dfWound, aes(x = log1p(Emp1Acc), col = ct, fill = ct)) +
+  ggtitle('gene activity') +
+  theme_classic() +
+  theme(legend.position = 'none',
+        axis.line = element_line(linewidth = .5), 
+        axis.ticks = element_line(linewidth = .5), 
+        axis.text = element_text(size = 12)) +
+  geom_density(alpha=0, linewidth = .75) +
+  geom_vline(data = phi, aes(xintercept = ct.median, color = ct), linetype = "dashed", linewidth = .75) +
+  scale_y_break(c(.8, 1), scales = 0.5)
+
+densEmp1
+phi
+mu
+```
+
+## Supplementary Figure 7
+
+```{r}
+dims <- c(1,3)
+rd <- reducedDims(sds)[,dims]
+
+markerPlotList <- list()
+for(mm in 1:length(woundGenes)){
+  y <- log1p(counts[woundGenes[mm],])
+  df <- data.frame(dim1=rd[,1],
+                   dim2=rd[,2],
+                   y=y)
+  
+    markerPlotList[[mm]] <- ggplot(df, aes(x=dim1, y=dim2, colour=y)) +
+    geom_point(alpha=.3, linewidth=1/2) +
+    scale_color_gradient(low = "gray82", high = "steelblue4") +
+    theme_classic() +
+    ggtitle(woundGenes[mm]) +
+    theme(legend.position = "none") +
+    xlab("UMAP1") +
+    ylab("UMAP3") +
+    coord_fixed()
+}
+
+pWoundExp <- cowplot::plot_grid(plotlist = markerPlotList)
+pWoundExp
+```

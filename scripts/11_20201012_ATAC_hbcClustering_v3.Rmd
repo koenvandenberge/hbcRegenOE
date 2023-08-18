@@ -146,16 +146,8 @@ atac <- NormalizeData(atac)
 atac <- ScaleData(atac)
 # process peak matrix
 DefaultAssay(atac) <- "ATAC"
-# VariableFeatures(atac) <- names(which(Matrix::rowSums(atac) > 50))
-# atac <- RunLSI(atac, n = 30, scale.max = NULL)
-# atac <- RunUMAP(atac, reduction = "lsi", dims = 1:30)
 atac <- FindTopFeatures(atac, min.cutoff = 'q0')
-# Seurat 3
 atac <- RunLSI(atac, n = 30) 
-# Seurat 4
-#atac <- RunTFIDF(atac)
-#atac <- RunSVD(atac, n = 30, reduction.key = "lsi_", reduction.name = "lsi")
-# drop first dim as often correlated with seq depth
 atac <- RunUMAP(object = atac, reduction = 'lsi', dims = 2:30)
 
 # scRNA-seq import
@@ -442,14 +434,7 @@ ctHybridSub[hlp2id] <- "hybrid1"
 hlp1id <- which(rna@reductions$umap@cell.embeddings[,1] > 2 & rna@reductions$umap@cell.embeddings[,2]>4)
 ctHybridSub[hlp1id] <- "hybrid2"
 rna$ctHybridSub <- ctHybridSub
-# ctHybridSub <- as.character(rna$celltype)
-# hlpid <- which(rna@reductions$umap@cell.embeddings[,1] > 2 & rna@reductions$umap@cell.embeddings[,2] < 2)
-# ctHybridSub[hlpid] <- NA
-# hlp2id <- which(rna@reductions$umap@cell.embeddings[,1] > 2 & rna@reductions$umap@cell.embeddings[,2] > -1 & rna@reductions$umap@cell.embeddings[,2]<2)
-# ctHybridSub[hlp2id] <- "hybrid1"
-# hlp1id <- which(rna@reductions$umap@cell.embeddings[,1] > 2 & rna@reductions$umap@cell.embeddings[,2] < -4)
-# ctHybridSub[hlp1id] <- "hybrid2"
-# rna$ctHybridSub <- ctHybridSub
+
 
 
 DimPlot(rna, group.by = "ctHybridSub", label = FALSE, repel = TRUE) +
