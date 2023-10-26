@@ -6,7 +6,7 @@ Below is a brief summary of what each of the scripts do.
 
  - `01_20200415_preprocessingTI`: Preprocessing of scRNA-seq data to prepare it for trajectory inference. Includes removal of doublets, temporally asynchronous cells as well as respiratory and microvillous cells.
  - `02_20200819_trajectoryInference`: Trajectory inference.
- - `02Supp_geneExpressionTrajectory`: Supplementary script visualizing gene expression of genes along the trajectory or pseudotime. Use this if you'd like to explore gene expression, or the Shiny app at https://scf.berkeley.edu/shiny/koenvdberge/3dOES/.
+ - `02Supp_geneExpressionTrajectory`: Supplementary script visualizing gene expression of genes along the trajectory or pseudotime. Use this if you'd like to explore gene expression.
  - `03_evaluateKHBCRegen`: Evaluating the number of knots to use for `tradeSeq`.
  - `04_fitNBGam_differentKnots`: Fit `tradeSeq` NB-GAM.
  - `05_20201001_figure1`: Plots of trajectory and marker discovery for each lineage using `tradeSeq`. Includes code for generating panels b-e of Figure 1.
